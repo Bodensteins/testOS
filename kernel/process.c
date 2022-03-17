@@ -8,7 +8,7 @@
 
 process proc_list[NPROC];
 
-process *current;
+process *current=NULL;
 
 extern char trampoline[];
 extern void return_to_user();

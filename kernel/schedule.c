@@ -47,6 +47,21 @@ void schedule(){
         return;
     }
 
+    if(current!=NULL && current->state==ZOMBIE){
+        //printk("zombie: %d\n", current->pid);
+        current->state=UNUSED;
+        for(int i=0;i<current->segment_num;i++){
+            segment_map_info* seg=current->segment_map_info+i;
+            int free=1;
+            if(seg->seg_type==SYSTEM_SEGMENT || 
+                seg->seg_type==CODE_SEGMENT)
+                free=0;
+            user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
+        }
+        free_physical_page(current->pagetable);
+        free_physical_page(current->pagetable);
+    }
+
     current = runnable_queue;
     runnable_queue = runnable_queue->queue_next;
     //printk("running process: %d\n",current->pid);
