@@ -131,3 +131,19 @@ void user_vm_map(pagetable_t page_dir, uint64 va, uint64 sz, uint64 pa, int perm
 void user_vm_unmap(pagetable_t pd, uint va, uint size, int is_free_pa){
     unmap_pages(pd,va,size,is_free_pa);
 }
+
+void free_pagetable(pagetable_t pagetable){
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE_TO_PA(pte);
+      free_pagetable((pagetable_t)child);
+      pagetable[i] = 0;
+    } else if(pte & PTE_V){
+      panic("freewalk: leaf");
+    }
+  }
+  free_physical_page((void*)pagetable);
+}

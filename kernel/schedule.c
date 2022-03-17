@@ -60,7 +60,7 @@ void schedule(){
         }
         free_physical_page((void*)PGROUNDDOWN((uint64)current->kstack-1));
         free_physical_page(current->segment_map_info);
-        free_physical_page(current->pagetable);
+        free_pagetable(current->pagetable);
     }
 
     current = runnable_queue;
