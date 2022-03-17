@@ -11,7 +11,11 @@ void test(){
         //exit(0);
         printf((char*)0x2000);
     }
-    else
+    else{
         printf((char*)0x3000);
+    }
+
+    if(pid!=0)
+        kill(pid);
     while(1){}
 }

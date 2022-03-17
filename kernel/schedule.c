@@ -58,13 +58,14 @@ void schedule(){
                 free=0;
             user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
         }
-        free_physical_page(current->pagetable);
+        free_physical_page((void*)PGROUNDDOWN((uint64)current->kstack-1));
+        free_physical_page(current->segment_map_info);
         free_physical_page(current->pagetable);
     }
 
     current = runnable_queue;
     runnable_queue = runnable_queue->queue_next;
-    //printk("running process: %d\n",current->pid);
+    printk("running process: %d\n",current->pid);
     current->state = RUNNING;
     switch_to( current );   
 }

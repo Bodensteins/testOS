@@ -23,6 +23,7 @@ void init_proc_list(){
     for(int i=0;i<NPROC;i++){
         proc_list[i].state=UNUSED;
         proc_list[i].pid=i+1;
+        proc_list[i].killed=0;
     }
 }
 
@@ -116,8 +117,23 @@ uint64 do_fork(process *parent){
     return child->pid;
 }
 
+uint64 do_kill(uint64 pid){
+    if(pid<=1 || pid>NPROC || proc_list[pid-1].state==UNUSED)
+        return 1;
+    proc_list[pid-1].killed=1;
+    if(proc_list[pid-1].state==SLEEPING){
+        proc_list[pid-1].state=RUNNABLE;
+
+        insert_to_runnable_queue(proc_list+pid-1);
+    }
+    return 0;
+}
+
 void switch_to(process* proc) {
     current = proc;
+
+    if(current->killed==1)
+        free_process(current);
 
     //write_csr(stvec, (uint64)smode_trap_vector);
     w_stvec((uint64)user_trap_vec);

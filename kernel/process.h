@@ -65,6 +65,7 @@ typedef struct process{
     //context context;
 
     int state;
+    int killed;
     uint64 pid;
 
     struct process *parent;
@@ -82,6 +83,7 @@ int free_process( process* proc );
 uint64 do_fork(process *parent);
 void reparent(process *);
 void yield();
+uint64 do_kill(uint64);
 void switch_to(process*);
 
 #endif

@@ -7,12 +7,14 @@
 extern trapframe temp[];
 
 uint64 sys_fork();
+uint64 sys_kill();
 uint64 sys_simple_write();
 uint64 sys_exit();
 
 static uint64 (*syscalls[])() = {
     [SYS_fork] sys_fork,
     [SYS_exit] sys_exit,
+    [SYS_kill] sys_kill,
     [SYS_write] sys_simple_write,
 };
 
@@ -21,6 +23,8 @@ uint64 syscall(){
     if(syscall_num==SYS_write)
         return syscalls[syscall_num]();
     else if(syscall_num==SYS_fork)
+        return syscalls[syscall_num]();
+    else if(syscall_num==SYS_kill)
         return syscalls[syscall_num]();
     else if(syscall_num==SYS_exit)
         return syscalls[syscall_num]();
@@ -38,9 +42,14 @@ uint64 sys_exit(){
     return code;
 }
 
+uint64 sys_kill(){
+    uint64 pid=current->trapframe->regs.a1;
+    return do_kill(pid);
+}
+
 uint64 sys_simple_write(){
     uint64 str=current->trapframe->regs.a1;
     char* pa = (char*)va_to_pa(current->pagetable,(void*)str);
     printk((char*)pa);
-    return 0;
+    return current->trapframe->regs.a2;
 }
