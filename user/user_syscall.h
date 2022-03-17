@@ -5,7 +5,7 @@
 
 uint64 fork();
 uint64 exit(int code);
-uint64 simple_write(char *s);
+uint64 simple_write(char *s, size_t n);
 
 
 #endif

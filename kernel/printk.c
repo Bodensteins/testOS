@@ -6,6 +6,8 @@
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x
 
+static void printint(int xx, int base, int sign);
+static void printptr(uint64 x);
 //
 // send one character to the uart.
 // called by printf, and to echo input characters,
@@ -51,7 +53,6 @@ void printk(char *fmt, ...){
     if(c == 0)
       break;
     switch(c){
-        /*
     case 'd':
       printint(va_arg(ap, int), 10, 1);
       break;
@@ -61,7 +62,6 @@ void printk(char *fmt, ...){
     case 'p':
       printptr(va_arg(ap, uint64));
       break;
-      */
     case 's':
       if((s = va_arg(ap, char*)) == 0)
         s = "(null)";
@@ -91,4 +91,35 @@ void panic(char *s){
   //panicked = 1; // freeze uart output from other CPUs
   for(;;)
     ;
+}
+
+static char digits[] = "0123456789abcdef";
+static void printint(int xx, int base, int sign){
+  char buf[16];
+  int i;
+  uint x;
+
+  if(sign && (sign = xx < 0))
+    x = -xx;
+  else
+    x = xx;
+
+  i = 0;
+  do {
+    buf[i++] = digits[x % base];
+  } while((x /= base) != 0);
+
+  if(sign)
+    buf[i++] = '-';
+
+  while(--i >= 0)
+    putc(buf[i]);
+}
+
+static void printptr(uint64 x){
+  int i;
+  putc('0');
+  putc('x');
+  for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
+    putc(digits[x >> (sizeof(uint64) * 8 - 4)]);
 }

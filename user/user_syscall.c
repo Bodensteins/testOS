@@ -36,7 +36,7 @@ uint64 exit(int code){
     return user_syscall(SYS_exit,code,0,0,0,0,0,0);
 }
 
-uint64 simple_write(char *s){
-    return user_syscall(SYS_write,(uint64)s,0,0,0,0,0,0);
+uint64 simple_write(char *s, size_t n){
+    return user_syscall(SYS_write,(uint64)s,n,0,0,0,0,0);
 }
 

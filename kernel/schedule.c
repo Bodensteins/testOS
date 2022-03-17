@@ -49,7 +49,7 @@ void schedule(){
 
     current = runnable_queue;
     runnable_queue = runnable_queue->queue_next;
-
+    //printk("running process: %d\n",current->pid);
     current->state = RUNNING;
     switch_to( current );   
 }
