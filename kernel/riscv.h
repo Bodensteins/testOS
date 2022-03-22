@@ -244,8 +244,8 @@ w_mscratch(uint64 x)
 #define CAUSE_STORE_PAGE_FAULT 0xf     // Store/AMO page fault
 
 // irqs (interrupts)
-#define CAUSE_MTIMER 0x8000000000000007
-#define CAUSE_MTIMER_S_TRAP 0x8000000000000001
+#define CAUSE_TIMER 0x8000000000000007
+#define CAUSE_TIMER_S_TRAP 0x8000000000000005
 static inline uint64
 r_scause()
 {

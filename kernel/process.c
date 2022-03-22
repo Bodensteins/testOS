@@ -46,6 +46,7 @@ process *alloc_process(){
     memset(p->trapframe,0,PGSIZE);
 
     p->kstack=(uint64)alloc_physical_page()+PGSIZE;
+    
     uint64 user_stack=(uint64)alloc_physical_page();
     p->trapframe->regs.sp=USER_STACK_TOP;
 

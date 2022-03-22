@@ -1,5 +1,6 @@
 #include "types.h"
-#include "uart.h"
+//#include "uart.h"
+#include "sbi.h"
 #include "riscv.h"
 #include "param.h"
 #include "printk.h"
@@ -17,25 +18,30 @@ void handle_syscall(){
     current->trapframe->regs.a0=syscall();
 }
 
-void handle_mtimer_trap(){
+void handle_timer_trap(){
     ticks++;
+    sbi_set_timer(r_time()+TIMER_INTERVAL);
     w_sip(r_sip()&(~SIP_SSIP));
+    
     if(ticks==TIME_SLICE){
         ticks=0;
-        current->state=RUNNABLE;
-        insert_to_runnable_queue(current);
+        if(current->state==RUNNING){
+            current->state=RUNNABLE;
+            insert_to_runnable_queue(current);
+        }
         schedule();
   }
 }
 
 void trap_init(){
-    w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
     uint64 x = r_sstatus();
     x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
+    x |= SSTATUS_SIE;       //enable supervisor-mode interrupts.
     x |= SSTATUS_SPIE;  // enable interrupts in user mode
     w_sstatus(x);
-
+    w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
     w_stvec((uint64)kernel_trap_vec);
+    sbi_set_timer(r_time()+TIMER_INTERVAL);
 }
 
 void user_trap(){
@@ -46,8 +52,8 @@ void user_trap(){
     uint64 cause=r_scause();
     w_stvec((uint64)kernel_trap_vec);
     switch (cause){
-        case CAUSE_MTIMER_S_TRAP:
-            handle_mtimer_trap();
+        case CAUSE_TIMER_S_TRAP:
+            handle_timer_trap();
             break;
         case CAUSE_USER_ECALL:
             handle_syscall();
@@ -74,8 +80,8 @@ void kernel_trap(){
     if(intr_get() != 0)
         panic("kerneltrap: interrupts enabled");
     switch (cause){
-        case CAUSE_MTIMER_S_TRAP:
-            handle_mtimer_trap();
+        case CAUSE_TIMER_S_TRAP:
+            handle_timer_trap();
             break;
         default:
             break;

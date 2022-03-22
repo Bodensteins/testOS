@@ -6,7 +6,7 @@
 #include "pm.h"
 #include "vm.h"
 #include "string.h"
-#include "uart.h"
+//#include "uart.h"
 #include "schedule.h"
 
 extern char trampoline[];
@@ -33,7 +33,7 @@ void s_start(){
     start_paging();
 
     init_proc_list();
-    uartinit();
+    //uartinit();
     trap_init();
     
     insert_to_runnable_queue(load_user_programe());

@@ -2,8 +2,10 @@
 #include "vm.h"
 #include "process.h"
 #include "printk.h"
+#include "sbi.h"
 
 process *runnable_queue=NULL;
+extern pagetable_t kernel_pagetable;
 
 void insert_to_runnable_queue(process *proc){
     if(runnable_queue==NULL){
@@ -47,9 +49,14 @@ void schedule(){
         return;
     }
 
+    if(proc_list[0].state==ZOMBIE){
+        sbi_shutdown();
+    }
+
     if(current!=NULL && current->state==ZOMBIE){
-        //printk("zombie: %d\n", current->pid);
+        printk("zombie: %d\n", current->pid);
         current->state=UNUSED;
+        
         for(int i=0;i<current->segment_num;i++){
             segment_map_info* seg=current->segment_map_info+i;
             int free=1;
@@ -58,11 +65,12 @@ void schedule(){
                 free=0;
             user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
         }
-        free_physical_page((void*)PGROUNDDOWN((uint64)current->kstack-1));
+        
+        //free_physical_page((void*)(current->kstack-PGSIZE));
         free_physical_page(current->segment_map_info);
         free_pagetable(current->pagetable);
     }
-
+    //printk("run process\n");
     current = runnable_queue;
     runnable_queue = runnable_queue->queue_next;
     printk("running process: %d\n",current->pid);

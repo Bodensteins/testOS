@@ -1,14 +1,12 @@
+platform=qemu
+
 K=kernel
 U=user
 
 KERN_OBJS = \
 	$K/entry.o \
-	$K/mstart.o \
 	$K/sstart.o \
-	$K/uart.o \
 	$K/load_store.o \
-	$K/timevec.o \
-	$K/timetrap.o \
 	$K/kerneltrapvec.o \
 	$K/usertrapvec.o \
 	$K/trap.o \
@@ -28,6 +26,12 @@ USER_OBJS = \
 TOOLPREFIX = riscv64-unknown-elf-
 
 QEMU = qemu-system-riscv64
+
+ifeq ($(platform), k210)
+SBI=$K/rustsbi/sbi-k210
+else
+SBI=$K/rustsbi/sbi-qemu
+endif
 
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas
@@ -51,7 +55,7 @@ ifndef CPUS
 CPUS := 1
 endif
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+QEMUOPTS = -machine virt -bios $(SBI) -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
 #QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 #QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 

@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include "types.h"
-#include "uart.h"
+//#include "uart.h"
+#include "sbi.h"
 #include "printk.h"
 
 #define BACKSPACE 0x100
@@ -16,9 +17,13 @@ static void printptr(uint64 x);
 void putc(int c){
   if(c == BACKSPACE){
     // if the user typed backspace, overwrite with a space.
-    uartputc_sync('\b'); uartputc_sync(' '); uartputc_sync('\b');
+    //uartputc_sync('\b'); uartputc_sync(' '); uartputc_sync('\b');
+    sbi_console_putchar('\b');
+    sbi_console_putchar(' ');
+    sbi_console_putchar('\b');
   } else {
-    uartputc_sync(c);
+    //uartputc_sync(c);
+    sbi_console_putchar(c);
   }
 }
 
