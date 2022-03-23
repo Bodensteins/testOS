@@ -28,7 +28,7 @@ user_trap_vec:
     jr t0
 
 return_to_user:
+    sfence.vma zero, zero
     csrr t6,sscratch
     load_all_registers
-    
     sret

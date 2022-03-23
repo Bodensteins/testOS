@@ -1,7 +1,10 @@
-platform=qemu
+#platform = qemu
+platform = k210
 
-K=kernel
-U=user
+K = kernel
+U = user
+T = target
+#O = obj
 
 KERN_OBJS = \
 	$K/entry.o \
@@ -28,9 +31,9 @@ TOOLPREFIX = riscv64-unknown-elf-
 QEMU = qemu-system-riscv64
 
 ifeq ($(platform), k210)
-SBI=$K/rustsbi/sbi-k210
+SBI = $K/rustsbi/sbi-k210
 else
-SBI=$K/rustsbi/sbi-qemu
+SBI = $K/rustsbi/sbi-qemu
 endif
 
 CC = $(TOOLPREFIX)gcc
@@ -48,22 +51,42 @@ CFLAGS += -I.
 
 LDFLAGS = -z max-page-size=4096
 
-$K/kernel: $(KERN_OBJS) $(USER_OBJS) $K/kernel.ld
-	$(LD) $(LDFLAGS) -T $K/kernel.ld  $(KERN_OBJS) $(USER_OBJS) -o $K/kernel
-
-ifndef CPUS
-CPUS := 1
+ifeq ($(platform), k210)
+LINKER = tools/kernel-k210.ld
+else
+LINKER = tools/kernel-qemu.ld
 endif
 
-QEMUOPTS = -machine virt -bios $(SBI) -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+$T/kernel: $(KERN_OBJS) $(USER_OBJS) $(LINKER)
+	if [ ! -d "./target" ]; then mkdir target; fi
+	$(LD) $(LDFLAGS) -T $(LINKER)  $(KERN_OBJS) $(USER_OBJS) -o $T/kernel
+
+ifndef CPUS
+CPUS = 1
+endif
+
+QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 128M -smp $(CPUS) -nographic
 #QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 #QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
-qemu: $K/kernel
+kernel-image = $T/kernel.bin
+k210-bootloader = $T/rustsbi.bin
+k210-port = /dev/ttyUSB0
+
+build: $T/kernel
+
+k210: build
+	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
+	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
+	sudo chmod 777 $(k210-port)
+	python3 tools/kflash.py -p $(k210-port) -b 1500000 -t $(k210-bootloader)
+
+qemu: build
 	$(QEMU) $(QEMUOPTS)
 
 
 clean:
-	rm -f */*.o */*.d $K/kernel
+	rm -f */*.o */*.d $T/kernel $T/*.bin
 
-.PHONY: clean
+.PHONY: clean qemu run build

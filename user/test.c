@@ -2,9 +2,10 @@
 #include "stdio.h"
 
 void test(){
-    //(*(int*)0x200c)=25;
-    //if(*((int*)0x200c)==25)
-    //    printf((char*)0x3000);
+    (*(int*)0x200c)=25;
+    if(*((int*)0x200c)==25)
+        printf((char*)0x3000);
+    
     uint64 pid=fork();
     
     if(pid==0){
@@ -16,6 +17,8 @@ void test(){
         printf((char*)0x3000);
         //kill(pid);
     }
-     while(1){
+    
+    //printf((char*)0x3000);
+    while(1){
     }
 }

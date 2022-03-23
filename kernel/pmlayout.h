@@ -3,6 +3,24 @@
 
 // Physical memory layout
 
+// k210 peripherals
+// (0x0200_0000, 0x1000),      /* CLINT     */
+// // we only need claim/complete for target0 after initializing
+// (0x0C20_0000, 0x1000),      /* PLIC      */
+// (0x3800_0000, 0x1000),      /* UARTHS    */
+// (0x3800_1000, 0x1000),      /* GPIOHS    */
+// (0x5020_0000, 0x1000),      /* GPIO      */
+// (0x5024_0000, 0x1000),      /* SPI_SLAVE */
+// (0x502B_0000, 0x1000),      /* FPIOA     */
+// (0x502D_0000, 0x1000),      /* TIMER0    */
+// (0x502E_0000, 0x1000),      /* TIMER1    */
+// (0x502F_0000, 0x1000),      /* TIMER2    */
+// (0x5044_0000, 0x1000),      /* SYSCTL    */
+// (0x5200_0000, 0x1000),      /* SPI0      */
+// (0x5300_0000, 0x1000),      /* SPI1      */
+// (0x5400_0000, 0x1000),      /* SPI2      */
+// (0x8000_0000, 0x600000),    /* Memory    */
+
 // qemu -machine virt is set up like this,
 // based on qemu's hw/riscv/virt.c:
 //
@@ -48,7 +66,8 @@
 // for use by the kernel and user pages
 // from physical address 0x80000000 to PHYSTOP.
 #define KERNBASE 0x80000000L
-#define PHYSTOP (KERNBASE + 128*1024*1024)
+#define PHYSTOP (KERNBASE+0x600000L)
+//#define PHYSTOP (KERNBASE + 128*1024*1024)
 
 // map the trampoline page to the highest address,
 // in both user and kernel space.

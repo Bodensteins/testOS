@@ -162,8 +162,6 @@ void switch_to(process* proc) {
     
     //make user page table
     w_satp(MAKE_SATP((uint64)proc->pagetable));
-    sfence_vma();
-
     // switch to user mode with sret.
     return_to_user();
 }

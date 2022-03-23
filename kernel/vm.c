@@ -98,7 +98,7 @@ void kernel_vm_init(){
     kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
-    kernel_vm_map(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    //kernel_vm_map(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
     // CLINT
     kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
