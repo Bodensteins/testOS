@@ -1,7 +1,7 @@
 #ifndef _USER_SYSCALL_H_
 #define _USER_SYSCALL_H_
 
-#include "kernel/types.h"
+#include "kernel/include/types.h"
 
 uint64 fork();
 uint64 exit(int code);

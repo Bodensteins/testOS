@@ -1,3 +1,18 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "sbi.h": "c",
+        "pm.h": "c",
+        "printk.h": "c",
+        "string.h": "c",
+        "pmlayout.h": "c",
+        "schedule.h": "c",
+        "vm.h": "c",
+        "process.h": "c",
+        "syscall.h": "c",
+        "param.h": "c",
+        "riscv.h": "c",
+        "types.h": "c",
+        "uart.h": "c"
+    }
 }

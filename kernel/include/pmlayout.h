@@ -1,25 +1,39 @@
 #ifndef _PM_LAY_OUT_
 #define _PM_LAY_OUT
 
+#define QEMU
+
 // Physical memory layout
 
 // k210 peripherals
-// (0x0200_0000, 0x1000),      /* CLINT     */
+// (0x02000000, 0x1000),      /* CLINT     */
 // // we only need claim/complete for target0 after initializing
-// (0x0C20_0000, 0x1000),      /* PLIC      */
-// (0x3800_0000, 0x1000),      /* UARTHS    */
-// (0x3800_1000, 0x1000),      /* GPIOHS    */
-// (0x5020_0000, 0x1000),      /* GPIO      */
-// (0x5024_0000, 0x1000),      /* SPI_SLAVE */
-// (0x502B_0000, 0x1000),      /* FPIOA     */
-// (0x502D_0000, 0x1000),      /* TIMER0    */
-// (0x502E_0000, 0x1000),      /* TIMER1    */
-// (0x502F_0000, 0x1000),      /* TIMER2    */
-// (0x5044_0000, 0x1000),      /* SYSCTL    */
-// (0x5200_0000, 0x1000),      /* SPI0      */
-// (0x5300_0000, 0x1000),      /* SPI1      */
-// (0x5400_0000, 0x1000),      /* SPI2      */
-// (0x8000_0000, 0x600000),    /* Memory    */
+// (0x0C200000, 0x1000),      /* PLIC      */
+// (0x38000000, 0x1000),      /* UARTHS    */
+// (0x38001000, 0x1000),      /* GPIOHS    */
+// (0x50200000, 0x1000),      /* GPIO      */
+// (0x50240000, 0x1000),      /* SPI_SLAVE */
+// (0x502B0000, 0x1000),      /* FPIOA     */
+// (0x502D0000, 0x1000),      /* TIMER0    */
+// (0x502E0000, 0x1000),      /* TIMER1    */
+// (0x502F0000, 0x1000),      /* TIMER2    */
+// (0x50440000, 0x1000),      /* SYSCTL    */
+// (0x52000000, 0x1000),      /* SPI0      */
+// (0x53000000, 0x1000),      /* SPI1      */
+// (0x54000000, 0x1000),      /* SPI2      */
+// (0x80000000, 0x600000),    /* Memory    */
+
+#define CLINT 0x02000000
+//#define PLIC 0x0C200000
+#define UARTHS 0x38000000
+#define GPIOHS 0x38001000
+#define GPIO 0x50200000
+#define SPI_SLAVE 0x50240000
+#define FPIOA 0x502D0000
+#define SYSCTL 0x50440000
+#define SPI0 0x52000000
+#define SPI1 0x53000000
+#define SPI2 0x54000000
 
 // qemu -machine virt is set up like this,
 // based on qemu's hw/riscv/virt.c:
@@ -47,9 +61,12 @@
 #define VIRTIO0_IRQ 1
 
 // local interrupt controller, which contains the timer.
+#ifndef CLINT
 #define CLINT 0x2000000L
 #define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))
 #define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.
+#endif
+
 
 // qemu puts programmable interrupt controller here.
 #define PLIC 0x0c000000L

@@ -1,10 +1,10 @@
-#include "param.h"
-#include "pmlayout.h"
-#include "types.h"
-#include "riscv.h"
-#include "printk.h"
-#include "pm.h"
-#include "string.h"
+#include "include/param.h"
+#include "include/pmlayout.h"
+#include "include/types.h"
+#include "include/riscv.h"
+#include "include/printk.h"
+#include "include/pm.h"
+#include "include/string.h"
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.

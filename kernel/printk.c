@@ -1,8 +1,8 @@
 #include <stdarg.h>
-#include "types.h"
+#include "include/types.h"
 //#include "uart.h"
-#include "sbi.h"
-#include "printk.h"
+#include "include/sbi.h"
+#include "include/printk.h"
 
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x

@@ -87,6 +87,6 @@ qemu: build
 
 
 clean:
-	rm -f */*.o */*.d $T/kernel $T/*.bin
+	rm -f */*.o */*.d $T/kernel $T/*.bin */*/*.o */*/*.d
 
 .PHONY: clean qemu run build

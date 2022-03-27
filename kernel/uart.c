@@ -1,7 +1,7 @@
-#include "types.h"
-#include "riscv.h"
-#include "pmlayout.h"
-#include "uart.h"
+#include "include/types.h"
+#include "include/riscv.h"
+#include "include/pmlayout.h"
+#include "include/uart.h"
 
 void uartinit(void){
   // disable interrupts.

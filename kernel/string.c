@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <ctype.h>
-#include "string.h"
+#include "include/string.h"
 
 void* memset(void* dest, int byte, size_t len) {
   if ((((uintptr_t)dest | len) & (sizeof(uintptr_t) - 1)) == 0) {

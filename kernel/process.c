@@ -1,10 +1,10 @@
-#include "process.h"
-#include "string.h"
-#include "pmlayout.h"
-#include "pm.h"
-#include "vm.h"
-#include "printk.h"
-#include "schedule.h"
+#include "include/process.h"
+#include "include/string.h"
+#include "include/pmlayout.h"
+#include "include/pm.h"
+#include "include/vm.h"
+#include "include/printk.h"
+#include "include/schedule.h"
 
 process proc_list[NPROC];
 
@@ -24,6 +24,13 @@ void init_proc_list(){
         proc_list[i].state=UNUSED;
         proc_list[i].pid=i+1;
         proc_list[i].killed=0;
+
+        proc_list[i].kstack=(uint64)alloc_physical_page()+PGSIZE;
+
+        proc_list[i].segment_map_info=(segment_map_info*)alloc_physical_page();
+        memset(proc_list[i].segment_map_info,0,PGSIZE);
+
+        proc_list[i].segment_num=0;
     }
 }
 
@@ -44,17 +51,9 @@ process *alloc_process(){
 
     p->trapframe=(trapframe*)alloc_physical_page();
     memset(p->trapframe,0,PGSIZE);
-
-    p->kstack=(uint64)alloc_physical_page()+PGSIZE;
     
     uint64 user_stack=(uint64)alloc_physical_page();
     p->trapframe->regs.sp=USER_STACK_TOP;
-
-
-    p->segment_map_info=(segment_map_info*)alloc_physical_page();
-    memset(p->segment_map_info,0,PGSIZE);
-
-    p->segment_num=0;
 
     user_vm_map(p->pagetable,USER_STACK_TOP-PGSIZE,PGSIZE,user_stack,
         pte_permission((PAGE_READ | PAGE_WRITE),1));

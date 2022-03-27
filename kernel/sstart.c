@@ -1,13 +1,13 @@
-#include "process.h"
-#include "param.h"
-#include "pmlayout.h"
-#include "trap.h"
-#include "printk.h"
-#include "pm.h"
-#include "vm.h"
-#include "string.h"
+#include "include/process.h"
+#include "include/param.h"
+#include "include/pmlayout.h"
+#include "include/trap.h"
+#include "include/printk.h"
+#include "include/pm.h"
+#include "include/vm.h"
+#include "include/string.h"
 //#include "uart.h"
-#include "schedule.h"
+#include "include/schedule.h"
 
 extern char trampoline[];
 void return_to_user();

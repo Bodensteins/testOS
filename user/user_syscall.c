@@ -1,5 +1,5 @@
-#include "kernel/syscall.h"
-#include "kernel/printk.h"
+#include "kernel/include/syscall.h"
+#include "kernel/include/printk.h"
 
 static uint64 user_syscall
     (uint64 v0,uint64 v1,uint64 v2,uint64 v3,uint64 v4,uint64 v5,uint64 v6,uint64 v7){

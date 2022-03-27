@@ -1,8 +1,8 @@
-#include "riscv.h"
-#include "types.h"
-#include "param.h"
-#include "pmlayout.h"
-#include "printk.h"
+#include "include/riscv.h"
+#include "include/types.h"
+#include "include/param.h"
+#include "include/pmlayout.h"
+#include "include/printk.h"
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
@@ -42,7 +42,7 @@ void m_start(){
 
 void time_init(){
   uint64 id=r_mhartid();
-  *(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + TIMER_INTERVAL;
+  //*(uint64*)CLINT_MTIMECMP(id) = *(uint64*)CLINT_MTIME + TIMER_INTERVAL;
 
   w_mscratch((uint64)(save_regs+id));
 

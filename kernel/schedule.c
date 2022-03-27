@@ -1,8 +1,8 @@
-#include "pm.h"
-#include "vm.h"
-#include "process.h"
-#include "printk.h"
-#include "sbi.h"
+#include "include/pm.h"
+#include "include/vm.h"
+#include "include/process.h"
+#include "include/printk.h"
+#include "include/sbi.h"
 
 process *runnable_queue=NULL;
 extern pagetable_t kernel_pagetable;
@@ -66,8 +66,6 @@ void schedule(){
             user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
         }
         
-        //free_physical_page((void*)(current->kstack-PGSIZE));
-        free_physical_page(current->segment_map_info);
         free_pagetable(current->pagetable);
     }
     //printk("run process\n");

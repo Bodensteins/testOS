@@ -1,8 +1,8 @@
-#include "types.h"
-#include "process.h"
-#include "printk.h"
-#include "syscall.h"
-#include "vm.h"
+#include "include/types.h"
+#include "include/process.h"
+#include "include/printk.h"
+#include "include/syscall.h"
+#include "include/vm.h"
 
 extern trapframe temp[];
 

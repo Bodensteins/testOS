@@ -1,10 +1,10 @@
-#include "string.h"
-#include "riscv.h"
-#include "pmlayout.h"
-#include "pm.h"
-#include "types.h"
-#include "printk.h"
-#include "vm.h"
+#include "include/string.h"
+#include "include/riscv.h"
+#include "include/pmlayout.h"
+#include "include/pm.h"
+#include "include/types.h"
+#include "include/printk.h"
+#include "include/vm.h"
 
 pagetable_t kernel_pagetable;
 
@@ -95,16 +95,16 @@ void kernel_vm_init(){
     kernel_pagetable=(pagetable_t)alloc_physical_page();
     memset(kernel_pagetable,0,PGSIZE);
 
-    kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
+    //kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
     //kernel_vm_map(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
     // CLINT
-    kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+    //kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
 
     // PLIC
-    kernel_vm_map(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    //kernel_vm_map(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
 
     // map kernel text executable and read-only.
     kernel_vm_map(KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
