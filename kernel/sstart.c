@@ -6,8 +6,12 @@
 #include "include/pm.h"
 #include "include/vm.h"
 #include "include/string.h"
-//#include "uart.h"
+#include "sd/include/fpioa.h"
+
+#ifndef QEMU
+#include "sd/include/sdcard.h"
 #include "include/schedule.h"
+#endif
 
 extern char trampoline[];
 void return_to_user();
@@ -15,6 +19,7 @@ void return_to_user();
 void user_trap();
 //void switch_to(process* proc);
 process* load_user_programe();
+void just_init_the_device();
 
 extern trapframe temp[];
 
@@ -38,6 +43,12 @@ void s_start(){
     
     insert_to_runnable_queue(load_user_programe());
    
+#ifndef QEMU
+    fpioa_pin_init();
+    just_init_the_device();
+    sdcard_init();
+#endif
+    test_sdcard();
     schedule();
 }
 
@@ -69,4 +80,11 @@ process* load_user_programe(){
     proc->segment_num=5;
 
     return proc;
+}
+
+void just_init_the_device(){
+    uint32 *hart0_m_threshold = (uint32*)PLIC;
+    *(hart0_m_threshold) = 0;
+    uint32 *hart0_m_int_enable_hi = (uint32*)(PLIC_MENABLE(0) + 0x04);
+    *(hart0_m_int_enable_hi) = (1 << 0x1);
 }

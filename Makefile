@@ -6,7 +6,7 @@ U = user
 T = target
 #O = obj
 
-KERN_OBJS = \
+KERN_OBJS := \
 	$K/entry.o \
 	$K/sstart.o \
 	$K/load_store.o \
@@ -20,6 +20,15 @@ KERN_OBJS = \
 	$K/vm.o \
 	$K/process.o \
 	$K/schedule.o
+
+ifeq ($(platform), k210)
+KERN_OBJS += \
+	$K/sd/fpioa.o \
+	$K/sd/gpiohs.o \
+	$K/sd/spi.o \
+	$K/sd/utils.o \
+	$K/sd/sdcard.o
+endif
 
 USER_OBJS = \
 	$U/test.o \

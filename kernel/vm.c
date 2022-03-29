@@ -95,16 +95,41 @@ void kernel_vm_init(){
     kernel_pagetable=(pagetable_t)alloc_physical_page();
     memset(kernel_pagetable,0,PGSIZE);
 
-    //kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
+    #ifdef QEMU
+    kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
-    //kernel_vm_map(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    kernel_vm_map(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+    #endif
 
     // CLINT
-    //kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+    kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
 
     // PLIC
-    //kernel_vm_map(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    kernel_vm_map(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+
+    #ifndef QEMU
+    // GPIOHS
+    kernel_vm_map(GPIOHS, GPIOHS, 0x1000, PTE_R | PTE_W);
+
+    // GPIO
+    kernel_vm_map(GPIO, GPIO, 0x1000, PTE_R | PTE_W);
+
+    // SPI_SLAVE
+    kernel_vm_map(SPI_SLAVE, SPI_SLAVE, 0x1000, PTE_R | PTE_W);
+
+    // FPIOA
+    kernel_vm_map(FPIOA, FPIOA, 0x1000, PTE_R | PTE_W);
+
+    // SPI0
+    kernel_vm_map(SPI0, SPI0, 0x1000, PTE_R | PTE_W);
+
+    // SPI1
+    kernel_vm_map(SPI1, SPI1, 0x1000, PTE_R | PTE_W);
+
+    // SPI2
+    kernel_vm_map(SPI2, SPI2, 0x1000, PTE_R | PTE_W);
+    #endif
 
     // map kernel text executable and read-only.
     kernel_vm_map(KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
