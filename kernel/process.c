@@ -5,6 +5,7 @@
 #include "include/vm.h"
 #include "include/printk.h"
 #include "include/schedule.h"
+#include "include/sleeplock.h"
 
 process proc_list[NPROC];
 
@@ -19,11 +20,13 @@ void user_trap();
 static void map_code_segment(process*, process*,int);
 static void copy_data_segment(process*,process*,int);
 
-void init_proc_list(){
+void proc_list_init(){
     for(int i=0;i<NPROC;i++){
         proc_list[i].state=UNUSED;
         proc_list[i].pid=i+1;
         proc_list[i].killed=0;
+
+        init_spinlock(&proc_list[i].spinlock,"process lock");
 
         proc_list[i].kstack=(uint64)alloc_physical_page()+PGSIZE;
 

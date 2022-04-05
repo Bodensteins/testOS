@@ -8,18 +8,25 @@
 #include "include/string.h"
 #include "sd/include/fpioa.h"
 
+#include "include/buffer.h"
+
 #ifndef QEMU
 #include "sd/include/sdcard.h"
 #include "include/schedule.h"
+#endif
+
+#ifndef BSIZE
+#define BSIZE 0x8000
 #endif
 
 extern char trampoline[];
 void return_to_user();
 
 void user_trap();
-//void switch_to(process* proc);
+
 process* load_user_programe();
 void just_init_the_device();
+void test_sdcard(void);
 
 extern trapframe temp[];
 
@@ -37,8 +44,7 @@ void s_start(){
     
     start_paging();
 
-    init_proc_list();
-    //uartinit();
+    proc_list_init();
     trap_init();
     
     insert_to_runnable_queue(load_user_programe());
@@ -48,6 +54,7 @@ void s_start(){
     just_init_the_device();
     sdcard_init();
 #endif
+    buffer_init();
     test_sdcard();
     schedule();
 }
@@ -87,4 +94,32 @@ void just_init_the_device(){
     *(hart0_m_threshold) = 0;
     uint32 *hart0_m_int_enable_hi = (uint32*)(PLIC_MENABLE(0) + 0x04);
     *(hart0_m_int_enable_hi) = (1 << 0x1);
+}
+
+// A simple test for sdcard read/write test 
+void test_sdcard(void) {
+    /*
+    buffer* buf[40];
+    for(int i=0;i<40;i++){
+        *(buf+i)=acquire_buffer(i,blockno_to_sectorno(0x7801));
+        release_buffer(*(buf+i));
+    }
+    printk("done!\n");
+	
+    buf=acquire_buffer(0,blockno_to_sectorno(0x7801));
+    for (int i = 0; i < 512; i ++) {
+         if (0 == i % 16) {
+			printk("\n");
+		}
+		printk("%x ", buf->data[i]);
+	}
+    
+    char str[16];
+    memcpy(str,buf->data,16);
+    printk(str);
+    memcpy(buf->data,"not just a test",16);
+    buffer_write(buf);
+    release_buffer(buf);
+    */
+	while (1) ;
 }

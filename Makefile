@@ -19,7 +19,10 @@ KERN_OBJS := \
 	$K/pm.o \
 	$K/vm.o \
 	$K/process.o \
-	$K/schedule.o
+	$K/schedule.o \
+	$K/spinlock.o \
+	$K/sleeplock.o \
+	$K/buffer.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \

@@ -6,6 +6,8 @@
 
 #define TIME_SLICE 2
 
+#include "spinlock.h"
+
 typedef enum proc_state { 
   UNUSED, 
   SLEEPING, 
@@ -57,27 +59,29 @@ typedef struct trapframe{
 }trapframe;
 
 typedef struct process{
-    uint64 kstack;
-    pagetable_t pagetable;
+  struct spinlock spinlock;
 
-    segment_map_info *segment_map_info;
-    int segment_num;
-    //context context;
+  uint64 kstack;
+  pagetable_t pagetable;
 
-    int state;
-    int killed;
-    uint64 pid;
+  segment_map_info *segment_map_info;
+  int segment_num;
+  //context context;
 
-    struct process *parent;
-    struct process *queue_next;
-    trapframe *trapframe;
+  int state;
+  int killed;
+  uint64 pid;
+
+  struct process *parent;
+  struct process *queue_next;
+  trapframe *trapframe;
 }process;
 
 
 extern process proc_list[NPROC];
 extern process* current;
 
-void init_proc_list();
+void proc_list_init();
 process *alloc_process();
 int free_process( process* proc );
 uint64 do_fork(process *parent);

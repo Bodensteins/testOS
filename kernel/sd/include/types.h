@@ -1,7 +1,7 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#define DEBUG
+//#define DEBUG
 
 typedef unsigned int   uint;
 typedef unsigned short ushort;

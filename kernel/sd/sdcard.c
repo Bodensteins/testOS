@@ -341,7 +341,7 @@ void sdcard_read_sector(uint8 *buf, int sectorno) {
 
 	// enter critical section!
 	//acquire(&sdcard_lock);
-
+	
 	sd_send_cmd(SD_CMD17, address, 0);
 	result = sd_get_response_R1();
 
@@ -349,7 +349,7 @@ void sdcard_read_sector(uint8 *buf, int sectorno) {
 		//release(&sdcard_lock);
 		panic("sdcard: fail to read");
 	}
-
+	
 	int timeout = 0xfff;
 	while (--timeout) {
 		sd_read_data(&result, 1);
@@ -360,9 +360,8 @@ void sdcard_read_sector(uint8 *buf, int sectorno) {
 	}
 	sd_read_data(buf, BSIZE);
 	sd_read_data(dummy_crc, 2);
-
+	
 	sd_end_cmd();
-
 	//release(&sdcard_lock);
 	// leave critical section!
 }
@@ -439,31 +438,31 @@ void sdcard_write_sector(uint8 *buf, int sectorno) {
 	// leave critical section!
 }
 
-// A simple test for sdcard read/write test 
-void test_sdcard(void) {
-	uint8 buf[BSIZE];
+//temporary
+static uint32 dbr_start_sector=0x20;
+static uint16 dbr_reserve_sector=0x20;
+static uint8 sectors_per_block=0x40;
+static uint32 bytes_per_sector=0x200;
+static uint8 total_fats=0x2;
+static uint32 sector_per_fat=0x770;
+static uint32 root_dir_blockno=0x2;
 
-	for (int sec = 0; sec < 5; sec ++) {
-		for (int i = 0; i < BSIZE; i ++) {
-			buf[i] = 0xaa;		// data to be written 
-		}
+int blockno_to_sectorno(int blockno){
+	return dbr_start_sector+dbr_reserve_sector+
+		sector_per_fat*total_fats+sectors_per_block*(blockno-root_dir_blockno);
+}
 
-		sdcard_write_sector(buf, sec);
-
-		for (int i = 0; i < BSIZE; i ++) {
-			buf[i] = 0xff;		// fill in junk
-		}
-
-		sdcard_read_sector(buf, sec);
-		for (int i = 0; i < BSIZE; i ++) {
-			if (0 == i % 16) {
-				printk("\n");
-			}
-
-			printk("%x ", buf[i]);
-		}
-		printk("\n");
+void sdcard_read_block(uint8*buf, int blockno){
+	int sectorno=blockno_to_sectorno(blockno);
+	for(int i=0;i<sectors_per_block;i++){
+		sdcard_read_sector(buf+i*bytes_per_sector, sectorno+i);
+		
 	}
+}
 
-	while (1) ;
+void sdcard_write_block(uint8*buf, int blockno){
+	int sectorno=blockno_to_sectorno(blockno);
+	for(int i=0;i<sectors_per_block;i++){
+		sdcard_write_sector(buf+i*bytes_per_sector, sectorno+i);
+	}
 }
