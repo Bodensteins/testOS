@@ -1,5 +1,5 @@
-#platform = qemu
-platform = k210
+platform = qemu
+#platform = k210
 
 K = kernel
 U = user
@@ -22,7 +22,8 @@ KERN_OBJS := \
 	$K/schedule.o \
 	$K/spinlock.o \
 	$K/sleeplock.o \
-	$K/buffer.o
+	$K/buffer.o 
+
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -97,6 +98,16 @@ k210: build
 qemu: build
 	$(QEMU) $(QEMUOPTS)
 
+run: build
+ifeq ($(platform),k210)
+	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
+	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
+	sudo chmod 777 $(k210-port)
+	python3 tools/kflash.py -p $(k210-port) -b 1500000 -t $(k210-bootloader)
+else 
+	$(QEMU) $(QEMUOPTS)
+endif
 
 clean:
 	rm -f */*.o */*.d $T/kernel $T/*.bin */*/*.o */*/*.d

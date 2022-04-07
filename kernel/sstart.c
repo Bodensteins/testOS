@@ -6,13 +6,12 @@
 #include "include/pm.h"
 #include "include/vm.h"
 #include "include/string.h"
-#include "sd/include/fpioa.h"
-
+#include "include/schedule.h"
 #include "include/buffer.h"
 
 #ifndef QEMU
+#include "sd/include/fpioa.h"
 #include "sd/include/sdcard.h"
-#include "include/schedule.h"
 #endif
 
 #ifndef BSIZE
@@ -55,7 +54,7 @@ void s_start(){
     sdcard_init();
 #endif
     buffer_init();
-    test_sdcard();
+    //test_sdcard();
     schedule();
 }
 
@@ -101,12 +100,12 @@ void test_sdcard(void) {
     /*
     buffer* buf[40];
     for(int i=0;i<40;i++){
-        *(buf+i)=acquire_buffer(i,blockno_to_sectorno(0x7801));
+        *(buf+i)=acquire_buffer(i,_blockno_to_sectorno(0x7801));
         release_buffer(*(buf+i));
     }
     printk("done!\n");
 	
-    buf=acquire_buffer(0,blockno_to_sectorno(0x7801));
+    buf=acquire_buffer(0,_blockno_to_sectorno(0x7801));
     for (int i = 0; i < 512; i ++) {
          if (0 == i % 16) {
 			printk("\n");

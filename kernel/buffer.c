@@ -1,9 +1,14 @@
 #include "include/buffer.h"
 #include "include/spinlock.h"
 #include "include/sleeplock.h"
+
+#ifndef QEMU
 #include "sd/include/sdcard.h"
+#endif
+
 #include "include/printk.h"
 
+//LRU cache
 static buffer_cache bcache;
 
 void buffer_init(){
@@ -20,11 +25,6 @@ void buffer_init(){
         bcache.buffer_list[i].valid=0;
     }
 
-    //int i=0;
-    //for(buffer *buf=bcache.head.next;buf!=&bcache.head;buf=buf->next){
-    //    i++;
-    //    printk("%d\n",i);
-    //}
 }
 
 static void move_buffer_to_bcache_head(buffer *buf){
@@ -38,12 +38,16 @@ static void move_buffer_to_bcache_head(buffer *buf){
 
 static void buffer_read_from_dev(buffer *buf){
     //temporary
+    #ifndef QEMU
     sdcard_read_sector(buf->data, buf->sectorno);
+    #endif
 }
 
 static void buffer_write_to_dev(buffer *buf){
     //temporary
+    #ifndef QEMU
     sdcard_write_sector(buf->data, buf->sectorno);
+    #endif
 }
 
 buffer* acquire_buffer(uint dev, uint sectorno){

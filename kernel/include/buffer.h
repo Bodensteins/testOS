@@ -25,7 +25,7 @@ typedef struct buffer_cache{
 }buffer_cache;
 
 void buffer_init();
-buffer* acquire_buffer(uint dev, uint blockno);
+buffer* acquire_buffer(uint dev, uint sectorno);
 void release_buffer(buffer *buf);
 void buffer_write(buffer *buf);
 

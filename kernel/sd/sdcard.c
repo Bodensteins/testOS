@@ -447,9 +447,14 @@ static uint8 total_fats=0x2;
 static uint32 sector_per_fat=0x770;
 static uint32 root_dir_blockno=0x2;
 
-int blockno_to_sectorno(int blockno){
-	return dbr_start_sector+dbr_reserve_sector+
-		sector_per_fat*total_fats+sectors_per_block*(blockno-root_dir_blockno);
+int _blockno_to_sectorno(int blockno){
+	int sectorno=dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats+sectors_per_block*(blockno-root_dir_blockno);
+	return sectorno;
+}
+
+int _sectorno_to_blockno(int sectorno){
+	int blockno=(sectorno-dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats)/sectors_per_block+2;
+	return blockno;
 }
 
 void sdcard_read_block(uint8*buf, int blockno){

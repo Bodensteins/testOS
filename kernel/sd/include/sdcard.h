@@ -11,6 +11,8 @@ void sdcard_read_block(uint8*buf, int blockno);
 
 void sdcard_write_block(uint8*buf, int blockno);
 
-int blockno_to_sectorno(int blockno);
+int _blockno_to_sectorno(int blockno);
+
+int _sectorno_to_blockno(int sectorno);
 
 #endif 

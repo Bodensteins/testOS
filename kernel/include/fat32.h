@@ -2,9 +2,14 @@
 #define _FAT32_H_
 
 #include "types.h"
+#include "sleeplock.h"
+
+#ifndef BSIZE
+#define BSIZE 512
+#endif
 
 //MBR
-#define MBR_RELATIVE_SECTORS_OFFSET 0x1C6
+#define MBR_DBR_START_SECTORS_OFFSET 0x1C6
 #define MBR_TOTAL_SECORS_OFFSET 0x1CA
 
 typedef struct fat32_mbr{
@@ -15,7 +20,7 @@ typedef struct fat32_mbr{
 //DBR
 #define DBR_BYTES_PER_SECTOR_OFFSET 0x0B
 #define DBR_SECTORS_PER_BLOCK_OFFSET 0x0D
-#define DBR_FAT_START_SECTOR_OFFSET 0x0E
+#define DBR_RESERVE_SECTORS_OFFSET 0x0E
 #define DBR_TOTAL_FATS_OFFSET 0x10
 #define DBR_HIDDEN_SECTORS_OFFSET 0x1C
 #define DBR_FS_TOTAL_SECTORS_OFFSET 0x20
@@ -27,7 +32,7 @@ typedef struct fat32_mbr{
 typedef struct fat32_dbr{
     uint16 bytes_per_sector;
     uint8 sectors_per_block;
-    uint16 dbr_reserve_sector;    //to fat sector
+    uint16 dbr_reserve_sectors;    //to fat sector
     uint8 total_fats;
     uint32 hidden_sectors;      //same with relative_sectors in mbr(0x01C6)
     uint32 fs_total_sectors;
@@ -90,9 +95,36 @@ typedef union fat32_dir_entry{
     fat32_long_name_dir_entry long_name_dentry;
 }fat32_dir_entry;
 
+#define FILE_NAME_LENGTH 12
 
-extern fat32_mbr mbr_info;
-extern fat32_dbr dbr_info;
+typedef struct dirent{
+    char name[FILE_NAME_LENGTH+1];
+    uint8 attribute;
+    uint32 size;
+    uint32 start_blockno;
+    uint32 current_blockno;
+    uint32 total_blocks;
+    uint32 total_refs;
+    uint32 offset_in_parent;
+    uint8 dev;
+    struct dirent* parent;
+    uint8 valid;
+    struct dirent* prev;
+    struct dirent* next;
+    sleeplock sleeplock;
+}dirent;
+
+
+#define DIRENT_LIST_LENGTH 32
+
+typedef struct dirent_cache{
+    dirent dirent_list[DIRENT_LIST_LENGTH];
+    dirent root_dir;
+    spinlock spinlock;
+}dirent_cache;
+
+//extern fat32_mbr mbr_info;
+//extern fat32_dbr dbr_info;
 
 
 #endif
