@@ -12,6 +12,7 @@
 #ifndef QEMU
 #include "sd/include/fpioa.h"
 #include "sd/include/sdcard.h"
+#include "include/fat32.h"
 #endif
 
 #ifndef BSIZE
@@ -39,7 +40,7 @@ void s_start(){
     kernel_vm_init();
     
     code=(char*)alloc_physical_page();
-    memmove(code,(void*)test,PGSIZE);
+    memcpy(code,(void*)test,PGSIZE);
     
     start_paging();
 
@@ -54,7 +55,8 @@ void s_start(){
     sdcard_init();
 #endif
     buffer_init();
-    //test_sdcard();
+    fat32_init();
+    test_sdcard();
     schedule();
 }
 
@@ -62,9 +64,9 @@ process* load_user_programe(){
     process* proc=alloc_process();
 
     char* test_str=(char*)alloc_physical_page();
-    memmove(test_str,"child\n\0",12);
+    memcpy(test_str,"child\n\0",12);
     char* test_str2=(char*)alloc_physical_page();
-    memmove(test_str2,"father\n\0",13);
+    memcpy(test_str2,"father\n\0",13);
 
     proc->trapframe->epc=0x1000;
 
@@ -95,8 +97,17 @@ void just_init_the_device(){
     *(hart0_m_int_enable_hi) = (1 << 0x1);
 }
 
-// A simple test for sdcard read/write test 
+// A simple test for sdcard read/write test
 void test_sdcard(void) {
+    buffer *buf;
+    printk("\n");
+
+    dirent dir;
+    if(!find_dirent(&dir,NULL,"/a/b/test.txt")){
+        buf=acquire_buffer(0,_blockno_to_sectorno(dir.start_blockno));
+        printk("%s\n",(char*)buf->data);
+        release_buffer(buf);
+    }
     /*
     buffer* buf[40];
     for(int i=0;i<40;i++){

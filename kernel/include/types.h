@@ -2,7 +2,7 @@
 #define _TYPES_H_
 
 //#define DEBUG
-#define QEMU
+//#define QEMU
 
 typedef unsigned int   uint;
 typedef unsigned short ushort;

@@ -151,8 +151,7 @@ void spi_send_data_normal(spi_device_num_t spi_num, spi_chip_select_t chip_selec
                 {
                     for(index = 0; index < fifo_len; index += 4)
                     {
-                        // memcpy(&v_send_data, tx_buff + i, 4);
-                        memmove(&v_send_data, tx_buff + i, 4);
+                        memcpy(&v_send_data, tx_buff + i, 4);
                         spi_handle->dr[0] = v_send_data;
                         i += 4;
                     }
@@ -168,8 +167,7 @@ void spi_send_data_normal(spi_device_num_t spi_num, spi_chip_select_t chip_selec
                 {
                     for(index = 0; index < fifo_len; index += 2)
                     {
-                        // memcpy(&v_send_data, tx_buff + i, 2);
-                        memmove(&v_send_data, tx_buff + i, 2);
+                        memcpy(&v_send_data, tx_buff + i, 2);
                         spi_handle->dr[0] = v_send_data;
                         i += 2;
                     }

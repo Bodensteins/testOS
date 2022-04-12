@@ -18,7 +18,7 @@ void* memset(void* dest, int byte, size_t len) {
   return dest;
 }
 
-void* memmove(void *dst, const void *src, uint n){
+void* memcpy(void *dst, const void *src, uint n){
   const char *s;
   char *d;
 
@@ -36,7 +36,47 @@ void* memmove(void *dst, const void *src, uint n){
   return dst;
 }
 
-// memcpy exists to placate GCC.  Use memmove.
-void* memcpy(void *dst, const void *src, uint n){
-  return memmove(dst, src, n);
+int strcmp(char* str1, char* str2){
+  while(*str1 && *str1==*str2){
+    str1++;
+    str2++;
+  }
+  if(*str1==0 && *str2==0)
+    return 0;
+  else
+    return 1;
+}
+
+int strncmp(char* str1, char* str2, uint n){
+  while (n>0 && *str1 && *str1==*str2){
+    n--;str1++;str2++;
+  }
+  if(n==0)
+      return 0;
+  else if(*str1>*str2)
+    return 1;
+  else 
+    return -1;
+}
+
+int strlen(char *str){
+  int n;
+  for(n = 0; str[n]; n++){}
+  return n;
+}
+
+void upper(char *str){
+  while(*str!=0){
+    if(*str>='a' && *str<='z')
+      *str-=0x20;
+    str++;
+  }
+}
+
+void lower(char *str){
+  while(*str!=0){
+    if(*str>='A' && *str<='Z')
+      *str+=0x20;
+    str++;
+  }
 }

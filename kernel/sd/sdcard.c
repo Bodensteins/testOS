@@ -458,7 +458,7 @@ int _sectorno_to_blockno(int sectorno){
 }
 
 void sdcard_read_block(uint8*buf, int blockno){
-	int sectorno=blockno_to_sectorno(blockno);
+	int sectorno=_blockno_to_sectorno(blockno);
 	for(int i=0;i<sectors_per_block;i++){
 		sdcard_read_sector(buf+i*bytes_per_sector, sectorno+i);
 		
@@ -466,7 +466,7 @@ void sdcard_read_block(uint8*buf, int blockno){
 }
 
 void sdcard_write_block(uint8*buf, int blockno){
-	int sectorno=blockno_to_sectorno(blockno);
+	int sectorno=_blockno_to_sectorno(blockno);
 	for(int i=0;i<sectors_per_block;i++){
 		sdcard_write_sector(buf+i*bytes_per_sector, sectorno+i);
 	}

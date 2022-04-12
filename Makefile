@@ -1,5 +1,5 @@
-platform = qemu
-#platform = k210
+#platform = qemu
+platform = k210
 
 K = kernel
 U = user
@@ -31,7 +31,8 @@ KERN_OBJS += \
 	$K/sd/gpiohs.o \
 	$K/sd/spi.o \
 	$K/sd/utils.o \
-	$K/sd/sdcard.o
+	$K/sd/sdcard.o \
+	$K/fat32.o
 endif
 
 USER_OBJS = \
