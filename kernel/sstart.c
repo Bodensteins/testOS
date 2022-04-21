@@ -98,31 +98,21 @@ void just_init_the_device(){
 }
 
 uint32 fat_temp(uint32);
+char buf[0x10000];
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
-    buffer *buf;
+    memset(buf,0,0x8000+0x3E8);
+    dirent de;
     printk("\n");
-
-    dirent dir;
-    if(!find_dirent(&dir,NULL,"/gcc7.txt")){
-        uint32 start_blk=dir.start_blockno;
-        uint32 start_sec=_blockno_to_sectorno(start_blk);
-        buf=acquire_buffer(0,start_sec+63);
-        printk("%s\n",(char*)buf->data);
-        release_buffer(buf);
-        printk("\n********************************\n");
-        start_blk=fat_temp(start_blk);
-        start_sec=_blockno_to_sectorno(start_blk);
-        buf=acquire_buffer(0,start_sec);
-        printk("%s\n",(char*)buf->data);
-        release_buffer(buf);
-        //for(int i=0;i<64;i++){
-            //printk("%d: ******************************\n\n",i);
-        //    buf=acquire_buffer(0,start_sec+i);
-        //    printk("%s\n",(char*)buf->data);
-        //    release_buffer(buf);
-        //}
-        printk("done\n");
+    if(!find_dirent(&de,NULL,"/gcc7.txt")){
+        //buffer *_buf=acquire_buffer(de.dev,_blockno_to_sectorno(de.start_blockno));
+        //printk((char*)_buf->data);
+        read_by_dirent(&de,buf,0,0x8000+0x3E8);
+        char str[0x3E8];
+        memset(str,0,1000);
+        memcpy(str,buf+0x8000,0x3E7);
+        printk("%s\n", str);
+        printk("\ndone\n");
     }
     /*
     buffer* buf[40];

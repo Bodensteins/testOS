@@ -113,7 +113,7 @@ typedef struct dirent{
     uint8 attribute;
     uint32 file_size;
     uint32 start_blockno;
-    uint32 current_blockno;
+    //uint32 current_blockno;
     uint32 total_blocks;
     uint32 offset_in_parent;
     uint8 dev;
@@ -139,5 +139,7 @@ extern fat32_dbr dbr_info;
 
 void fat32_init();
 int find_dirent(dirent* des_de, dirent* current_de, char *file_name);
+int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize);
+int write_by_dirent(dirent *de, void *src, uint offset, uint wsize);
 
 #endif

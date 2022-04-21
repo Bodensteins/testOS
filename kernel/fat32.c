@@ -44,7 +44,9 @@ void fat32_init(){
     //root directory init
     memset(&dcache.root_dir,0,sizeof(dcache.root_dir));
     dcache.root_dir.attribute=ATTR_DIRECTORY;
-    dcache.root_dir.current_blockno=dcache.root_dir.start_blockno=dbr_info.root_dir_blockno;
+    //dcache.root_dir.current_blockno=dbr_info.root_dir_blockno;
+    dcache.root_dir.dev=DEVICE_DISK_NUM;
+    dcache.root_dir.start_blockno=dbr_info.root_dir_blockno;
     memcpy(dcache.root_dir.name,"/",1);
     init_sleeplock(&dcache.root_dir.sleeplock,"root dirent");
     
@@ -92,6 +94,8 @@ static inline uint32 fat_blockno_to_offset(uint32 blockno){
 }
 
 static uint32 fat_find_next_blockno(uint32 blockno, uint32 fatno){
+    if(blockno==FAT_BLOCK_END || blockno==FAT_BLOCK_DAMAGE)
+        return blockno;
     uint32 sec=fat_blockno_to_sectorno(blockno, fatno);
     if(sec>=mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*fatno)
         return blockno;
@@ -169,7 +173,7 @@ static int read_dirent_from_disk(dirent* parent, char *name, dirent* des_dir){
                     des_dir->attribute=dentry.short_name_dentry.atrribute;
                     des_dir->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;
                     des_dir->start_blockno=get_start_blockno_in_short_entry(&dentry.short_name_dentry);
-                    des_dir->current_blockno=des_dir->start_blockno;
+                    //des_dir->current_blockno=des_dir->start_blockno;
                     des_dir->file_size=dentry.short_name_dentry.file_size;
                     des_dir->total_blocks=des_dir->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_block);
                     if(des_dir->start_blockno==0x0)
@@ -285,7 +289,7 @@ int find_dirent(dirent* des_de, dirent* current_de, char *file_name){
         if(parent!=NULL && parent!=current_de)
             release_dirent(parent);
         if(child==NULL){
-            printk("%s : not found\n",temp_name);
+            printk("%s : file not found\n",temp_name);
             return -1;
         }
         //printk("%s, %x\n",child->name,child->start_blockno);
@@ -299,3 +303,68 @@ int find_dirent(dirent* des_de, dirent* current_de, char *file_name){
     return 0;
 }
 
+int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
+    if((de->attribute & ATTR_DIRECTORY) || offset>de->file_size || rsize<=0)
+        return 0;
+
+    if(offset+rsize>de->file_size)
+        rsize=de->file_size-offset;
+
+    uint32 blk=offset/(dbr_info.bytes_per_sector*dbr_info.sectors_per_block)+de->start_blockno;
+    uint32 sec=(offset%(dbr_info.bytes_per_sector*dbr_info.sectors_per_block))/dbr_info.bytes_per_sector;
+    uint32 off=offset%dbr_info.bytes_per_sector;
+
+    uint32 nblk=rsize/(dbr_info.bytes_per_sector*dbr_info.sectors_per_block);
+    uint32 nsec=(rsize%(dbr_info.bytes_per_sector*dbr_info.sectors_per_block))/dbr_info.bytes_per_sector;
+    uint32 noff=rsize%dbr_info.bytes_per_sector;
+    
+    if(noff+off>dbr_info.bytes_per_sector){
+        nsec++;
+        if(nsec>=dbr_info.sectors_per_block){
+            nsec=0;
+            nblk++;
+        }
+        noff=(noff+off)%dbr_info.bytes_per_sector;
+    }
+
+    uint tot_sz=0;
+    buffer *buf;
+    for(int b=0;b<=nblk;b++){
+        if(blk==FAT_BLOCK_END){
+            return tot_sz;
+        }
+
+        int s_beg=0;
+        int s_end=dbr_info.sectors_per_block;
+        if(b==0)
+            s_beg=sec;
+        if(b==nblk)
+            s_end=s_beg+nsec;
+
+        for(int s=s_beg,s_sec=blockno_to_sectorno(blk);s<=s_end;s++){
+            int beg=0;
+            int nsz=dbr_info.bytes_per_sector;
+
+            if(b==0 && s==0){
+                tot_sz=0;
+                beg=off;
+                nsz-=off;
+            }
+            if(b==nblk && s==s_end)
+                nsz=noff;
+
+            buf=acquire_buffer(de->dev,s_sec+s);
+            memcpy(dst+tot_sz,buf->data+beg,nsz);
+            release_buffer(buf);
+            tot_sz+=nsz;
+        }
+
+        blk=fat_find_next_blockno(blk,1);
+    }
+
+    return tot_sz;
+}
+
+int write_by_dirent(dirent *de, void *src, uint offset, uint wsize){
+    return wsize;
+}
