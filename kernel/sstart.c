@@ -101,17 +101,17 @@ uint32 fat_temp(uint32);
 char buf[0x10000];
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
-    memset(buf,0,0x8000+0x3E8);
+    memset(buf,0,0x10000);
     dirent de;
     printk("\n");
     if(!find_dirent(&de,NULL,"/gcc7.txt")){
-        //buffer *_buf=acquire_buffer(de.dev,_blockno_to_sectorno(de.start_blockno));
-        //printk((char*)_buf->data);
-        read_by_dirent(&de,buf,0,0x8000+0x3E8);
+        int ret=read_by_dirent(&de,buf,6,0x83E8);
+        printk("strlen: %x\n", strlen(buf));
         char str[0x3E8];
-        memset(str,0,1000);
+        memset(str,0,0x3E8);
         memcpy(str,buf+0x8000,0x3E7);
         printk("%s\n", str);
+        printk("%x\n",ret);
         printk("\ndone\n");
     }
     /*

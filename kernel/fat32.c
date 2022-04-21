@@ -335,12 +335,11 @@ int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
         }
 
         int s_beg=0;
-        int s_end=dbr_info.sectors_per_block;
+        int s_end=dbr_info.sectors_per_block-1;
         if(b==0)
             s_beg=sec;
         if(b==nblk)
             s_end=s_beg+nsec;
-
         for(int s=s_beg,s_sec=blockno_to_sectorno(blk);s<=s_end;s++){
             int beg=0;
             int nsz=dbr_info.bytes_per_sector;
@@ -352,7 +351,7 @@ int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
             }
             if(b==nblk && s==s_end)
                 nsz=noff;
-
+            
             buf=acquire_buffer(de->dev,s_sec+s);
             memcpy(dst+tot_sz,buf->data+beg,nsz);
             release_buffer(buf);
