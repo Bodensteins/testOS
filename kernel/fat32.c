@@ -3,7 +3,9 @@
 #include "include/string.h"
 #include "include/printk.h"
 
+#ifndef DEVICE_DISK_NUM
 #define DEVICE_DISK_NUM 0
+#endif
 
 fat32_mbr mbr_info;
 fat32_dbr dbr_info;
@@ -17,15 +19,15 @@ void fat32_init(){
     //mbr init
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
     //mbr_info.dbr_start_sector=*((uint32*)(buf->data+MBR_DBR_START_SECTOR_OFFSET));
-    mbr_info.dbr_start_sector=0x20;
+    memcpy(&mbr_info.dbr_start_sector,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));
     //mbr_info.total_sectors=*((uint32*)(buf->data+MBR_TOTAL_SECORS_OFFSET));
-    mbr_info.total_sectors=0x0EE0F00;
+    memcpy(&mbr_info.total_sectors,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
     release_buffer(buf);
     
     //dbr init
     buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.dbr_start_sector);
     //dbr_info.bytes_per_sector=*((uint16*)(buf->data+DBR_BYTES_PER_SECTOR_OFFSET));
-    memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,2);
+    memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,sizeof(uint16));
     if(dbr_info.bytes_per_sector!=BSIZE)
         panic("bytes_per_sector is not 512\n");
     dbr_info.sectors_per_block=*((uint8*)(buf->data+DBR_SECTORS_PER_BLOCK_OFFSET));
@@ -81,7 +83,8 @@ static uint32 sectorno_to_blockno(uint32 sectorno){
 */
 
 static inline uint32 fat_blockno_to_sectorno(uint32 blockno, uint32 fatno){
-    return 4*blockno/dbr_info.bytes_per_sector+mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*(fatno-1);
+    return 4*blockno/dbr_info.bytes_per_sector+mbr_info.dbr_start_sector+
+        dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*(fatno-1);
 }
 
 static inline uint32 fat_blockno_to_offset(uint32 blockno){
@@ -97,6 +100,10 @@ static uint32 fat_find_next_blockno(uint32 blockno, uint32 fatno){
     uint32 next_block=*((uint32*)(buf->data+off));
     release_buffer(buf);
     return next_block;
+}
+
+uint32 fat_temp(uint32 blockno){
+    return fat_find_next_blockno(blockno,1);
 }
 
 /*
@@ -291,3 +298,4 @@ int find_dirent(dirent* des_de, dirent* current_de, char *file_name){
         release_dirent(child);
     return 0;
 }
+

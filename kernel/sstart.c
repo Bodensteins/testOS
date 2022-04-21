@@ -97,16 +97,32 @@ void just_init_the_device(){
     *(hart0_m_int_enable_hi) = (1 << 0x1);
 }
 
+uint32 fat_temp(uint32);
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
     buffer *buf;
     printk("\n");
 
     dirent dir;
-    if(!find_dirent(&dir,NULL,"/a/b/test.txt")){
-        buf=acquire_buffer(0,_blockno_to_sectorno(dir.start_blockno));
+    if(!find_dirent(&dir,NULL,"/gcc7.txt")){
+        uint32 start_blk=dir.start_blockno;
+        uint32 start_sec=_blockno_to_sectorno(start_blk);
+        buf=acquire_buffer(0,start_sec+63);
         printk("%s\n",(char*)buf->data);
         release_buffer(buf);
+        printk("\n********************************\n");
+        start_blk=fat_temp(start_blk);
+        start_sec=_blockno_to_sectorno(start_blk);
+        buf=acquire_buffer(0,start_sec);
+        printk("%s\n",(char*)buf->data);
+        release_buffer(buf);
+        //for(int i=0;i<64;i++){
+            //printk("%d: ******************************\n\n",i);
+        //    buf=acquire_buffer(0,start_sec+i);
+        //    printk("%s\n",(char*)buf->data);
+        //    release_buffer(buf);
+        //}
+        printk("done\n");
     }
     /*
     buffer* buf[40];

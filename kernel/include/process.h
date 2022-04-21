@@ -30,6 +30,7 @@ typedef struct segment_map_info{
   int seg_type;
 }segment_map_info;
 
+/*
 typedef struct context{
   uint64 ra;
   uint64 sp;
@@ -48,6 +49,7 @@ typedef struct context{
   uint64 s10;
   uint64 s11;
 }context;
+*/
 
 typedef struct trapframe{
     riscv_regs regs;
@@ -66,7 +68,6 @@ typedef struct process{
 
   segment_map_info *segment_map_info;
   int segment_num;
-  //context context;
 
   int state;
   int killed;
@@ -76,7 +77,6 @@ typedef struct process{
   struct process *queue_next;
   trapframe *trapframe;
 }process;
-
 
 extern process proc_list[NPROC];
 extern process* current;

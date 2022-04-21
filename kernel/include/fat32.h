@@ -134,8 +134,8 @@ typedef struct dirent_cache{
     spinlock spinlock;
 }dirent_cache;
 
-//extern fat32_mbr mbr_info;
-//extern fat32_dbr dbr_info;
+extern fat32_mbr mbr_info;
+extern fat32_dbr dbr_info;
 
 void fat32_init();
 int find_dirent(dirent* des_de, dirent* current_de, char *file_name);

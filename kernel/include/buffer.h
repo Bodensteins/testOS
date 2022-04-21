@@ -5,7 +5,7 @@
 #include "sleeplock.h"
 
 #define BISZE 512
-#define NBUFFER 32
+#define NBUFFER 128
 
 typedef struct buffer{
     int valid;   // has data been read from disk?
