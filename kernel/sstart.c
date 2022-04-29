@@ -8,6 +8,7 @@
 #include "include/string.h"
 #include "include/schedule.h"
 #include "include/buffer.h"
+#include "include/elf.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
@@ -39,53 +40,47 @@ void s_start(){
     pm_init();
     kernel_vm_init();
     
-    code=(char*)alloc_physical_page();
-    memcpy(code,(void*)test,PGSIZE);
-    
     start_paging();
 
     proc_list_init();
     trap_init();
-    
-    insert_to_runnable_queue(load_user_programe());
    
 #ifndef QEMU
     fpioa_pin_init();
-    just_init_the_device();
+    //just_init_the_device();
     sdcard_init();
 #endif
     buffer_init();
     fat32_init();
-    test_sdcard();
+    //test_sdcard();
+    insert_to_runnable_queue(load_user_programe());
     schedule();
 }
 
 process* load_user_programe(){
     process* proc=alloc_process();
+    
+    dirent* de=find_dirent(NULL,"/test");
+    char* code=alloc_physical_page();
+    elf64_header hdr;
+    elf64_prog_header phdr;
 
-    char* test_str=(char*)alloc_physical_page();
-    memcpy(test_str,"child\n\0",12);
-    char* test_str2=(char*)alloc_physical_page();
-    memcpy(test_str2,"father\n\0",13);
+    read_by_dirent(de,&hdr,0,sizeof(elf64_header));
 
-    proc->trapframe->epc=0x1000;
+    proc->trapframe->epc=hdr.entry;
 
-    user_vm_map(proc->pagetable,0x1000,PGSIZE,(uint64)code,
-        pte_permission(PAGE_READ | PAGE_EXEC,1));
-    proc->segment_map_info[3].va=0x1000;
+    read_by_dirent(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));
+    read_by_dirent(de,code,phdr.offset,phdr.file_size);
+    proc->size=phdr.file_size;
+    user_vm_map(proc->pagetable,phdr.va,PGSIZE,(uint64)code,
+        pte_permission(PAGE_READ | PAGE_EXEC | PAGE_WRITE,1));
+    proc->segment_map_info[3].va=phdr.va;
     proc->segment_map_info[3].page_num=1;
     proc->segment_map_info[3].seg_type=CODE_SEGMENT;
-    
+    proc->segment_num++;
+    release_dirent(de);
 
-    user_vm_map(proc->pagetable,0x2000,PGSIZE,(uint64)test_str,
-        pte_permission(PAGE_READ | PAGE_WRITE,1));
-    user_vm_map(proc->pagetable,0x3000,PGSIZE,(uint64)test_str2,
-        pte_permission(PAGE_READ | PAGE_WRITE,1));
-    proc->segment_map_info[4].va=0x2000;
-    proc->segment_map_info[4].page_num=2;
-    proc->segment_map_info[4].seg_type=DATA_SEGMENT;
-
-    proc->segment_num=5;
+    proc->cwd=find_dirent(NULL,"/");
 
     return proc;
 }
@@ -98,44 +93,14 @@ void just_init_the_device(){
 }
 
 uint32 fat_temp(uint32);
-char buf[0x10000];
+uint8 buf[PGSIZE];
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
-    memset(buf,0,0x10000);
-    dirent de;
-    printk("\n");
-    if(!find_dirent(&de,NULL,"/gcc7.txt")){
-        int ret=read_by_dirent(&de,buf,6,0x83E8);
-        printk("strlen: %x\n", strlen(buf));
-        char str[0x3E8];
-        memset(str,0,0x3E8);
-        memcpy(str,buf+0x8000,0x3E7);
-        printk("%s\n", str);
-        printk("%x\n",ret);
-        printk("\ndone\n");
+    dirent* de=find_dirent(NULL,"/main");
+    if(de!=NULL){
+        int ret=read_by_dirent(de,buf,120,1200);
+        printk("off: 120, rsize: 1200 ,ret: %d\n",ret);
     }
-    /*
-    buffer* buf[40];
-    for(int i=0;i<40;i++){
-        *(buf+i)=acquire_buffer(i,_blockno_to_sectorno(0x7801));
-        release_buffer(*(buf+i));
-    }
-    printk("done!\n");
-	
-    buf=acquire_buffer(0,_blockno_to_sectorno(0x7801));
-    for (int i = 0; i < 512; i ++) {
-         if (0 == i % 16) {
-			printk("\n");
-		}
-		printk("%x ", buf->data[i]);
-	}
-    
-    char str[16];
-    memcpy(str,buf->data,16);
-    printk(str);
-    memcpy(buf->data,"not just a test",16);
-    buffer_write(buf);
-    release_buffer(buf);
-    */
+    release_dirent(de);
 	while (1) ;
 }

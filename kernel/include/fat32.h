@@ -60,6 +60,7 @@ typedef struct fat32_fsinfo{
 #define SHORT_NAME_LENGTH 8
 #define EXTEND_NAME_LENGTH 3
 #define DIR_ENTRY_BYTES 32
+
 #define ATTR_READ_ONLY      0x01
 #define ATTR_HIDDEN         0x02
 #define ATTR_SYSTEM         0x04
@@ -67,6 +68,7 @@ typedef struct fat32_fsinfo{
 #define ATTR_DIRECTORY      0x10
 #define ATTR_ARCHIVE        0x20
 #define ATTR_LONG_NAME      0x0F
+
 #define LAST_LONG_ENTRY     0x40
 
 #define SHORT_DENTRY_ATRRIBUTE_OFFSET 0xB
@@ -126,7 +128,7 @@ typedef struct dirent{
 }dirent;
 
 
-#define DIRENT_LIST_LENGTH 32
+#define DIRENT_LIST_LENGTH 256
 
 typedef struct dirent_cache{
     dirent dirent_list[DIRENT_LIST_LENGTH];
@@ -138,8 +140,10 @@ extern fat32_mbr mbr_info;
 extern fat32_dbr dbr_info;
 
 void fat32_init();
-int find_dirent(dirent* des_de, dirent* current_de, char *file_name);
+dirent* find_dirent(dirent* current_de, char *file_name);
+void release_dirent(dirent* dir);
 int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize);
 int write_by_dirent(dirent *de, void *src, uint offset, uint wsize);
+dirent* dirent_dup(dirent *de);
 
 #endif

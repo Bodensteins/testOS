@@ -44,34 +44,34 @@ void delete_from_runnable_queue(process *proc){
 }
 
 void schedule(){
-    if ( runnable_queue==NULL ){
-        //int should_shutdown = 1;
+    if (runnable_queue==NULL)
         return;
-    }
 
     if(proc_list[0].state==ZOMBIE){
         sbi_shutdown();
     }
 
     if(current!=NULL && current->state==ZOMBIE){
-        printk("zombie: %d\n", current->pid);
+        //printk("zombie: %d\n", current->pid);
         current->state=UNUSED;
         
         for(int i=0;i<current->segment_num;i++){
             segment_map_info* seg=current->segment_map_info+i;
             int free=1;
-            if(seg->seg_type==SYSTEM_SEGMENT || 
-                seg->seg_type==CODE_SEGMENT)
+            if(seg->seg_type==SYSTEM_SEGMENT){
                 free=0;
+            }
             user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
         }
         
         free_pagetable(current->pagetable);
+        current->segment_map_info->page_num=0;
+        current->size=0;
     }
     //printk("run process\n");
-    current = runnable_queue;
-    runnable_queue = runnable_queue->queue_next;
-    printk("running process: %d\n",current->pid);
-    current->state = RUNNING;
-    switch_to( current );   
+    current=runnable_queue;
+    runnable_queue=runnable_queue->queue_next;
+    //printk("running process: %d\n",current->pid);
+    current->state=RUNNING;
+    switch_to(current);   
 }

@@ -29,18 +29,34 @@ static uint64 user_syscall
 }
 
 uint64 fork(){
-    return user_syscall(SYS_fork,0,0,0,0,0,0,0);
+    return user_syscall(0,0,0,0,0,0,0,SYS_fork);
 }
 
 uint64 exit(int code){
-    return user_syscall(SYS_exit,code,0,0,0,0,0,0);
+    return user_syscall(code,0,0,0,0,0,0,SYS_exit);
+}
+
+uint64 open(char *file_name, int mode){
+    return user_syscall((uint64)file_name,mode,0,0,0,0,0,SYS_open);
+}
+
+uint64 read(int fd, void* buf, size_t rsize){
+    return user_syscall(fd,(uint64)buf,rsize,0,0,0,0,SYS_read);
 }
 
 uint64 kill(uint64 pid){
-    return user_syscall(SYS_kill,pid,0,0,0,0,0,0);
+    return user_syscall(pid,0,0,0,0,0,0,SYS_kill);
+}
+
+uint64 exec(char *file_name){
+    return user_syscall((uint64)file_name,0,0,0,0,0,0,SYS_exec);
 }
 
 uint64 simple_write(char *s, size_t n){
-    return user_syscall(SYS_write,(uint64)s,n,0,0,0,0,0);
+    return user_syscall((uint64)s,n,0,0,0,0,0,SYS_write);
+}
+
+uint64 close(int fd){
+    return user_syscall(fd,0,0,0,0,0,0,SYS_close);
 }
 

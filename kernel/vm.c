@@ -172,3 +172,22 @@ void free_pagetable(pagetable_t pagetable){
   }
   free_physical_page((void*)pagetable);
 }
+
+void free_pagetable2(pagetable_t pagetable, uint64 sz, int is_free){
+    for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE_TO_PA(pte);
+      free_pagetable((pagetable_t)child);
+      pagetable[i] = 0;
+    } else if(pte & PTE_V){
+      if(is_free){
+          free_physical_page((void*)PTE_TO_PA(pte));
+      }
+      else
+        panic("freewalk:leaf");
+    }
+  }
+  free_physical_page((void*)pagetable);
+}

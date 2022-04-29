@@ -22,8 +22,8 @@ KERN_OBJS := \
 	$K/schedule.o \
 	$K/spinlock.o \
 	$K/sleeplock.o \
-	$K/buffer.o 
-
+	$K/buffer.o \
+	$K/sysexec.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -32,7 +32,8 @@ KERN_OBJS += \
 	$K/sd/spi.o \
 	$K/sd/utils.o \
 	$K/sd/sdcard.o \
-	$K/fat32.o
+	$K/fat32.o \
+	$K/file.o
 endif
 
 USER_OBJS = \
@@ -71,9 +72,19 @@ else
 LINKER = tools/kernel-qemu.ld
 endif
 
-$T/kernel: $(KERN_OBJS) $(USER_OBJS) $(LINKER)
+$T/kernel: $(KERN_OBJS) $(LINKER)
 	if [ ! -d "./target" ]; then mkdir target; fi
-	$(LD) $(LDFLAGS) -T $(LINKER)  $(KERN_OBJS) $(USER_OBJS) -o $T/kernel
+	$(LD) $(LDFLAGS) -T $(LINKER)  $(KERN_OBJS) -o $T/kernel
+
+ULIB = $U/user_syscall.o $U/stdio.o
+
+$T/main: $U/main.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	@$(OBJDUMP) -S $T/main > $T/main.asm
+
+$T/test: $U/test.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	@$(OBJDUMP) -S $@ > $@.asm
 
 ifndef CPUS
 CPUS = 1
@@ -87,7 +98,7 @@ kernel-image = $T/kernel.bin
 k210-bootloader = $T/rustsbi.bin
 k210-port = /dev/ttyUSB0
 
-build: $T/kernel
+build: $T/kernel $T/main $T/test
 
 k210: build
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
@@ -111,6 +122,6 @@ else
 endif
 
 clean:
-	rm -f */*.o */*.d $T/kernel $T/*.bin */*/*.o */*/*.d
+	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d
 
 .PHONY: clean qemu run build

@@ -82,7 +82,7 @@ buffer* acquire_buffer(uint dev, uint sectorno){
 void release_buffer(buffer *buf){
     //if(!is_holding_sleeplock(&buf->sleeplock))
         //panic("release_buffer\n");
-    
+
     //release_sleeplock(&buf->sleeplock);
     //acquire(&bcache.spinlock);
 

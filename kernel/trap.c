@@ -72,8 +72,8 @@ void user_trap_ret(){
 
 void kernel_trap(){
     uint64 sepc=r_sepc();
-    uint64 status = r_sstatus();
-    uint64 cause = r_scause();
+    uint64 status=r_sstatus();
+    uint64 cause=r_scause();
   
     if((status & SSTATUS_SPP) == 0)
         panic("kerneltrap: not from supervisor mode");

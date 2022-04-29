@@ -224,6 +224,7 @@ dirent* acquire_dirent(dirent* parent, char* name ){
         if(de->ref_count==0){
             de->ref_count++;
             de->parent=parent;
+            parent->ref_count++;
             de->dev=parent->dev;
             de->valid=1;
             //release_spinlock(&de->spinlock);
@@ -244,29 +245,38 @@ dirent* acquire_dirent(dirent* parent, char* name ){
 void release_dirent(dirent* dir){
     //if(!is_holding_sleeplock(&dir->sleeplock))
         //panic("release_dirent\n");
+    if(dir==&dcache.root_dir){
+        //release_sleeplock(&dir->sleeplock);
+        return;
+    }
     
     //release_sleeplock(&dir->sleeplock);
     //acquire_spinlock(&dcache.spinlock);
 
     dir->ref_count--;
     if(dir->ref_count==0){
-        dir->parent->ref_count--;
         move_dirent_to_dcache_head(dir);
+        //release_spinlock(&dcache.spinlock);
+        release_dirent(dir->parent);
+        return;
     }
+    //to do
 
     //release_spinlock(&dcache.spinlock);
 }
 
-int find_dirent(dirent* des_de, dirent* current_de, char *file_name){
+dirent* find_dirent(dirent* current_de, char *file_name){
+    if(file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
+        return NULL;
     upper(file_name);
-    if(des_de==NULL || file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
-        return 1;
+    if(!strcmp(file_name,"/"))
+        return &dcache.root_dir;
     if(*file_name=='/'){
         current_de=&dcache.root_dir;
         file_name++;
     }
     if(current_de==NULL)
-        return 2;
+        return NULL;
     int slash_pos=0;
     int beg_pos=0;
     int is_end=0;
@@ -290,20 +300,20 @@ int find_dirent(dirent* des_de, dirent* current_de, char *file_name){
             release_dirent(parent);
         if(child==NULL){
             printk("%s : file not found\n",temp_name);
-            return -1;
+            return NULL;
         }
         //printk("%s, %x\n",child->name,child->start_blockno);
         parent=child;
         slash_pos++;
         beg_pos=slash_pos;
     }
-    memcpy(des_de,child,sizeof(dirent));
-    if(child!=NULL)
-        release_dirent(child);
-    return 0;
+    return child;
 }
 
 int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
+    if(de==NULL || dst==NULL)
+        return 0;
+
     if((de->attribute & ATTR_DIRECTORY) || offset>de->file_size || rsize<=0)
         return 0;
 
@@ -317,15 +327,15 @@ int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
     uint32 nblk=rsize/(dbr_info.bytes_per_sector*dbr_info.sectors_per_block);
     uint32 nsec=(rsize%(dbr_info.bytes_per_sector*dbr_info.sectors_per_block))/dbr_info.bytes_per_sector;
     uint32 noff=rsize%dbr_info.bytes_per_sector;
-    
+
     if(noff+off>dbr_info.bytes_per_sector){
         nsec++;
         if(nsec>=dbr_info.sectors_per_block){
             nsec=0;
             nblk++;
         }
-        noff=(noff+off)%dbr_info.bytes_per_sector;
     }
+    noff=(noff+off)%dbr_info.bytes_per_sector;
 
     uint tot_sz=0;
     buffer *buf;
@@ -350,8 +360,8 @@ int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
                 nsz-=off;
             }
             if(b==nblk && s==s_end)
-                nsz=noff;
-            
+                nsz=noff-beg;
+
             buf=acquire_buffer(de->dev,s_sec+s);
             memcpy(dst+tot_sz,buf->data+beg,nsz);
             release_buffer(buf);
@@ -366,4 +376,11 @@ int read_by_dirent(dirent *de, void *dst, uint offset, uint rsize){
 
 int write_by_dirent(dirent *de, void *src, uint offset, uint wsize){
     return wsize;
+}
+
+dirent* dirent_dup(dirent *de){
+    //acquire_spinlock(&dcache.spinlock);
+    de->ref_count++;
+    //release_spinlock(&dcache.spinlock);
+    return de;
 }

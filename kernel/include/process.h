@@ -8,6 +8,8 @@
 
 #include "spinlock.h"
 
+#include "file.h"
+
 typedef enum proc_state { 
   UNUSED, 
   SLEEPING, 
@@ -60,6 +62,9 @@ typedef struct trapframe{
   /*  280 */ uint64 kernel_hartid; // saved kernel tp
 }trapframe;
 
+#define NPROC 64
+#define N_OPEN_FILE 16
+
 typedef struct process{
   struct spinlock spinlock;
 
@@ -69,9 +74,13 @@ typedef struct process{
   segment_map_info *segment_map_info;
   int segment_num;
 
-  int state;
+  proc_state state;
   int killed;
+  int size;
   uint64 pid;
+
+  dirent *cwd;
+  file *open_files[N_OPEN_FILE];
 
   struct process *parent;
   struct process *queue_next;
@@ -83,11 +92,12 @@ extern process* current;
 
 void proc_list_init();
 process *alloc_process();
-int free_process( process* proc );
+int free_process(process* proc);
 uint64 do_fork(process *parent);
 void reparent(process *);
 void yield();
 uint64 do_kill(uint64);
 void switch_to(process*);
+int do_exec(char*, char**);
 
 #endif

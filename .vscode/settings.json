@@ -13,6 +13,8 @@
         "param.h": "c",
         "riscv.h": "c",
         "types.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "fcntl.h": "c",
+        "sleeplock.h": "c"
     }
 }

@@ -6,25 +6,32 @@
 #include "include/printk.h"
 #include "include/schedule.h"
 #include "include/sleeplock.h"
+#include "include/sbi.h"
+#include "include/elf.h"
 
 process proc_list[NPROC];
 
 process *current=NULL;
 
 extern char trampoline[];
-extern void return_to_user();
-extern void user_trap_vec();
+extern char return_to_user[];
+extern char user_trap_vec[];
 
 void user_trap();
 
-static void map_code_segment(process*, process*,int);
-static void copy_data_segment(process*,process*,int);
+static void open_file_list_init(process*);
+void map_segment(process*, process*,int);
+void copy_segment(process*,process*,int);
 
 void proc_list_init(){
     for(int i=0;i<NPROC;i++){
         proc_list[i].state=UNUSED;
         proc_list[i].pid=i+1;
         proc_list[i].killed=0;
+        proc_list[i].size=0;
+
+        proc_list[i].cwd=NULL;
+        open_file_list_init(proc_list+i);
 
         init_spinlock(&proc_list[i].spinlock,"process lock");
 
@@ -35,6 +42,10 @@ void proc_list_init(){
 
         proc_list[i].segment_num=0;
     }
+}
+
+static void open_file_list_init(process *proc){
+    memset(proc->open_files,0,N_OPEN_FILE*sizeof(file));
 }
 
 process *alloc_process(){
@@ -58,6 +69,8 @@ process *alloc_process(){
     uint64 user_stack=(uint64)alloc_physical_page();
     p->trapframe->regs.sp=USER_STACK_TOP;
 
+    p->segment_num=0;
+
     user_vm_map(p->pagetable,USER_STACK_TOP-PGSIZE,PGSIZE,user_stack,
         pte_permission((PAGE_READ | PAGE_WRITE),1));
     p->segment_map_info[0].page_num=1;
@@ -65,27 +78,26 @@ process *alloc_process(){
     p->segment_map_info[0].va=USER_STACK_TOP-PGSIZE;
     p->segment_num++;
 
-    user_vm_map(p->pagetable,(uint64)p->trapframe,PGSIZE,(uint64)p->trapframe,
+    user_vm_map(p->pagetable,TRAPFRAME,PGSIZE,(uint64)p->trapframe,
         pte_permission((PAGE_READ | PAGE_WRITE),0));
     p->segment_map_info[1].page_num=1;
     p->segment_map_info[1].seg_type=TRAPFRAME_SEGMENT;
-    p->segment_map_info[1].va=(uint64)p->trapframe;
+    p->segment_map_info[1].va=TRAPFRAME;
     p->segment_num++;
 
-
-    user_vm_map(p->pagetable,(uint64)trampoline,PGSIZE,(uint64)trampoline,
+    user_vm_map(p->pagetable,TRAMPOLINE,PGSIZE,(uint64)trampoline,
         pte_permission((PAGE_READ | PAGE_EXEC),0));
     p->segment_map_info[2].page_num=1;
     p->segment_map_info[2].seg_type=SYSTEM_SEGMENT;
-    p->segment_map_info[2].va=(uint64)trampoline;
+    p->segment_map_info[2].va=TRAMPOLINE;
     p->segment_num++;
 
     return p;
 }
 
-int free_process( process* proc ) {
+int free_process(process* proc){
     intr_off();
-    proc->state= ZOMBIE;
+    proc->state=ZOMBIE;
     schedule();
     //delete_from_runnable_queue(proc);
     return 0;
@@ -105,17 +117,25 @@ uint64 do_fork(process *parent){
                 *child->trapframe = *parent->trapframe;
                 break;
             case CODE_SEGMENT:
-                map_code_segment(parent, child, i);
+                copy_segment(parent, child, i);
                 break;
             case DATA_SEGMENT:
-                copy_data_segment(parent, child ,i);
+                copy_segment(parent, child ,i);
                 break;
         }
     }
 
-    child->state = RUNNABLE;
-    child->trapframe->regs.a0 = 0;
-    child->parent = parent;
+    for(int i=0;i<N_OPEN_FILE;i++){
+        if(parent->open_files[i]!=NULL)
+            child->open_files[i]=file_dup(parent->open_files[i]);
+    }
+    
+    child->cwd=dirent_dup(parent->cwd);
+
+    child->size=parent->size;
+    child->state=RUNNABLE;
+    child->trapframe->regs.a0=0;
+    child->parent=parent;
     insert_to_runnable_queue(child);
     return child->pid;
 }
@@ -138,34 +158,23 @@ void switch_to(process* proc) {
     if(current->killed==1)
         free_process(current);
 
-    //write_csr(stvec, (uint64)smode_trap_vector);
-    w_stvec((uint64)user_trap_vec);
-    // set up trapframe values that smode_trap_vector will need when
-    // the process next re-enters the kernel.
-    proc->trapframe->kernel_sp = proc->kstack;      // process's kernel stack
-    proc->trapframe->kernel_satp = r_satp();  // kernel page table
-    proc->trapframe->kernel_trap = (uint64)user_trap;
+    w_stvec(TRAMPOLINE+(user_trap_vec-trampoline));
+    //w_stvec((uint64)user_trap_vec);
+    proc->trapframe->kernel_sp=proc->kstack;
+    proc->trapframe->kernel_satp=r_satp();
+    proc->trapframe->kernel_trap=(uint64)user_trap;
 
-    // set up the registers that strap_vector.S's sret will use
-    // to get to user space.
-
-    // set S Previous Privilege mode to User.
-    unsigned long x = r_sstatus();
-    x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
-    x |= SSTATUS_SPIE;  // enable interrupts in user mode
-
+    unsigned long x=r_sstatus();
+    x &= ~SSTATUS_SPP;
+    x |= SSTATUS_SPIE;
     w_sstatus(x);
 
-    // set S Exception Program Counter to the saved user pc.
     w_sepc((uint64)proc->trapframe->epc);
-
-    w_sscratch((uint64)proc->trapframe);
-
-    
-    //make user page table
+    uint64 ret=TRAMPOLINE+(return_to_user-trampoline);
+    w_sscratch(TRAPFRAME);
     w_satp(MAKE_SATP((uint64)proc->pagetable));
-    // switch to user mode with sret.
-    return_to_user();
+    ((void(*)())ret)();
+    //return_to_user();
 }
 
 void reparent(process* p){
@@ -181,21 +190,21 @@ void yield(){
     schedule();
 }
 
-static void map_code_segment(process* parent, process* child, int i){
+void map_segment(process* parent, process* child, int i){
     user_vm_map(
                     child->pagetable,
                     parent->segment_map_info[i].va,
                     parent->segment_map_info[i].page_num*PGSIZE,
                     find_pa_align_pgsize(parent->pagetable, parent->segment_map_info[i].va),
-                    pte_permission(PAGE_READ | PAGE_EXEC, 1)
+                    pte_permission(PAGE_READ | PAGE_EXEC | PAGE_WRITE, 1)
                 );
     child->segment_map_info[child->segment_num].page_num=parent->segment_map_info[i].page_num;
-    child->segment_map_info[child->segment_num].seg_type=CODE_SEGMENT;
+    child->segment_map_info[child->segment_num].seg_type=parent->segment_map_info[i].page_num;
     child->segment_map_info[child->segment_num].va=parent->segment_map_info[i].va;
     child->segment_num++;
 }
 
-static void copy_data_segment(process* parent,process* child,int i){
+void copy_segment(process* parent,process* child,int i){
     int pn=parent->segment_map_info[i].page_num;
     uint64 pdata_pa,cdata_pa;
     for(int k=0;k<pn;k++){
@@ -211,11 +220,11 @@ static void copy_data_segment(process* parent,process* child,int i){
             child->pagetable,
             parent->segment_map_info[i].va+k*PGSIZE,
             PGSIZE,cdata_pa,
-            pte_permission(PAGE_READ | PAGE_WRITE, 1)
+            pte_permission(PAGE_READ | PAGE_EXEC | PAGE_WRITE, 1)
         );
     }
     child->segment_map_info[child->segment_num].page_num=parent->segment_map_info[i].page_num;
-    child->segment_map_info[child->segment_num].seg_type=DATA_SEGMENT;
+    child->segment_map_info[child->segment_num].seg_type=parent->segment_map_info[i].seg_type;
     child->segment_map_info[child->segment_num].va=parent->segment_map_info[i].va;
     child->segment_num++;
 }
