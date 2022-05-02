@@ -5,8 +5,6 @@ target/main：     文件格式 elf64-littleriscv
 Disassembly of section .text:
 
 0000000000000000 <main>:
-*/
-
 #include "stdio.h"
 #include "user_syscall.h"
 

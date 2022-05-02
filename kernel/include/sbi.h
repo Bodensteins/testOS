@@ -6,6 +6,11 @@
 #ifndef _ASM_RISCV_SBI_H_
 #define _ASM_RISCV_SBI_H_
 
+/*
+rustsbi接口，从上届参赛队的代码里面扒出来的
+我们只会用到其中很少一部分接口，比如settimer、putchar、getchar之类的
+*/
+
 
 typedef unsigned long uintptr_t;
 

@@ -1,6 +1,7 @@
 .align 4
 .globl store_all_registers
-//use t6 to store all
+    # use t6 to store all
+    # 将所有通用寄存器存储在t6中的地址指向的内存位置
 .macro store_all_registers
     sd ra, 0(t6)
     sd sp, 8(t6)
@@ -33,10 +34,10 @@
     sd t4, 224(t6)
     sd t5, 232(t6)
     sd t6, 240(t6)
-    //ld t6, 0
 .endm
 
-//use t6 to restore all because it's the last one.
+    # use t6 to restore all because it's the last one.
+    # 将t6中的地址指向的内存位置(比如trapframe)中的值载入所有通用寄存器(比如trapframe)
 .globl load_all_registers
 .macro load_all_registers
     ld ra, 0(t6)

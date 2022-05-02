@@ -1,6 +1,8 @@
 #ifndef _PARAM_H_
 #define _PARAM_H_
 
+//从xv6复制过来的，但目前基本没有用上
+
 #define NCPU          1  // maximum number of CPUs
 #define NINODE       50  // maximum number of active i-nodes
 #define NDEV         10  // maximum major device number

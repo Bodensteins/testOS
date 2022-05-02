@@ -1,6 +1,14 @@
 #ifndef _PM_LAY_OUT_
 #define _PM_LAY_OUT
 
+/*
+物理内存的分布情况
+还是借鉴的xv6和上届参赛队的布局(不是xv6-k210，他们那个我有点看不明白)
+注释都是他们写的，我就不赘述了
+唯一的改变是，我将进程用户栈映射在了虚拟地址的高地址处，与trampoline和trapframe的虚拟地址放在一起
+目前还没有实现堆内存，不过xv6那个堆内存也很简陋
+*/
+
 //#define QEMU
 
 // Physical memory layout
@@ -96,15 +104,16 @@
 // Address zero first:
 //   text
 //   original data and bss
-//   fixed-size stack
 //   expandable heap
 //   ...
+//   fixed-size stack
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 
 // map the trampoline page to the highest address,
 // in both user and kernel space.
-#define TRAMPOLINE 0x7FFFF000
+
+#define TRAMPOLINE 0x7FFFF000  
 
 #define TRAPFRAME (TRAMPOLINE-PGSIZE)
 

@@ -4,6 +4,10 @@
 //#define DEBUG
 //#define QEMU
 
+/*
+一些变量类型的定义，一目了然
+*/
+
 typedef unsigned int   uint;
 typedef unsigned short ushort;
 typedef unsigned char  uchar;

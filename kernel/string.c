@@ -2,6 +2,13 @@
 #include <ctype.h>
 #include "include/string.h"
 
+/*
+字符串处理
+与C标准库一致
+不再赘述
+*/
+
+
 void* memset(void* dest, int byte, size_t len) {
   if ((((uintptr_t)dest | len) & (sizeof(uintptr_t) - 1)) == 0) {
     uintptr_t word = byte & 0xFF;
@@ -65,6 +72,7 @@ int strlen(char *str){
   return n;
 }
 
+//小写转大写
 void upper(char *str){
   while(*str!=0){
     if(*str>='a' && *str<='z')
@@ -73,6 +81,7 @@ void upper(char *str){
   }
 }
 
+//大写转小写
 void lower(char *str){
   while(*str!=0){
     if(*str>='A' && *str<='Z')

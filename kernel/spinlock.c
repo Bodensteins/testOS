@@ -2,6 +2,23 @@
 #include "include/riscv.h"
 #include "include/printk.h"
 
+/*
+自旋锁相关
+目前还并没有开始同步控制
+这里暂未使用
+*/
+
+/*
+很大一部分都是xv6复制过来的
+英文注释都是xv6的
+*/
+
+/*
+注意，自旋锁主要针对的是CPU之间的互斥，
+因此如果我们还没实现多核，那么就用不到自旋锁
+*/
+
+//初始化自旋锁
 void init_spinlock(spinlock* lock, char* name){
     lock->is_locked=0;
     lock->name=name;

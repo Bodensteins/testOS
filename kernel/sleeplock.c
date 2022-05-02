@@ -3,6 +3,25 @@
 #include "include/schedule.h"
 #include "include/printk.h"
 
+/*
+睡眠锁相关
+目前还并没有开始同步控制
+这里暂未使用
+*/
+
+/*
+与xv6中的睡眠锁不同
+这里的每个睡眠锁会维护一个睡眠进程队列
+当进程试图获取一个锁，而这个锁已经被占用
+那么这个进程就会被加入该锁的睡眠队列
+当占用锁的进程将锁释放后，锁就会唤醒睡眠队列首端的进程，令其占用锁
+*/
+
+/*
+注意，这里的函数还并为真正使用过，所以到底能不能用还暂时不知道
+*/
+
+//初始化睡眠锁
 void init_sleeplock(sleeplock *lock, char *name){
     lock->is_locked=0;
     lock->name=name;
@@ -11,6 +30,7 @@ void init_sleeplock(sleeplock *lock, char *name){
     init_spinlock(&lock->spinlock,"sleep lock");
 }
 
+//当前进程试图占用睡眠锁
 void acquire_sleeplock(sleeplock *lock){
     //acquire_spinlock(&lock->spinlock);
     while(lock->is_locked){
@@ -21,6 +41,7 @@ void acquire_sleeplock(sleeplock *lock){
     //release_spinlock(&lock->spinlock);
 }
 
+//释放睡眠锁
 void release_sleeplock(sleeplock *lock){
     //acquire_spinlock(&lock->spinlock);
     lock->pid=0;
@@ -29,6 +50,7 @@ void release_sleeplock(sleeplock *lock){
     //release_spinlock(&lock->spinlock);
 }
 
+//是否持有锁？
 int is_holding_sleeplock(sleeplock* lock){
     int ret;
     //acquire_spinlock(&lock->spinlock);
@@ -37,11 +59,13 @@ int is_holding_sleeplock(sleeplock* lock){
     return ret;
 }
 
+//将进程插入某个睡眠锁的睡眠队列
 void insert_into_sleep_queue(sleeplock* lock, process* proc){
     proc->queue_next=lock->sleep_queue->queue_next;
     lock->sleep_queue=proc;
 }
 
+//令当前进程在某睡眠锁上睡眠(加入该锁的睡眠队列)
 void sleep_on_lock(sleeplock* sleeplock, spinlock *spinlock){
     /*
     if(&current->spinlock!=spinlock){
@@ -61,6 +85,7 @@ void sleep_on_lock(sleeplock* sleeplock, spinlock *spinlock){
     schedule();
 }
 
+//叫醒某个睡眠锁队列中首端的进程
 void wakeup1_on_lock(sleeplock* sleeplock){
     if(sleeplock->sleep_queue==NULL){
         return;
@@ -69,7 +94,7 @@ void wakeup1_on_lock(sleeplock* sleeplock){
 
     process *p=sleeplock->sleep_queue;
     sleeplock->sleep_queue=p->queue_next;
-    p->state=RUNNABLE;
+    p->state=READY;
     insert_to_runnable_queue(p);
 
     //release()

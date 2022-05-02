@@ -1,4 +1,6 @@
 #include "load_store.S"
+        
+        # 内核trap入口
 
 .globl kernel_trap
 .globl kernel_trap_vec

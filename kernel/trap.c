@@ -1,5 +1,4 @@
 #include "include/types.h"
-//#include "uart.h"
 #include "include/sbi.h"
 #include "include/riscv.h"
 #include "include/param.h"
@@ -10,50 +9,57 @@
 #include "include/vm.h"
 #include "include/schedule.h"
 
-static int ticks=0;
+static int ticks=0; //计时器
 
-void handle_syscall(){
-    current->trapframe->epc+=4;
-    intr_on();
-    current->trapframe->regs.a0=syscall();
+//系统调用中断处理函数
+void handle_syscall(){ 
+    current->trapframe->epc+=4; //epc+4，使其返回后执行下一条指令
+    intr_on();  //中断开启
+    current->trapframe->regs.a0=syscall();  //系统调用返回值存在a0寄存器中
 }
 
+//时钟中断处理函数
 void handle_timer_trap(){
-    ticks++;
-    sbi_set_timer(r_time()+TIMER_INTERVAL);
-    w_sip(r_sip()&(~SIP_SSIP));
+    ticks++;    //计时器递增
+    sbi_set_timer(r_time()+TIMER_INTERVAL); //设置下一次时钟中断的时间间隔
+    w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
     
-    if(ticks==TIME_SLICE){
-        ticks=0;
-        if(current->state==RUNNING){
-            current->state=RUNNABLE;
+    if(ticks==TIME_SLICE){  //如果时间片到了
+        ticks=0;    //计时器归零
+        if(current->state==RUNNING){    //将当前进程插入就绪队列
+            current->state=READY;
             insert_to_runnable_queue(current);
         }
-        schedule();
+        schedule();     //调用schedule调度进程
   }
 }
 
+//trap初始化，OS启动时调用
 void trap_init(){
-    uint64 x = r_sstatus();
+    //设置sstatus寄存器，具体参见riscv特权寄存器
+    uint64 x = r_sstatus(); 
     x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
     x |= SSTATUS_SIE;       //enable supervisor-mode interrupts.
     x |= SSTATUS_SPIE;  // enable interrupts in user mode
     w_sstatus(x);
-    w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
-    w_stvec((uint64)kernel_trap_vec);
-    sbi_set_timer(r_time()+TIMER_INTERVAL);
+
+    w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);    //开启中断使能位
+    w_stvec((uint64)kernel_trap_vec);   //trap初始化时还处于内核态，因此先将stvec的值设置位kernel_trap_vec
+    sbi_set_timer(r_time()+TIMER_INTERVAL); //设置下一次时钟中断的时间间隔
 }
 
+//当用户态发生trap时，user_trap_vec会跳转进入user_trap处理用户态的trap
 void user_trap(){
+    //检查是否是来自用户态的trap
     if((r_sstatus() & SSTATUS_SPP) != 0)
         panic("usertrap: not from user mode");
 
-    current->trapframe->epc=r_sepc();
-    uint64 cause=r_scause();
+    current->trapframe->epc=r_sepc();   //获取trap发生时的那条指令的虚拟地址
+    uint64 cause=r_scause();    //获取trap发生的原因
     w_stvec((uint64)kernel_trap_vec);
-    switch (cause){
+    switch (cause){     //目前仅仅处理时钟中断和系统调用
         case CAUSE_TIMER_S_TRAP:
-            handle_timer_trap();
+            handle_timer_trap(); 
             break;
         case CAUSE_USER_ECALL:
             handle_syscall();
@@ -61,16 +67,19 @@ void user_trap(){
         default:
             break;
     }
-    user_trap_ret();
+    user_trap_ret();    //返回用户态
 }
 
+//返回用户态
 void user_trap_ret(){
-    intr_off();
+    intr_off(); //关闭中断，执行sret后会自动打开中断
     // set S Previous Privilege mode to User.
-    switch_to(current);
+    switch_to(current); //切换到当前进程
 }
 
-void kernel_trap(){
+//内核态发生trap时，调用该函数处理
+//内核态中断主要是处理设备中断，而目前的设备中断只有时钟中断
+void kernel_trap(){    
     uint64 sepc=r_sepc();
     uint64 status=r_sstatus();
     uint64 cause=r_scause();
@@ -80,7 +89,7 @@ void kernel_trap(){
     if(intr_get() != 0)
         panic("kerneltrap: interrupts enabled");
     switch (cause){
-        case CAUSE_TIMER_S_TRAP:
+        case CAUSE_TIMER_S_TRAP:    //目前内核态中断仅仅处理时钟中断
             handle_timer_trap();
             break;
         default:

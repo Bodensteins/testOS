@@ -17,86 +17,89 @@
 #endif
 
 #ifndef BSIZE
-#define BSIZE 0x8000
+#define BSIZE 512
 #endif
+
+/*
+初始化OS
+entry.S跳转到此
+*/
 
 extern char trampoline[];
 void return_to_user();
 
 void user_trap();
 
-process* load_user_programe();
-void just_init_the_device();
-void test_sdcard(void);
+process* load_user_programe();      //加载第一个进程，暂时先用这个
+void test_sdcard(void);     //sd卡测试函数，临时编写在此
 
-extern trapframe temp[];
-
-extern void test();
-
-char *code;
-
+//entry.S跳转到s_start
 void s_start(){
     printk("entering into system...\n");
-    pm_init();
-    kernel_vm_init();
+    pm_init();  //物理页面初始化
+    kernel_vm_init();   //内核页表初始化
     
-    start_paging();
+    start_paging();     //启动保护模式
 
-    proc_list_init();
-    trap_init();
+    proc_list_init();   //进程池初始化
+    trap_init();    //trap初始化，设置内核态特权寄存器
    
-#ifndef QEMU
-    fpioa_pin_init();
-    //just_init_the_device();
-    sdcard_init();
+#ifndef QEMU    //如果不是运行在qemu上(即是运行在k210上)
+    fpioa_pin_init();   //fpioa初始化
+    sdcard_init();  //sd卡驱动初始化
 #endif
-    buffer_init();
-    fat32_init();
+    buffer_init();  //磁盘缓冲区初始化
+    fat32_init();   //fat32初始化
     //test_sdcard();
-    insert_to_runnable_queue(load_user_programe());
-    schedule();
+    insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
+    schedule(); //进入schedule开始调度进程
 }
 
+
+ /*
+编译时，会生成两个简单的进程：test、main
+在target目录下可以找到这两个可执行文件
+这两个程序主要是为了测试exec系统调用
+启动OS前，须先将test和mian写入sd卡的根目录下
+之后，OS会加载test作为1号进程，test会打印字符串会执行exec加载main程序，最后main打印"Hello world\n"字符串，然后死循环
+test、main源码放在user目录中
+如果能正确打印字符串则运行成功
+ */
+ //加载第一个用户进程进入内存(临时这样，之后可改)
 process* load_user_programe(){
-    process* proc=alloc_process();
+    process* proc=alloc_process();  //从内存池获取一个新进程
     
-    dirent* de=find_dirent(NULL,"/test");
-    char* code=alloc_physical_page();
+    fat32_dirent* de=find_dirent(NULL,"/test"); //在sd卡根目录中找到test可执行文件
+    char* code=alloc_physical_page();   //分配一页
     elf64_header hdr;
     elf64_prog_header phdr;
 
-    read_by_dirent(de,&hdr,0,sizeof(elf64_header));
+    read_by_dirent(de,&hdr,0,sizeof(elf64_header));     //读取elf_header
 
-    proc->trapframe->epc=hdr.entry;
+    proc->trapframe->epc=hdr.entry;     //确定进程入口地址
 
-    read_by_dirent(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));
-    read_by_dirent(de,code,phdr.offset,phdr.file_size);
-    proc->size=phdr.file_size;
+    read_by_dirent(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));  //读取elf_prog_header
+    read_by_dirent(de,code,phdr.offset,phdr.file_size); //将程序段读入内存
+    proc->size=phdr.file_size;  //设置程序大小
     user_vm_map(proc->pagetable,phdr.va,PGSIZE,(uint64)code,
-        pte_permission(PAGE_READ | PAGE_EXEC | PAGE_WRITE,1));
-    proc->segment_map_info[3].va=phdr.va;
+        pte_permission(1,1,1,1));   //地址映射入页表
+    //更新segment_map_info
+    proc->segment_map_info[3].va=phdr.va;   
     proc->segment_map_info[3].page_num=1;
     proc->segment_map_info[3].seg_type=CODE_SEGMENT;
     proc->segment_num++;
-    release_dirent(de);
+    release_dirent(de); //释放目录项缓冲区
 
-    proc->cwd=find_dirent(NULL,"/");
+    proc->cwd=find_dirent(NULL,"/");    //设置工作目录为根目录
 
-    return proc;
+    return proc;    //返回该进程
 }
 
-void just_init_the_device(){
-    uint32 *hart0_m_threshold = (uint32*)PLIC;
-    *(hart0_m_threshold) = 0;
-    uint32 *hart0_m_int_enable_hi = (uint32*)(PLIC_MENABLE(0) + 0x04);
-    *(hart0_m_int_enable_hi) = (1 << 0x1);
-}
 
-uint32 fat_temp(uint32);
 uint8 buf[PGSIZE];
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
-    dirent* de=find_dirent(NULL,"/main");
+    fat32_dirent* de=find_dirent(NULL,"/main");
     if(de!=NULL){
         int ret=read_by_dirent(de,buf,120,1200);
         printk("off: 120, rsize: 1200 ,ret: %d\n",ret);

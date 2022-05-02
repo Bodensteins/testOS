@@ -1,8 +1,15 @@
 #include <stdarg.h>
 #include "include/types.h"
-//#include "uart.h"
 #include "include/sbi.h"
 #include "include/printk.h"
+
+
+/*
+这里提供一些内核中输出信息的接口
+用法与C标准库的printf、putc、puts等一致
+具体就不再赘述了，能用就行，不用纠结细节，反正都是从xv6里面扒过来的
+*/
+
 
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x

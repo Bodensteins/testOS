@@ -3,6 +3,13 @@
 
 #include "types.h"
 
+/*
+基本上完全复制的xv6德riscv.h
+都是一些底层的工具类函数和宏
+我对几个宏函数的名字做了修改
+比如PTE2PA、PA2PTE改为PTE_TO_PA、PA_TO_PTE增加可读性
+*/
+
 #define TIMER_INTERVAL 1000000
 
 // which hart (core) is this?

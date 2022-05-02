@@ -3,6 +3,11 @@
 
 #include "types.h"
 
+/*
+设备管理相关
+这里还没怎么设计好，先忽略
+*/
+
 typedef struct device{
     enum {BLOCK_TYPE, CHARACTER_TYPE, NONE_TYPE} type;
     int (*read)(void* ,int);

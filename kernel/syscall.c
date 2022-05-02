@@ -7,8 +7,7 @@
 #include "include/fcntl.h"
 #include "include/sbi.h"
 
-extern trapframe temp[];
-
+//系统调用函数声明
 uint64 sys_fork();
 uint64 sys_exit();
 uint64 sys_read();
@@ -18,6 +17,8 @@ uint64 sys_simple_write();
 uint64 sys_close();
 uint64 sys_exec();
 
+//将系统调用函数组织为一个函数指针数组
+//效仿xv6的设计
 static uint64 (*syscalls[])() = {
     [SYS_fork] sys_fork,
     [SYS_exit] sys_exit,
@@ -29,6 +30,8 @@ static uint64 (*syscalls[])() = {
     [SYS_close] sys_close,
 };
 
+//syscall，由trap调用至此
+//根据寄存器a7中的系统调用号，确定是哪个系统调用
 uint64 syscall(){
     int syscall_num=current->trapframe->regs.a7;
     if(syscalls[syscall_num]!=NULL)
@@ -37,10 +40,12 @@ uint64 syscall(){
         return -1;
 }
 
+//进程复制
 uint64 sys_fork(){
     return do_fork(current);
 }
 
+//进程退出
 uint64 sys_exit(){
     int code=current->trapframe->regs.a0;
     if(current->pid==1)
@@ -49,9 +54,11 @@ uint64 sys_exit(){
     return code;
 }
 
+//工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
+//一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
 static int acquire_fd(process* proc, file *file){
     int fd;
-    for(fd=3;fd<N_OPEN_FILE;fd++){
+    for(fd=0;fd<N_OPEN_FILE;fd++){
         if(proc->open_files[fd]==NULL){
             proc->open_files[fd]=file;
             return fd;
@@ -60,39 +67,47 @@ static int acquire_fd(process* proc, file *file){
     return -1;
 }
 
-//to do(lock)
+//打开一个文件(没有同步控制)
+//a0存储文件名的指针,a1存储打开方式(参见fcntl.h)
+//返回该文件的文件描述符
 uint64 sys_open(){
-    char* file_name=(char*)current->trapframe->regs.a0;
-    file_name=(char*)va_to_pa(current->pagetable, file_name);
+    //获取参数
+    char* file_name=(char*)current->trapframe->regs.a0; //a0存储文件名指针(包含路径)
+    file_name=(char*)va_to_pa(current->pagetable, file_name);   //虚拟地址转为物理地址
     int mode=current->trapframe->regs.a1;
 
-    dirent* de=find_dirent(current->cwd, file_name);
-    if(de==NULL)
+    //在当前工作目录搜索文件目录项
+    fat32_dirent* de=find_dirent(current->cwd, file_name);
+    if(de==NULL)    //没找到，返回-1
         return -1;
     //lock
-    if((de->attribute & ATTR_DIRECTORY) && !(mode & O_RDONLY)){
+    if((de->attribute & ATTR_DIRECTORY) && !(mode & O_RDONLY)){ //文件是目录，或不能读，返回-1
         //unlock
         return -1;
     }
     
-    file* file=acquire_file();
+    //获取OS维护的打开文件列表中的一个空闲列表项
+    file* file=acquire_file();  
     if(file==NULL){
         //unlock
         return -1;
     }
 
+    //获取一个新的文件描述符
     int fd=acquire_fd(current, file);
-    if(fd<0){
-        release_file(file);
+    if(fd<0){   //如果获取失败
+        release_file(file); //关闭file，返回-1
         //unlock
         return -1;
     }
     
-    file->dirent=de;
+    //为file赋予打开文件的各种信息
+    file->fat32_dirent=de;  
     file->dev=de->dev;
     file->offset=(mode & O_APPEND)?de->file_size:0;
-    file->type=FILE_TYPE_FS;
+    file->type=FILE_TYPE_SD;
 
+    //文件属性
     if(mode & O_RDWR)
         file->attribute |= (FILE_ATTR_READ | FILE_ATTR_WRITE);
     else {
@@ -103,22 +118,24 @@ uint64 sys_open(){
     }
 
     //unlock
-    return fd;
+    return fd;  //返回文件描述符
 
 }
 
+//读取文件中的数据
 uint64 sys_read(){
-    int fd=current->trapframe->regs.a0;
+    //获取参数
+    int fd=current->trapframe->regs.a0; //a0存储文件描述符
     if(current->open_files[fd]==NULL || 
         !(current->open_files[fd]->attribute & FILE_ATTR_READ)){
         return -1;
     }
-    char* buf=(char*)current->trapframe->regs.a1;
-    buf=(char*)va_to_pa(current->pagetable,buf);
-    int rsize=current->trapframe->regs.a2;
+    char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
+    buf=(char*)va_to_pa(current->pagetable,buf);    //虚拟地址转物理地址
+    int rsize=current->trapframe->regs.a2;  //a2为希望读取多少字节
     
-    rsize=read_file(current->open_files[fd],buf,rsize);
-    return rsize;
+    rsize=read_file(current->open_files[fd],buf,rsize);     //调用read_file读取
+    return rsize;   //返回实际读取的数据
 }
 
 uint64 sys_kill(){
@@ -126,14 +143,15 @@ uint64 sys_kill(){
     return do_kill(pid);
 }
 
-//void exec_test(char *file_name);
+//exec系统调用，目前并不支持参数
 uint64 sys_exec(){
+    //a0存储可执行文件名指针(包含路径)
     char *file_name=(char*)current->trapframe->regs.a0;
-    file_name=va_to_pa(current->pagetable,file_name);
-    do_exec(file_name,NULL);
-    return 0;
+    file_name=va_to_pa(current->pagetable,file_name);   //虚拟地址转换为物理地址
+    return do_exec(file_name,NULL);    //调用do_exec
 }
 
+//一个简单的print系统调用，临时写在这的
 uint64 sys_simple_write(){
     char* str=(char*)current->trapframe->regs.a0;
     str=(char*)va_to_pa(current->pagetable,str);
@@ -141,11 +159,12 @@ uint64 sys_simple_write(){
     return current->trapframe->regs.a1;
 }
 
+//关闭文件
 uint64 sys_close(){
-    int fd=current->trapframe->regs.a0;
+    int fd=current->trapframe->regs.a0; //a0存储文件描述符
     if(current->open_files[fd]==NULL)
         return -1;
-    release_file(current->open_files[fd]);
+    release_file(current->open_files[fd]);  //释放file
     current->open_files[fd]=NULL;
     return 0;
 }

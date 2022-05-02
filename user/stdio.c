@@ -4,6 +4,10 @@
 
 int vsnprintf(char* out, size_t n, const char* s, va_list vl);
 
+/*
+网上找的printf实现
+最后得到一个字符串然后交给系统调用
+*/
 int printf(char*s, ...){
     va_list vl;
     va_start(vl, s);

@@ -15,6 +15,8 @@
         "types.h": "c",
         "uart.h": "c",
         "fcntl.h": "c",
-        "sleeplock.h": "c"
+        "sleeplock.h": "c",
+        "fat32.h": "c",
+        "file.h": "c"
     }
 }
