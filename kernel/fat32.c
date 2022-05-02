@@ -40,6 +40,26 @@ fat32_dbr dbr_info; //dbr信息
 //目录项缓冲区
 static fat32_dirent_cache dcache;
 
+/*
+根据字节码判断是否为MBR
+
+*/
+int is_MBR(buffer *buf)
+{
+
+
+    return 0;
+}
+
+
+
+void MBR_DPT_info(buffer *buf)
+{
+
+
+}
+
+
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
     buffer *buf;

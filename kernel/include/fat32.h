@@ -35,6 +35,7 @@ fat32.c依赖于buffer.c中的函数
 
 //mbr字段信息
 typedef struct fat32_mbr{
+    uint8  active;
     uint32 dbr_start_sector;     //从磁盘开始到分区开始的偏移量(根据该字段找到存储dbr的扇区)
     uint32 total_sectors;   //总扇区数
 }fat32_mbr;
