@@ -30,17 +30,19 @@ fat32.c依赖于buffer.c中的函数
 #define FAT_BLOCK_DAMAGE 0xffffff7  //如果该簇损坏，则其在fat中的表项为0xffffff7
 
 //MBR中各种字段在MBR扇区中的偏移，详情参考fat32格式
+#define MBR_DBR_ACTIVE 0x1BE
 #define MBR_DBR_START_SECTOR_OFFSET 0x1C6   
 #define MBR_TOTAL_SECORS_OFFSET 0x1CA
 
 //mbr字段信息
-typedef struct fat32_mbr{
-    uint8  active;
+typedef struct FAT32_MBR_DPT{
+    uint8  active;                // 分区有效标志  有效为0x80 无效为 0x00
     uint32 dbr_start_sector;     //从磁盘开始到分区开始的偏移量(根据该字段找到存储dbr的扇区)
     uint32 total_sectors;   //总扇区数
-}fat32_mbr;
+}FAT32_MBR_DPT;
 
 //DBR中各种字段在DBR扇区中的偏移，详情参考fat32格式
+#define DBR_JMP_CODE            0x0
 #define DBR_BYTES_PER_SECTOR_OFFSET 0x0B
 #define DBR_SECTORS_PER_BLOCK_OFFSET 0x0D
 #define DBR_RESERVE_SECTORS_OFFSET 0x0E
@@ -53,7 +55,13 @@ typedef struct fat32_mbr{
 #define DBR_BACKUP_SECTOR_OFFSET 0x32
 
 //dbr字段信息
-typedef struct fat32_dbr{
+
+#define JMP_CODE_0x0  0xEB
+#define JMP_CODE_0x1  0x58
+#define JMP_CODE_0x2  0x90
+
+
+typedef struct FAT32_DBR{
     uint16 bytes_per_sector;    //每扇区字节数
     uint8 sectors_per_block;    //每簇扇区数
     uint16 dbr_reserve_sectors;    //dbr保留的扇区数(根据该字段和mbr中dbr_start_sector字段可定位到fat表在磁盘中的位置)
@@ -64,7 +72,7 @@ typedef struct fat32_dbr{
     uint32 root_dir_blockno;    //根目录所在的第一个簇的簇号，一般是2号簇
     uint16 fsinfo_sector;   //文件系统信息扇区的扇区号
     uint16 dbr_backup_sector;   //dbr备份扇区的扇区号
-}fat32_dbr;
+}FAT32_DBR;
 
 
 //FSINFO
@@ -182,8 +190,8 @@ typedef struct fat32_dirent_cache{
     spinlock spinlock;  //自旋锁
 }fat32_dirent_cache;
 
-extern fat32_mbr mbr_info;
-extern fat32_dbr dbr_info;
+extern FAT32_MBR_DPT mbr_info;
+extern FAT32_DBR dbr_info;
 
 void fat32_init();  //fat32初始化，OS启动时调用
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据当前目录的目录项和文件路径名寻找文件目录项
