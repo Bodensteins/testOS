@@ -48,8 +48,7 @@ static fat32_dirent_cache dcache;
 int is_MBR(buffer *buf)
 {
     uint8* data = buf->data;
-    if(data[0]==JMP_CODE_0x0 \ 
-        && data[1]==JMP_CODE_0x1 && data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
+    if((unsigned int)data[0]==JMP_CODE_0x0 && (unsigned int)data[1]==JMP_CODE_0x1 && (unsigned int)data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
         return 0;
 
     return 1;
