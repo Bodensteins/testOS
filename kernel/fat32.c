@@ -34,7 +34,7 @@
 
 //sd卡一般只有一个分区
 FAT32_MBR_DPT mbr_info; //mbr信息
-FAT32_DBR dbr_info; //dbr信息
+fat32_dbr dbr_info; //dbr信息
 
 //LRU cache
 //目录项缓冲区
@@ -49,7 +49,10 @@ int is_MBR(buffer *buf)
 {
     uint8* data = buf->data;
     if((unsigned int)data[0]==JMP_CODE_0x0 && (unsigned int)data[1]==JMP_CODE_0x1 && (unsigned int)data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
+    {
+        printk("SDcard 0 Sector is DBR\n");
         return 0;
+    }   
 
     return 1;
 }
@@ -79,10 +82,13 @@ int DBR_BPB_info(FAT32_DBR_BPB * BPB)
 
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
+
     buffer *buf;
 
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
+
+    is_MBR(buf);
     //读取dbr起始的扇区号
     memcpy(&mbr_info.StartLBA,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
     //读取磁盘总扇区数

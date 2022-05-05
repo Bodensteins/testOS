@@ -111,7 +111,7 @@ typedef struct FAT32_MBR_DBR_info{
     double Total_Size_MB; //总容量MB(FAT32_MBR_DPT.Size)*(FAT32_DBR_BPB.BytesPerSec)/(1024*1024)
     
     uint16 BytesPerSector; //每个扇区的字节数 FAT32_DBR_BPB.BytesPerSec
-    uint8 SectorPerClus;  // 每簇扇区数       FAT32_DBR_BPB.SecPerClus
+    uint8  SectorPerClus;  // 每簇扇区数       FAT32_DBR_BPB.SecPerClus
 
     uint8  FATNum;         // FAT表数量
     uint32 FATsectors;    // FAT表占用的扇区数 FAT32_DBR_BPB.FATSz32
@@ -123,7 +123,7 @@ typedef struct FAT32_MBR_DBR_info{
     uint32 FirstDirSector;// 第一个目录的扇区号 FirstFATSector + FATNum * FATsectors
 }__attribute__((packed, aligned(4))) FAT32_MBR_DBR_info;
 
-FAT32_MBR_DBR_info fat32_mbr_dbr_info;
+//FAT32_MBR_DBR_info fat32_mbr_dbr_info;
 
 
 //数据区 簇号转扇区号 
@@ -136,7 +136,7 @@ FAT32_MBR_DBR_info fat32_mbr_dbr_info;
 /*-------------------------unused  end  -------------------------*/
 
 
-typedef struct FAT32_DBR{
+typedef struct fat32_dbr{
     uint16 bytes_per_sector;    //每扇区字节数
     uint8 sectors_per_block;    //每簇扇区数
     uint16 dbr_reserve_sectors;    //dbr保留的扇区数(根据该字段和mbr中dbr_start_sector字段可定位到fat表在磁盘中的位置)
@@ -147,7 +147,7 @@ typedef struct FAT32_DBR{
     uint32 root_dir_blockno;    //根目录所在的第一个簇的簇号，一般是2号簇
     uint16 fsinfo_sector;   //文件系统信息扇区的扇区号
     uint16 dbr_backup_sector;   //dbr备份扇区的扇区号
-}FAT32_DBR;
+}fat32_dbr;
 
 
 //FSINFO
@@ -266,7 +266,7 @@ typedef struct fat32_dirent_cache{
 }fat32_dirent_cache;
 
 extern FAT32_MBR_DPT mbr_info;
-extern FAT32_DBR dbr_info;
+extern fat32_dbr dbr_info;
 
 void fat32_init();  //fat32初始化，OS启动时调用
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据当前目录的目录项和文件路径名寻找文件目录项
