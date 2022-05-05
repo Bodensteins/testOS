@@ -34,6 +34,7 @@ typedef struct file{
     int attribute; //属性
     int dev;    //设备号
     int ref_count;  //文件被引用数量
+    //to do
     uint32 offset;  //文件当前的偏移量
 }file;
 

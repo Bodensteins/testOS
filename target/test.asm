@@ -13,7 +13,6 @@ int main(){
    2:	e406                	sd	ra,8(sp)
    4:	e022                	sd	s0,0(sp)
    6:	0800                	addi	s0,sp,16
-
     printf("test\n");
    8:	00000517          	auipc	a0,0x0
    c:	43850513          	addi	a0,a0,1080 # 440 <printf+0x5c>
@@ -30,8 +29,9 @@ int main(){
   28:	a001                	j	28 <main+0x28>
 
 000000000000002a <user_syscall>:
-#include "kernel/include/syscall.h"
-#include "kernel/include/printk.h"
+/*
+用户态使用系统调用
+*/
 
 static uint64 user_syscall
     (uint64 v0,uint64 v1,uint64 v2,uint64 v3,uint64 v4,uint64 v5,uint64 v6,uint64 v7){
@@ -47,7 +47,7 @@ static uint64 user_syscall
   44:	fcf43023          	sd	a5,-64(s0)
   48:	fb043c23          	sd	a6,-72(s0)
   4c:	fb143823          	sd	a7,-80(s0)
-        asm volatile(
+        asm volatile(   //将参数写入a0-a7寄存器
   50:	fe843503          	ld	a0,-24(s0)
   54:	fe043583          	ld	a1,-32(s0)
   58:	fd843603          	ld	a2,-40(s0)
@@ -61,7 +61,7 @@ static uint64 user_syscall
             : "memory"
         );
 
-        asm volatile(
+        asm volatile(   //调用ecall
   70:	00000073          	ecall
   74:	fea43423          	sd	a0,-24(s0)
             : "=m"(r0)
@@ -77,6 +77,7 @@ static uint64 user_syscall
 
 0000000000000082 <fork>:
 
+//复制一个新进程
 uint64 fork(){
   82:	1141                	addi	sp,sp,-16
   84:	e406                	sd	ra,8(sp)
@@ -101,6 +102,7 @@ uint64 fork(){
 
 00000000000000aa <exit>:
 
+//进程退出
 uint64 exit(int code){
   aa:	1141                	addi	sp,sp,-16
   ac:	e406                	sd	ra,8(sp)
@@ -124,6 +126,7 @@ uint64 exit(int code){
 
 00000000000000d0 <open>:
 
+//打开文件
 uint64 open(char *file_name, int mode){
   d0:	1141                	addi	sp,sp,-16
   d2:	e406                	sd	ra,8(sp)
@@ -146,6 +149,7 @@ uint64 open(char *file_name, int mode){
 
 00000000000000f4 <read>:
 
+//根据文件描述符fd，读取文件中rsize个字节到buf中
 uint64 read(int fd, void* buf, size_t rsize){
   f4:	1141                	addi	sp,sp,-16
   f6:	e406                	sd	ra,8(sp)
@@ -167,6 +171,7 @@ uint64 read(int fd, void* buf, size_t rsize){
 
 0000000000000116 <kill>:
 
+//根据pid杀死进程
 uint64 kill(uint64 pid){
  116:	1141                	addi	sp,sp,-16
  118:	e406                	sd	ra,8(sp)
@@ -190,6 +195,7 @@ uint64 kill(uint64 pid){
 
 000000000000013c <exec>:
 
+//从外存中根据文件路径和名字加载可执行文件
 uint64 exec(char *file_name){
  13c:	1141                	addi	sp,sp,-16
  13e:	e406                	sd	ra,8(sp)
@@ -213,6 +219,7 @@ uint64 exec(char *file_name){
 
 0000000000000162 <simple_write>:
 
+//一个简单的输出字符串到屏幕上的系统调用
 uint64 simple_write(char *s, size_t n){
  162:	1141                	addi	sp,sp,-16
  164:	e406                	sd	ra,8(sp)
@@ -235,6 +242,7 @@ uint64 simple_write(char *s, size_t n){
 
 0000000000000186 <close>:
 
+//根据文件描述符关闭文件
 uint64 close(int fd){
  186:	1141                	addi	sp,sp,-16
  188:	e406                	sd	ra,8(sp)

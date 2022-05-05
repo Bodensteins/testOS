@@ -18,16 +18,8 @@ fat32.c依赖于buffer.c中的函数
     syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
 */
 
-/*
-代码里面把“簇”写成了block，
-虽然“簇”应该翻译为cluster，
-而block应该是“块”，
-不过这两个概念本质上没有区别，只是不同的OS叫法不一样，
-并且因为我们是仿的UNIX的系统调用，所以用了block，但都是一个意思
-*/
-
-#define FAT_BLOCK_END 0x0fffffff    //fat表中，如果该簇为文件最后一个簇，则其在fat中的表项为0x0fffffff
-#define FAT_BLOCK_DAMAGE 0xffffff7  //如果该簇损坏，则其在fat中的表项为0xffffff7
+#define FAT_CLUSTER_END 0x0fffffff    //fat表中，如果该簇为文件最后一个簇，则其在fat中的表项为0x0fffffff
+#define FAT_CLUSTER_DAMAGE 0xffffff7  //如果该簇损坏，则其在fat中的表项为0xffffff7
 
 //MBR中各种字段在MBR扇区中的偏移，详情参考fat32格式
 #define MBR_DBR_START_SECTOR_OFFSET 0x1C6   
@@ -41,39 +33,39 @@ typedef struct fat32_mbr{
 
 //DBR中各种字段在DBR扇区中的偏移，详情参考fat32格式
 #define DBR_BYTES_PER_SECTOR_OFFSET 0x0B
-#define DBR_SECTORS_PER_BLOCK_OFFSET 0x0D
+#define DBR_SECTORS_PER_CLUSTER_OFFSET 0x0D
 #define DBR_RESERVE_SECTORS_OFFSET 0x0E
 #define DBR_TOTAL_FATS_OFFSET 0x10
 #define DBR_HIDDEN_SECTORS_OFFSET 0x1C
 #define DBR_FS_TOTAL_SECTORS_OFFSET 0x20
 #define DBR_SECTORS_PER_FAT_OFFSET 0x24
-#define DBR_ROOT_DIR_BLOCK_OFFSET 0x2C
+#define DBR_ROOT_DIR_CLUSTER_OFFSET 0x2C
 #define DBR_FSINFO_SECTOR_OFFSET 0x30
 #define DBR_BACKUP_SECTOR_OFFSET 0x32
 
 //dbr字段信息
 typedef struct fat32_dbr{
     uint16 bytes_per_sector;    //每扇区字节数
-    uint8 sectors_per_block;    //每簇扇区数
+    uint8 sectors_per_cluster;    //每簇扇区数
     uint16 dbr_reserve_sectors;    //dbr保留的扇区数(根据该字段和mbr中dbr_start_sector字段可定位到fat表在磁盘中的位置)
     uint8 total_fats;   //fat表数量，一般是2个
     uint32 hidden_sectors;      //隐藏扇区个数，与mbr中0x01C6的4字节相同
     uint32 fs_total_sectors;    //文件系统总扇区数
     uint32 sectors_per_fat;     //每个fat表占用的扇区数
-    uint32 root_dir_blockno;    //根目录所在的第一个簇的簇号，一般是2号簇
+    uint32 root_dir_clusterno;    //根目录所在的第一个簇的簇号，一般是2号簇
     uint16 fsinfo_sector;   //文件系统信息扇区的扇区号
     uint16 dbr_backup_sector;   //dbr备份扇区的扇区号
 }fat32_dbr;
 
 
 //FSINFO
-#define FSINFO_FS_TOTAL_EMPTY_BLOCKS_OFFSET 0x1E8
-#define FSINFO_NEXT_USABLE_BLOCK_OFFSET 0x1EC
+#define FSINFO_FS_TOTAL_EMPTY_CLUSTERS_OFFSET 0x1E8
+#define FSINFO_NEXT_USABLE_CLUSTER_OFFSET 0x1EC
 
 //这个目前还没什么用
 typedef struct fat32_fsinfo{
-    uint32 fs_total_empty_blocks;
-    uint32 next_usable_block;
+    uint32 fs_total_empty_clusters;
+    uint32 next_usable_cluster;
 }fat32_fsinfo;
 
 
@@ -94,8 +86,8 @@ typedef struct fat32_fsinfo{
 
 //短文件名目录项中几个字段的偏移
 #define SHORT_DENTRY_ATRRIBUTE_OFFSET 0xB
-#define SHORT_DENTRY_START_BLOCKNO_HIGH_OFFSET 0x14
-#define SHORT_DENTRY_START_BLOCKNO_LOW_OFFSET 0x1A
+#define SHORT_DENTRY_START_clusterNO_HIGH_OFFSET 0x14
+#define SHORT_DENTRY_START_clusterNO_LOW_OFFSET 0x1A
 #define SHORT_DENTRY_FILE_SIZE_OFFSET 0x1C
 
 //fat32目录项格式
@@ -122,10 +114,10 @@ typedef struct fat32_short_name_dir_entry{
     uint16 create_time;
     uint16 create_date;
     uint16 last_access_date;
-    uint16 start_blockno_high;
+    uint16 start_clusterno_high;
     uint16 last_write_time;
     uint16 last_write_date;
-    uint16 start_blockno_low;
+    uint16 start_clusterno_low;
     uint32 file_size;
 }__attribute__((packed, aligned(4))) fat32_short_name_dir_entry;
 
@@ -138,7 +130,7 @@ typedef struct fat32_long_name_dir_entry{
     uint8 system_reserve;
     uint8 verify_value;
     char name2[12];
-    uint16 start_block;
+    uint16 start_cluster;
     char name3[4];
 }__attribute__((packed, aligned(4))) fat32_long_name_dir_entry;
 
@@ -154,9 +146,9 @@ typedef struct fat32_dirent{
     char name[FILE_NAME_LENGTH+1];  //文件名(包括扩展名)
     uint8 attribute;    //文件属性
     uint32 file_size;   //文件大小
-    uint32 start_blockno;   //文件起始扇区号
-    //uint32 current_blockno;  
-    uint32 total_blocks;    //文件总共扇区号
+    uint32 start_clusterno;   //文件起始扇区号
+    //uint32 current_clusterno;  
+    uint32 total_clusters;    //文件总共扇区号
     uint32 offset_in_parent;    //文件目录项在父目录中的偏移
     uint8 dev;  //设备号(一般是0，表示sd卡)
     struct fat32_dirent* parent;    //父目录的目录项

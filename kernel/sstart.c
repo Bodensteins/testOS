@@ -96,14 +96,21 @@ process* load_user_programe(){
 }
 
 
-uint8 buf[PGSIZE];
+uint8 buf[BSIZE];
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
+    /*
     fat32_dirent* de=find_dirent(NULL,"/main");
     if(de!=NULL){
         int ret=read_by_dirent(de,buf,120,1200);
         printk("off: 120, rsize: 1200 ,ret: %d\n",ret);
     }
     release_dirent(de);
-	while (1) ;
+	*/
+    sdcard_read_sector(buf,0);
+    for(int i=0;i<BISZE;i++){
+        if(i%16==0)printk("\n");
+        printk("%x ",buf[i]);
+    }
+    while (1) ;
 }

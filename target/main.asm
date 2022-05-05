@@ -23,8 +23,9 @@ int main(){
   18:	a001                	j	18 <main+0x18>
 
 000000000000001a <user_syscall>:
-#include "kernel/include/syscall.h"
-#include "kernel/include/printk.h"
+/*
+用户态使用系统调用
+*/
 
 static uint64 user_syscall
     (uint64 v0,uint64 v1,uint64 v2,uint64 v3,uint64 v4,uint64 v5,uint64 v6,uint64 v7){
@@ -40,7 +41,7 @@ static uint64 user_syscall
   34:	fcf43023          	sd	a5,-64(s0)
   38:	fb043c23          	sd	a6,-72(s0)
   3c:	fb143823          	sd	a7,-80(s0)
-        asm volatile(
+        asm volatile(   //将参数写入a0-a7寄存器
   40:	fe843503          	ld	a0,-24(s0)
   44:	fe043583          	ld	a1,-32(s0)
   48:	fd843603          	ld	a2,-40(s0)
@@ -54,7 +55,7 @@ static uint64 user_syscall
             : "memory"
         );
 
-        asm volatile(
+        asm volatile(   //调用ecall
   60:	00000073          	ecall
   64:	fea43423          	sd	a0,-24(s0)
             : "=m"(r0)
@@ -70,6 +71,7 @@ static uint64 user_syscall
 
 0000000000000072 <fork>:
 
+//复制一个新进程
 uint64 fork(){
   72:	1141                	addi	sp,sp,-16
   74:	e406                	sd	ra,8(sp)
@@ -94,6 +96,7 @@ uint64 fork(){
 
 000000000000009a <exit>:
 
+//进程退出
 uint64 exit(int code){
   9a:	1141                	addi	sp,sp,-16
   9c:	e406                	sd	ra,8(sp)
@@ -117,6 +120,7 @@ uint64 exit(int code){
 
 00000000000000c0 <open>:
 
+//打开文件
 uint64 open(char *file_name, int mode){
   c0:	1141                	addi	sp,sp,-16
   c2:	e406                	sd	ra,8(sp)
@@ -139,6 +143,7 @@ uint64 open(char *file_name, int mode){
 
 00000000000000e4 <read>:
 
+//根据文件描述符fd，读取文件中rsize个字节到buf中
 uint64 read(int fd, void* buf, size_t rsize){
   e4:	1141                	addi	sp,sp,-16
   e6:	e406                	sd	ra,8(sp)
@@ -160,6 +165,7 @@ uint64 read(int fd, void* buf, size_t rsize){
 
 0000000000000106 <kill>:
 
+//根据pid杀死进程
 uint64 kill(uint64 pid){
  106:	1141                	addi	sp,sp,-16
  108:	e406                	sd	ra,8(sp)
@@ -183,6 +189,7 @@ uint64 kill(uint64 pid){
 
 000000000000012c <exec>:
 
+//从外存中根据文件路径和名字加载可执行文件
 uint64 exec(char *file_name){
  12c:	1141                	addi	sp,sp,-16
  12e:	e406                	sd	ra,8(sp)
@@ -206,6 +213,7 @@ uint64 exec(char *file_name){
 
 0000000000000152 <simple_write>:
 
+//一个简单的输出字符串到屏幕上的系统调用
 uint64 simple_write(char *s, size_t n){
  152:	1141                	addi	sp,sp,-16
  154:	e406                	sd	ra,8(sp)
@@ -228,6 +236,7 @@ uint64 simple_write(char *s, size_t n){
 
 0000000000000176 <close>:
 
+//根据文件描述符关闭文件
 uint64 close(int fd){
  176:	1141                	addi	sp,sp,-16
  178:	e406                	sd	ra,8(sp)
