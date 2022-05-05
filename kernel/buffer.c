@@ -40,6 +40,7 @@ void buffer_init(){
         bcache.head.next=(bcache.buffer_list+i);
         bcache.buffer_list[i].ref_count=0;
         bcache.buffer_list[i].valid=0;
+        bcache.buffer_list[i].dirty=0;
     }
 
 }
@@ -118,11 +119,15 @@ void release_buffer(buffer *buf){
 
     //release_sleeplock(&buf->sleeplock); 
     //acquire(&bcache.spinlock);
-    
+
     //ref_count自减
     buf->ref_count--;
     //如果ref_count为0，说明buffer已经空闲
     if(buf->ref_count==0){
+        if(buf->dirty!=0){
+            buffer_write(buf);
+            buf->dirty=0;
+        }
         move_buffer_to_bcache_head(buf);    //将该空闲buffer移动至链表表头，表示其为最近才使用过的buffer
     }
 

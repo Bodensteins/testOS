@@ -479,6 +479,8 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
     return tot_sz;
 }
 
+void trunc_by_dirent(fat32_dirent *de){}
+
 //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize){
     
