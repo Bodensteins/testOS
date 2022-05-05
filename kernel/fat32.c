@@ -440,7 +440,7 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
 
     uint tot_sz=0;  //实际读取的字节数
     buffer *buf;
-    for(int b=0;b<=nclus;b++){   //遍历簇
+    for(int c=0;c<=nclus;c++){   //遍历簇
         if(clus==FAT_CLUSTER_END){ //如果读完了最后一个簇，则直接返回
             return tot_sz;
         }
@@ -448,9 +448,9 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
         //确定本簇中需要读取的起始扇区和结束扇区位置
         int s_beg=0;
         int s_end=dbr_info.sectors_per_cluster-1;
-        if(b==0)
+        if(c==0)
             s_beg=sec;
-        if(b==nclus)
+        if(c==nclus)
             s_end=s_beg+nsec;
         
         //遍历簇中的扇区
@@ -459,12 +459,12 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
             int nsz=dbr_info.bytes_per_sector;
 
             //确定本扇区中需要读取的起始偏移和结束偏移位置
-            if(b==0 && s==0){
+            if(c==0 && s==0){
                 tot_sz=0;
                 beg=off;
                 nsz-=off;
             }
-            if(b==nclus && s==s_end)
+            if(c==nclus && s==s_end)
                 nsz=noff-beg;
 
             buf=acquire_buffer(de->dev,s_sec+s);    //根据扇区号获取相应buffer
@@ -481,7 +481,7 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
 
 //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize){
-    //to do
+    
     return wsize;
 }
 
