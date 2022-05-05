@@ -79,7 +79,7 @@ typedef struct FAT32_DBR_BPB{
     uint16 FATSz16;    //                  0
     uint16 SecPerTrk;  //磁道扇区数
     uint16 NumHeads;
-    uint32 HiddSec;
+    uint32 HiddSec;   // 隐藏扇区数
     uint32 TotSec32;  //*总扇区数
     uint32 FATSz32;  //* 一个FAT表扇区数
     uint16 ExtFlags;
@@ -106,7 +106,7 @@ typedef struct FAT32_DBR_BPB{
 
 
 // 建议用于存储关键信息
-typedef struct FAT32_MBR_DPT_info{
+typedef struct FAT32_MBR_DBR_info{
     uint32 BPB_Sector_No; // （DBR）BPB 所在扇区号  FAT32_MBR_DPT.StartLBA
     double Total_Size_MB; //总容量MB(FAT32_MBR_DPT.Size)*(FAT32_DBR_BPB.BytesPerSec)/(1024*1024)
     
@@ -118,10 +118,19 @@ typedef struct FAT32_MBR_DPT_info{
 
     uint32 FirstDirClust; // 第一个目录所在的簇 FAT32_DBR_BPB.RootClus，数据区按簇访问
     uint32 FirstFATSector;// 第一个FAT表扇区号 BPB_Sector_No + FAT32_DBR_BPB.RsvdSecCnt
+    uint32 SecondFATSector;// 第二个FAT表扇区号 FirstFATSector + FATsectors
+    uint32 DataAreaSector;  // 数据区起始扇区号
     uint32 FirstDirSector;// 第一个目录的扇区号 FirstFATSector + FATNum * FATsectors
-}__attribute__((packed, aligned(4))) FAT32_MBR_DPT_info;
+}__attribute__((packed, aligned(4))) FAT32_MBR_DBR_info;
+
+FAT32_MBR_DBR_info fat32_mbr_dbr_info;
 
 
+//数据区 簇号转扇区号 
+#define Block2Sector(a)  ((a)-2) // to do
+
+//FAT 簇号确认在FAT中的偏移
+#define Block2offinFAT(a) (a)*4  // to do
 
 
 /*-------------------------unused  end  -------------------------*/
@@ -191,7 +200,7 @@ typedef struct fat32_fsinfo{
 typedef struct FAT32_ShortName_DirEntry{
     char name[SHORT_NAME_LENGTH];
     char extend_name[EXTEND_NAME_LENGTH];
-    uint8 atrribute;
+    uint8 atrribute;   // 文件属性
     uint8 system_reserve;
     uint8 create_time_tenth_msec;
     uint16 create_time;
