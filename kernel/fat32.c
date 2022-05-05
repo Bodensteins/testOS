@@ -74,18 +74,197 @@ int DBR_BPB_info(fat32_dbr_bpb * BPB)
     return 0;
 }
 
-
-int chksum_calc()
+/*
+ 根据文件名中最后一个. 的位置决定
+ 返回最后一个dot 的偏移
+  -1 无 dot .
+  非负数，从0开始计算的偏移，
+*/
+int dot_search_in_name(char name_find_dot[])
 {
-   
+    //printk("str: %s\n",name_find_dot);
+
+    int len = strlen(name_find_dot);
+
+    //printk("len: %d\n",len);
+
+    if(len > 0)
+    {
+        int i = 0;
+        for(i = len-1; name_find_dot[i]!='.'&& i>=0 ;i--);
+        //printk("dot offset: %d\n",i);
+    }
+    return 0;
+}
+
+void test_dot()
+{
+    char name[] ="123456789";
+    dot_search_in_name(name);
+
+}
+
+/*
+    短文件名格式   "_ _ _ _ _ _ ~ N _ _ _"
+    下划线表示空格，N 为数字字符 '1'至 '9'；前6个和后3个为填充字符(字母大写)，填充规则见下
+    文件名长度，小于 9个字符，则从第一个字符开始填充，包括 dot . 
+            例如： "a.txt"       -->  "A . T X T _ ~ 1 _ _ _"
+                  "a.b.c.txt"   -->  "A . B . C . ~ 1 T X T"
+    文件名长度，大于 9个字符，则从取文件名前6个字符，包括 (dot .)
+                            取最后3个字符(包括)
+ 
+                如 aa.bbb.c.dddd.hhh.gg  "A A . B B B ~ 1 . G G"
+
+    如果形成文件名后，存在重名，则N++；若 N > '9'，文件创建失败；
+
+    正确返回 0
+    错误返回 -1
+*/
+int longname_to_shorname(char name_to_splite[],char shortname[])
+{
+     printk("%s\n",name_to_splite);
+     //printk("%s\n",shortname);
+
+    int len = strlen(name_to_splite);
+    if(strlen(shortname) == 11)
+    {
+        char template[12] = "      ~1   ";
+        memcpy(shortname,template,12);
+    }
+    else{
+        return -1;
+    }
+
+    if(len> 0 && len<=9)
+    {
+        int i = 0;
+        for(;i< 6 && i< len;i++)
+        {
+           shortname[i] =  name_to_splite[i];
+        }
+
+        for(;i>= 6 && i< len;i++)
+        {
+            shortname[i+2] =  name_to_splite[i];
+        }
+        printk("%s\n",shortname);
+    }
+    else if(len >9)
+    {
+        int i = 0;
+        for(;i< 6 && i< len;i++)
+        {
+           shortname[i] =  name_to_splite[i];
+        }
+
+        int j = len-3;
+        for(; i<len ;i++,j++)
+        {
+           shortname[i+2] =  name_to_splite[j];
+        }
+        printk("%s\n",shortname);
+    }
+    else
+    {
+        return -1;
+    }
+    
+    upper(shortname);
+    return 0;
+}
+
+void test_for_long2shortname()
+{
+    char sn[12] ="  -  -  -  ";
+    char longname1[] = "a.txt";
+    char longname2[] = "a.b.c.txt";
+    char longname3[] = "aa.bbb.c.dddd.hhh.gg";
+    char longname4[] = ".bbade.ddaaegac";
+
+    longname_to_shorname(longname1,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname2,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname3,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname4,sn);
+    printk("%s\n\n",sn);
+    /*
+    
+    printk("%s\n",longname_to_shorname(longname2,sn));
+    printk("%s\n",longname_to_shorname(longname3,sn));
+    printk("%s\n",longname_to_shorname(longname4,sn));
+    */
+
+}
+
+/*
+    根据短文件名计算校验和
+    返回 0，失败
+    返回其他数值，为校验和
+    算法经过验证，可以使用
+*/
+uint8 chksum_calc(char shortname[])
+{
+    if(strlen(shortname) !=11)
+    {
+        return 0;
+    }
+
+    //printk("%s\n",shortname);
+
+    int i=0,j=0;
+    uint8 chksum=0;
+    for (i=11; i>0; i--)
+    {
+        chksum = ((chksum & 1) ? 0x80 : 0) + (chksum >> 1) + shortname[j++];
+        //printk("%x\n",chksum);
+    }
+
+    //printk("%x\n\n",chksum);
+
+    return chksum;
+}
+
+void test_for_chksum_calc()
+{
+    //校验码检验合格
+    char shortname[12] ="123456~1TXT"; // 2A
+    char shortname2[12] ="SDEF78~1HTL"; // B8
+    char shortname3[12] ="ABCDEF~1   "; // CA
+    char shortname4[12] ="AABBCC~1GGH"; // 99
+    char shortname5[12] ="      ~1   "; // 
+ 
+    printk("%x\n",chksum_calc(shortname));
+    printk("%x\n",chksum_calc(shortname2));
+    printk("%x\n",chksum_calc(shortname3));
+    printk("%x\n",chksum_calc(shortname4));
+    printk("%x\n",chksum_calc(shortname5));
+
+}
+
+
+
+
+int fill_longname_entry(char longname[],char shortname[])
+{
+    fat32_short_name_dir_entry short_name_dirent;
+    fat32_long_name_dir_entry  long_name_dirent[5];
+
+    
 
     return 0;
 }
+
+
 
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
 
     buffer *buf;
+    
+    //test_for_long2shortname();
+    //test_for_chksum_calc();
 
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
