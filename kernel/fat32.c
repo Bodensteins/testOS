@@ -26,27 +26,79 @@
 
 
 //sd卡一般只有一个分区
-fat32_mbr mbr_info; //mbr信息
+fat32_mbr_dpt mbr_info; //mbr信息
 fat32_dbr dbr_info; //dbr信息
 
 //LRU cache
 //目录项缓冲区
 static fat32_dirent_cache dcache;
 
+/*
+根据字节码判断是否为MBR
+1 为 MBR
+0 为 DBR
+*/
+int is_MBR(buffer *buf)
+{
+    uint8* data = buf->data;
+    printk("SDcard is_MBR called\n");
+    //printk("%x %x %x",data[0],data[1],data[2]);
+    if((unsigned int)data[0]==JMP_CODE_0x0 && (unsigned int)data[1]==JMP_CODE_0x1 && (unsigned int)data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
+    {
+        printk("SDcard 0 Sector is DBR\n");
+        return 0;
+    }   
+
+    return 1;
+}
+
+/*
+从buf中解析分区信息
+
+
+*/
+int MBR_DPT_info(fat32_mbr_dpt * DPT)
+{
+
+
+    return 0;
+
+}
+
+
+int DBR_BPB_info(fat32_dbr_bpb * BPB)
+{
+
+
+
+    return 0;
+}
+
+
+int chksum_calc()
+{
+   
+
+    return 0;
+}
+
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
+
     buffer *buf;
 
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
+
+    //is_MBR(buf);
     //读取dbr起始的扇区号
-    memcpy(&mbr_info.dbr_start_sector,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
+    memcpy(&mbr_info.start_lba,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
     //读取磁盘总扇区数
-    memcpy(&mbr_info.total_sectors,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
+    memcpy(&mbr_info.Size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
     release_buffer(buf);
     
     //读取dbr信息，根据mbr_info中的dbr_start_sector找到dbr所在扇区
-    buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.dbr_start_sector);
+    buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.start_lba);
     //读取每扇区的字节数
     memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,sizeof(uint16));
     //检查每扇区字节数是否等于512字节
@@ -93,7 +145,7 @@ void fat32_init(){
 
 //工具函数，作用是将簇号(clusterno)转换为该簇的第一个扇区的扇区号(sectorno)
 static uint32 clusterno_to_sectorno(uint32 clusterno){
-    int sectorno=mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors;
+    int sectorno=mbr_info.start_lba+dbr_info.dbr_reserve_sectors;
     sectorno+=dbr_info.sectors_per_fat*dbr_info.total_fats;
     sectorno+=dbr_info.sectors_per_cluster*(clusterno-dbr_info.root_dir_clusterno);
 	return sectorno;
@@ -114,7 +166,7 @@ static uint32 sectorno_to_clusterno(uint32 sectorno){
 //工具函数，给定簇号(clusterno)和第几个fat表(fatno取1或2)，返回该簇号在fat表中对应位置的扇区号
 //这个函数用于fat_find_next_clusterno函数中
 static inline uint32 fat_clusterno_to_sectorno(uint32 clusterno, uint32 fatno){
-    return 4*clusterno/dbr_info.bytes_per_sector+mbr_info.dbr_start_sector+
+    return 4*clusterno/dbr_info.bytes_per_sector+mbr_info.start_lba+
         dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*(fatno-1);
 }
 
@@ -130,13 +182,11 @@ static inline uint32 fat_clusterno_to_offset(uint32 clusterno){
 static uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno){
     if(clusterno==FAT_CLUSTER_END || clusterno==FAT_CLUSTER_DAMAGE)
         return clusterno;
-
     //以下步骤就是在定位该clusterno的下一个clusterno在磁盘中的位置(扇区号+扇区内偏移)
     uint32 sec=fat_clusterno_to_sectorno(clusterno, fatno);
-    if(sec>=mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*fatno)
+    if(sec>=mbr_info.start_lba+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*fatno)
         return clusterno;
     uint32 off=fat_clusterno_to_offset(clusterno);
-    
     //找到位置后，直接返回next_clusterno就行
     buffer* buf=acquire_buffer(DEVICE_DISK_NUM, sec);
     uint32 next_cluster=*((uint32*)(buf->data+off));
