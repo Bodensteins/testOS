@@ -34,12 +34,17 @@ fat32.c依赖于buffer.c中的函数
 #define MBR_DBR_START_SECTOR_OFFSET 0x1C6   
 #define MBR_TOTAL_SECORS_OFFSET 0x1CA
 
-//mbr字段信息
+//mbr字段,建议用于索引
 typedef struct FAT32_MBR_DPT{
-    uint8  active;                // 分区有效标志  有效为0x80 无效为 0x00
-    uint32 dbr_start_sector;     //从磁盘开始到分区开始的偏移量(根据该字段找到存储dbr的扇区)
-    uint32 total_sectors;   //总扇区数
-}FAT32_MBR_DPT;
+    uint8  Active;                //* 分区有效标志  有效为0x80 无效为 0x00
+    uint8  StartHead;
+    uint16 StarCylSect;
+    uint8  PartType;        // 0x0B CHS 格式   0x0C LBA格式
+    uint8  EndHead;
+    uint16 EndCylSect;
+    uint32 StartLBA;     //* 分区的第一个扇区，DBR的开始扇区
+    uint32 Size;   //* 总扇区数
+} __attribute__((packed, aligned(4))) FAT32_MBR_DPT;
 
 //DBR中各种字段在DBR扇区中的偏移，详情参考fat32格式
 #define DBR_JMP_CODE            0x0
@@ -59,6 +64,67 @@ typedef struct FAT32_MBR_DPT{
 #define JMP_CODE_0x0  0xEB
 #define JMP_CODE_0x1  0x58
 #define JMP_CODE_0x2  0x90
+
+/*-------------------------unused  start-------------------------*/
+#define FAT32_DBR_BPB_OFFSET  0x0B
+//DBR_BPB字段,建议用于索引
+typedef struct FAT32_DBR_BPB{
+    uint16 BytesPerSec;  //*每扇区字节数     512
+    uint8 SecPerClus;   //*每簇扇区数        8
+    uint16 RsvdSecCnt;   //* 保留扇区数      32
+    uint8 NumFATs;    //* FAT表数           2
+    uint16 RootEntCnt; //                  0
+    uint16 ToSec16;    //                  0
+    uint8 Medial;
+    uint16 FATSz16;    //                  0
+    uint16 SecPerTrk;  //磁道扇区数
+    uint16 NumHeads;
+    uint32 HiddSec;
+    uint32 TotSec32;  //*总扇区数
+    uint32 FATSz32;  //* 一个FAT表扇区数
+    uint16 ExtFlags;
+    uint16 FSVer;
+    uint32 RootClus; //* 第一个目录的簇号      2
+    uint16 FSInfo;   // 文件系统信息扇区       1
+    uint16 BkBootSec; //备份引导扇区          6
+
+    uint64 Reserved_0_7; // 12字节
+    uint32 Reserved_8_11;
+
+    uint8 DrvNum;
+    uint8 Reserved1;
+    uint8 BootSig;
+    uint32 VolID;    // 卷序列号
+    
+    uint64 FilSysType_0_7; // 11字节
+    uint16 FilSysType_8_9;
+    uint8 FileSysType_10;
+
+    uint64 FilSysType1;
+
+}__attribute__((packed, aligned(4)))FAT32_DBR_BPB;
+
+
+// 建议用于存储关键信息
+typedef struct FAT32_MBR_DPT_info{
+    uint32 BPB_Sector_No; // （DBR）BPB 所在扇区号  FAT32_MBR_DPT.StartLBA
+    double Total_Size_MB; //总容量MB(FAT32_MBR_DPT.Size)*(FAT32_DBR_BPB.BytesPerSec)/(1024*1024)
+    
+    uint16 BytesPerSector; //每个扇区的字节数 FAT32_DBR_BPB.BytesPerSec
+    uint8 SectorPerClus;  // 每簇扇区数       FAT32_DBR_BPB.SecPerClus
+
+    uint8  FATNum;         // FAT表数量
+    uint32 FATsectors;    // FAT表占用的扇区数 FAT32_DBR_BPB.FATSz32
+
+    uint32 FirstDirClust; // 第一个目录所在的簇 FAT32_DBR_BPB.RootClus，数据区按簇访问
+    uint32 FirstFATSector;// 第一个FAT表扇区号 BPB_Sector_No + FAT32_DBR_BPB.RsvdSecCnt
+    uint32 FirstDirSector;// 第一个目录的扇区号 FirstFATSector + FATNum * FATsectors
+}__attribute__((packed, aligned(4))) FAT32_MBR_DPT_info;
+
+
+
+
+/*-------------------------unused  end  -------------------------*/
 
 
 typedef struct FAT32_DBR{
@@ -122,7 +188,7 @@ typedef struct fat32_fsinfo{
 
 //fat32短文件名目录项
 //具体参见fat32目录项格式
-typedef struct fat32_short_name_dir_entry{
+typedef struct FAT32_ShortName_DirEntry{
     char name[SHORT_NAME_LENGTH];
     char extend_name[EXTEND_NAME_LENGTH];
     uint8 atrribute;
@@ -136,11 +202,11 @@ typedef struct fat32_short_name_dir_entry{
     uint16 last_write_date;
     uint16 start_blockno_low;
     uint32 file_size;
-}__attribute__((packed, aligned(4))) fat32_short_name_dir_entry;
+}__attribute__((packed, aligned(4))) FAT32_ShortName_DirEntry;
 
 //fat32长文件名目录项
 //具体参见fat32目录项格式
-typedef struct fat32_long_name_dir_entry{
+typedef struct FAT32_LongName_DirEntry{
     uint8 atrribute;
     char name1[10];
     uint8 symbol;
@@ -149,11 +215,11 @@ typedef struct fat32_long_name_dir_entry{
     char name2[12];
     uint16 start_block;
     char name3[4];
-}__attribute__((packed, aligned(4))) fat32_long_name_dir_entry;
+}__attribute__((packed, aligned(4))) FAT32_LongName_DirEntry;
 
 typedef union fat32_dir_entry{
-    fat32_short_name_dir_entry short_name_dentry;
-    fat32_long_name_dir_entry long_name_dentry;
+    FAT32_ShortName_DirEntry short_name_dentry;
+    FAT32_LongName_DirEntry long_name_dentry;
 }fat32_dir_entry;
 
 #define FILE_NAME_LENGTH 64

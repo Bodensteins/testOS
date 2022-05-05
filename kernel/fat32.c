@@ -59,12 +59,21 @@ int is_MBR(buffer *buf)
 
 
 */
-int MBR_DPT_info(buffer *buf)
+int MBR_DPT_info(FAT32_MBR_DPT * DPT)
 {
 
 
     return 0;
 
+}
+
+
+int DBR_BPB_info(FAT32_DBR_BPB * BPB)
+{
+
+
+
+    return 0;
 }
 
 
@@ -75,13 +84,13 @@ void fat32_init(){
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
     //读取dbr起始的扇区号
-    memcpy(&mbr_info.dbr_start_sector,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
+    memcpy(&mbr_info.StartLBA,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
     //读取磁盘总扇区数
-    memcpy(&mbr_info.total_sectors,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
+    memcpy(&mbr_info.Size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
     release_buffer(buf);
     
     //读取dbr信息，根据mbr_info中的dbr_start_sector找到dbr所在扇区
-    buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.dbr_start_sector);
+    buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.StartLBA);
     //读取每扇区的字节数
     memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,sizeof(uint16));
     //检查每扇区字节数是否等于512字节
@@ -128,7 +137,7 @@ void fat32_init(){
 
 //工具函数，作用是将簇号(blockno)转换为该簇的第一个扇区的扇区号(sectorno)
 static uint32 blockno_to_sectorno(uint32 blockno){
-    int sectorno=mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors;
+    int sectorno=mbr_info.StartLBA+dbr_info.dbr_reserve_sectors;
     sectorno+=dbr_info.sectors_per_fat*dbr_info.total_fats;
     sectorno+=dbr_info.sectors_per_block*(blockno-dbr_info.root_dir_blockno);
 	return sectorno;
@@ -149,7 +158,7 @@ static uint32 sectorno_to_blockno(uint32 sectorno){
 //工具函数，给定簇号(blockno)和第几个fat表(fatno取1或2)，返回该簇号在fat表中对应位置的扇区号
 //这个函数用于fat_find_next_blockno函数中
 static inline uint32 fat_blockno_to_sectorno(uint32 blockno, uint32 fatno){
-    return 4*blockno/dbr_info.bytes_per_sector+mbr_info.dbr_start_sector+
+    return 4*blockno/dbr_info.bytes_per_sector+mbr_info.StartLBA+
         dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*(fatno-1);
 }
 
@@ -168,7 +177,7 @@ static uint32 fat_find_next_blockno(uint32 blockno, uint32 fatno){
 
     //以下步骤就是在定位该blockno的下一个blockno在磁盘中的位置(扇区号+扇区内偏移)
     uint32 sec=fat_blockno_to_sectorno(blockno, fatno);
-    if(sec>=mbr_info.dbr_start_sector+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*fatno)
+    if(sec>=mbr_info.StartLBA+dbr_info.dbr_reserve_sectors+dbr_info.sectors_per_fat*fatno)
         return blockno;
     uint32 off=fat_blockno_to_offset(blockno);
     
@@ -201,7 +210,7 @@ uint32 fat_temp(uint32 blockno){
 }
 
 //工具函数，从fat32_short_name_dir_entry中获取文件初始簇号
-static uint32 get_start_blockno_in_short_entry(fat32_short_name_dir_entry* sde){
+static uint32 get_start_blockno_in_short_entry(FAT32_ShortName_DirEntry* sde){
     uint32 h=(uint32)sde->start_blockno_high;
     uint32 l=(uint32)sde->start_blockno_low;
     return (h<<16)+l;
@@ -211,7 +220,7 @@ static uint32 get_start_blockno_in_short_entry(fat32_short_name_dir_entry* sde){
 //由于目前并未实现长文件名目录项的处理，因此文件名长度不能超过8字节，扩展名长度不能超过3字节
 //下面都是字符串处理，不赘述了
 //注意，fat32目录项中，如果文件名未满8字节或扩展名未满3字节，剩下的内容用0x20(ASCII码)填充
-static void get_full_short_name(fat32_short_name_dir_entry* sde,char* full_name){
+static void get_full_short_name(FAT32_ShortName_DirEntry* sde,char* full_name){
     memset(full_name,0,FILE_NAME_LENGTH+1);
     memcpy(full_name,sde->name,SHORT_NAME_LENGTH);
     int point=-1;

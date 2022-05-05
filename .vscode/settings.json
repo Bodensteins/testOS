@@ -17,6 +17,13 @@
         "fcntl.h": "c",
         "sleeplock.h": "c",
         "fat32.h": "c",
-        "file.h": "c"
+        "file.h": "c",
+        "numeric": "c",
+        "fstream": "c",
+        "iostream": "c",
+        "istream": "c",
+        "ostream": "c",
+        "system_error": "c",
+        "typeinfo": "c"
     }
 }
