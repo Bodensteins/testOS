@@ -362,7 +362,7 @@ void fat32_init(){
     //读取dbr起始的扇区号
     memcpy(&mbr_info.start_lba,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
     //读取磁盘总扇区数
-    memcpy(&mbr_info.Size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
+    memcpy(&mbr_info.size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
     release_buffer(buf);
     
     //读取dbr信息，根据mbr_info中的dbr_start_sector找到dbr所在扇区

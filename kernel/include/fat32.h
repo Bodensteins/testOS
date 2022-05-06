@@ -35,7 +35,7 @@ typedef struct fat32_mbr_dpt{
     uint8  end_head;
     uint16 end_cyl_sect;
     uint32 start_lba;     //* 分区的第一个扇区，DBR的开始扇区
-    uint32 Size;   //* 总扇区数
+    uint32 size;   //* 总扇区数
 } __attribute__((packed, aligned(4))) fat32_mbr_dpt;
 
 //DBR中各种字段在DBR扇区中的偏移，详情参考fat32格式
