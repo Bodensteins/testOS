@@ -219,9 +219,10 @@ typedef struct fat32_long_name_dir_entry{
     char name3[4];
 }__attribute__((packed, aligned(4))) fat32_long_name_dir_entry;
 
-typedef union fat32_dir_entry{
+typedef struct fat32_dir_entry{
     fat32_short_name_dir_entry short_name_dentry;
-    fat32_long_name_dir_entry long_name_dentry;
+    fat32_long_name_dir_entry long_name_dentry[5];
+    int long_dir_entry_num;
 }fat32_dir_entry;
 
 #define FILE_NAME_LENGTH 64

@@ -33,6 +33,85 @@ void user_trap();
 process* load_user_programe();      //加载第一个进程，暂时先用这个
 void test_sdcard(void);     //sd卡测试函数，临时编写在此
 
+
+
+void test_for_read_entry_form_disk()
+{
+    
+    /*
+    a= find_dirent(NULL,"/123456789ABCDC.txt");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+
+    a = find_dirent(NULL,"/eeee.ff.gdd/123456789ABCDC.txt");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+    
+    a = find_dirent(NULL,"/abcdefghijklmnopqrstuvwxyz/1234567890123/123456789ABCDC.txt");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+    a = find_dirent(NULL,"/pp.txtqqqqqqqq/");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+    a = find_dirent(NULL,"/.txt");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+
+    
+     a = find_dirent(NULL,"/111111111.4444444444.667788");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+    fat32_dirent *a = find_dirent(NULL,"/amd");
+    printk("\n%s\n",a->name);
+
+*/
+    fat32_dirent * a = find_dirent(NULL,"/111111111.4444444444.667788/qwerty");
+    printk("\n%s\n",a->name);
+    printk("%x\n",a->file_size);
+    printk("%x\n",a->start_clusterno);
+    printk("%x\n",a->total_clusters);
+    printk("%x\n",a->offset_in_parent);
+    printk("%x\n",a->attribute);
+
+    
+    
+
+    
+
+    
+
+    
+}
+
 //entry.S跳转到s_start
 void s_start(){
     printk("entering into system...\n");
@@ -51,7 +130,12 @@ void s_start(){
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
     //test_sdcard();
+
+    
+
     insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
+    //test_for_read_entry_form_disk();
+
     schedule(); //进入schedule开始调度进程
 }
 
