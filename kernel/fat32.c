@@ -74,18 +74,286 @@ int DBR_BPB_info(fat32_dbr_bpb * BPB)
     return 0;
 }
 
-
-int chksum_calc()
+/*
+ 根据文件名中最后一个. 的位置决定
+ 返回最后一个dot 的偏移
+  -1 无 dot .
+  非负数，从0开始计算的偏移，
+*/
+int dot_search_in_name(char name_find_dot[])
 {
-   
+    //printk("str: %s\n",name_find_dot);
+
+    int len = strlen(name_find_dot);
+
+    //printk("len: %d\n",len);
+
+    if(len > 0)
+    {
+        int i = 0;
+        for(i = len-1; name_find_dot[i]!='.'&& i>=0 ;i--);
+        //printk("dot offset: %d\n",i);
+    }
+    return 0;
+}
+
+void test_dot()
+{
+    char name[] ="123456789";
+    dot_search_in_name(name);
+
+}
+
+/*
+    短文件名格式   "_ _ _ _ _ _ ~ N _ _ _"
+    下划线表示空格，N 为数字字符 '1'至 '9'；前6个和后3个为填充字符(字母大写)，填充规则见下
+    文件名长度，小于 9个字符，则从第一个字符开始填充，包括 dot . 
+            例如： "a.txt"       -->  "A . T X T _ ~ 1 _ _ _"
+                  "a.b.c.txt"   -->  "A . B . C . ~ 1 T X T"
+    文件名长度，大于 9个字符，则从取文件名前6个字符，包括 (dot .)
+                            取最后3个字符(包括)
+ 
+                如 aa.bbb.c.dddd.hhh.gg  "A A . B B B ~ 1 . G G"
+
+    如果形成文件名后，存在重名，则N++；若 N > '9'，文件创建失败；
+
+    正确返回 0
+    错误返回 -1
+*/
+int longname_to_shorname(char name_to_splite[],char shortname[])
+{
+     //printk("%s\n",name_to_splite);
+     //printk("%s\n",shortname);
+
+    int len = strlen(name_to_splite);
+    if(strlen(shortname) == 11)
+    {
+        char template[12] = "      ~1   ";
+        memcpy(shortname,template,12);
+    }
+    else{
+        return -1;
+    }
+
+    if(len> 0 && len<=9)
+    {
+        int i = 0;
+        for(;i< 6 && i< len;i++)
+        {
+           shortname[i] =  name_to_splite[i];
+        }
+
+        for(;i>= 6 && i< len;i++)
+        {
+            shortname[i+2] =  name_to_splite[i];
+        }
+        //printk("%s\n",shortname);
+    }
+    else if(len >9)
+    {
+        int i = 0;
+        for(;i< 6 && i< len;i++)
+        {
+           shortname[i] =  name_to_splite[i];
+        }
+
+        int j = len-3;
+        for(; i<len ;i++,j++)
+        {
+           shortname[i+2] =  name_to_splite[j];
+        }
+        //printk("%s\n",shortname);
+    }
+    else
+    {
+        return -1;
+    }
+    
+    upper(shortname);
+    return 0;
+}
+
+void test_for_long2shortname()
+{
+    char sn[12] ="  -  -  -  ";
+    char longname1[] = "a.txt";
+    char longname2[] = "a.b.c.txt";
+    char longname3[] = "aa.bbb.c.dddd.hhh.gg";
+    char longname4[] = ".bbade.ddaaegac";
+
+    longname_to_shorname(longname1,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname2,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname3,sn);
+    printk("%s\n\n",sn);
+    longname_to_shorname(longname4,sn);
+    printk("%s\n\n",sn);
+    /*
+    
+    printk("%s\n",longname_to_shorname(longname2,sn));
+    printk("%s\n",longname_to_shorname(longname3,sn));
+    printk("%s\n",longname_to_shorname(longname4,sn));
+    */
+
+}
+
+/*
+    根据短文件名计算校验和
+    返回 0，失败
+    返回其他数值，为校验和
+    算法经过验证，可以使用
+*/
+uint8 chksum_calc(char shortname[])
+{
+    if(strlen(shortname) !=11)
+    {
+        return 0;
+    }
+
+    //printk("%s\n",shortname);
+
+    int i=0,j=0;
+    uint8 chksum=0;
+    for (i=11; i>0; i--)
+    {
+        chksum = ((chksum & 1) ? 0x80 : 0) + (chksum >> 1) + shortname[j++];
+        //printk("%x\n",chksum);
+    }
+
+    //printk("%x\n\n",chksum);
+
+    return chksum;
+}
+
+void test_for_chksum_calc()
+{
+    //校验码检验合格
+    char shortname[12] ="123456~1TXT"; // 2A
+    char shortname2[12] ="SDEF78~1HTL"; // B8
+    char shortname3[12] ="ABCDEF~1   "; // CA
+    char shortname4[12] ="AABBCC~1GGH"; // 99
+    char shortname5[12] ="      ~1   "; // 
+ 
+    printk("%x\n",chksum_calc(shortname));
+    printk("%x\n",chksum_calc(shortname2));
+    printk("%x\n",chksum_calc(shortname3));
+    printk("%x\n",chksum_calc(shortname4));
+    printk("%x\n",chksum_calc(shortname5));
+
+}
+
+
+
+
+
+
+/*
+    根据输入的长文件名，填充长文件名目录项
+    文件名不超过64个字符
+    fat32_long_name_dir_entry long_name_dir_entry[5];
+    返回-1，填充失败
+    返回0，填充成功
+*/
+int fill_longname_entry(char longname[],
+                        fat32_long_name_dir_entry *long_name_dir_entry)
+{
+    //fat32_short_name_dir_entry fat32_short_name_dir_entry;
+    int name_len = strlen(longname);
+    if(name_len >FILE_NAME_LENGTH ) return -1;
+
+    int splite_num = (name_len / 13) +1; // 分成几个长目录项
+          
+
+    //long_name_dir_entry[5];// 长目录项填充位置
+    memset(long_name_dir_entry,0xFF,sizeof(uint8)*5*32);
+    
+    char shortname[12]="  -  -  -  ";
+
+    longname_to_shorname(longname,shortname);
+    //printk("%s\n",shortname);
+    uint8 chksum = chksum_calc(shortname);
+
+    for(int i = 0; i<splite_num; i++)
+    {
+        (long_name_dir_entry+i)->atrribute = i+1;
+        (long_name_dir_entry+i)->symbol = ATTR_LONG_NAME;
+        (long_name_dir_entry+i)->system_reserve = 0;
+        (long_name_dir_entry+i)->verify_value = chksum;
+        (long_name_dir_entry+i)->start_cluster = 0;
+
+        char name_splited[14];
+        int remain_len = 13;
+        if(i+1 == splite_num) //如果是最后一块
+        {
+            (long_name_dir_entry+i)->atrribute |= LAST_LONG_ENTRY;
+            remain_len = name_len % 13;
+            //printk("\nremian len: %d\n",remain_len);
+        }
+        
+        
+        memcpy(name_splited,longname+i*13,remain_len);
+        name_splited[remain_len]='\0';
+        
+        printk("\n----%d------\n",i);
+        printk("\nname_splited:%s\n",name_splited);
+        //printk("\nname_splited:%s\n",longname+i*13);
+        
+        int k =0;
+        for(int j =0;k<5 && k<remain_len ;k++,j++)
+        {
+            (long_name_dir_entry+i)->name1[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name1[j*2+1] = 0;
+        }
+ 
+        for(int j =0;k<11 && k<remain_len;k++,j++)
+        {
+            (long_name_dir_entry+i)->name2[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name2[j*2+1] = 0;
+        }
+
+        for(int j =0;k<13 && k<remain_len;k++,j++)
+        {
+            (long_name_dir_entry+i)->name3[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name3[j*2+1] = 0;
+        }
+    }
+
 
     return 0;
+}
+
+
+void test_for_fill_longentry()
+{
+
+    char longname[] = "aa.bbb.c.dddd.hhh.gg.asvfdsoh.ajhgonfgopcn.shaif";
+    fat32_long_name_dir_entry long_name_dir_entry[5];
+    fill_longname_entry(longname,long_name_dir_entry);
+
+    for(int i = 4;i>= 0; i--)
+    {
+        printk("----------%d-----------\n",i);
+        uint8 * dir_entry = &long_name_dir_entry[i].atrribute;
+        
+        for(int j =0;j<16;j++)
+            printk("%x  ",dir_entry[j]);
+        printk("\n");
+
+        dir_entry = (uint8*)&long_name_dir_entry[i].name2[2];
+        for(int j =0;j<16;j++)
+            printk("%x  ",dir_entry[j]);
+        printk("\n");
+    }
 }
 
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
 
     buffer *buf;
+    //test_for_fill_longentry();
+    //test_for_long2shortname();
+    //test_for_chksum_calc();
 
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
@@ -253,6 +521,113 @@ uint32 alloc_cluster(){
     return 0;
 }
 
+
+
+
+/*
+    从长目录项缓冲区中，读出长文件名
+    返回 长文件名 长度
+    返回 0 或 -1 表示错误
+
+*/
+static int  get_full_long_name(fat32_dir_entry* dentry,char* full_name)
+{
+    int num = dentry->long_dir_entry_num;
+    if(num <= 0)
+        return -1;
+    fat32_long_name_dir_entry* long_name_dir_entrys = dentry->long_name_dentry;
+    
+    int k =0; // k指向full_name
+    int i =0;
+    for(;i<num-1;i++) // 长名目录不是最后一项
+    {    
+        for(int j =0;j<5;k++,j++) // j指向各长文件目录项 name 字段
+        {
+            full_name[k] = long_name_dir_entrys[i].name1[j*2];
+        }
+        for(int j =0;j<6;k++,j++)
+        {
+            full_name[k] = long_name_dir_entrys[i].name2[j*2];
+        }
+        for(int j =0;j<2;k++,j++)
+        {
+            full_name[k] = long_name_dir_entrys[i].name3[j*2];
+        }
+    }
+
+    //最后一项长名目录
+    uint8 c_tmp;
+    for(int j =0;j<5;k++,j++) // j指向各长文件目录项 name 字段
+    {
+        c_tmp = long_name_dir_entrys[i].name1[j*2]; 
+        if(c_tmp == 0xFF)
+            goto end;
+        full_name[k] = c_tmp;
+    }
+    for(int j =0;j<6;k++,j++)
+    {
+        c_tmp = long_name_dir_entrys[i].name2[j*2];
+        if(c_tmp == 0xFF)
+            goto end;
+        full_name[k] = c_tmp;
+    }
+    for(int j =0;j<2;k++,j++)
+    {
+        c_tmp = long_name_dir_entrys[i].name3[j*2];
+        if(c_tmp == 0xFF)
+            goto end;
+        full_name[k] = c_tmp;
+    }
+
+end:
+    memset(long_name_dir_entrys,0,DIR_ENTRY_BYTES*num); // 清空 长目录项缓冲区
+    dentry->long_dir_entry_num =0;
+    full_name[k] = '\0';
+    return k;
+
+}
+
+
+/*
+    校验长目录项的校验位
+    返回 0 ，校验错误
+    返回 1 ， 校验正确
+*/
+static int check_chksum(fat32_dir_entry * dentry)
+{
+    int num = dentry->long_dir_entry_num;
+    char str_name[12];
+    memcpy(str_name,(char *)&(dentry->short_name_dentry),11);
+    str_name[11] ='\0';
+    
+    //printk("check_chksum: %s\n",str_name);
+
+    uint8 chksum_std = chksum_calc(str_name) ;
+    for(int i =0; i<num ;i++)
+    {
+        if(dentry->long_name_dentry[i].verify_value  != chksum_std)
+        {
+            return 0;
+        }
+    }
+    //printk("\n校验成功\n");
+    return 1;
+
+}
+
+
+
+/*
+关于fat32目录项，需要说明的是:
+对于fat32_dir_entry，无论是fat32_short_name_dir_entry，还是fat32_long_name_dir_entry
+他们都是目录项存储在磁盘上的格式，并不适合直接拿来给OS使用
+因此我们需要对其进行一些转换，使其更适合OS使用
+于是就有了fat32_dirent,这个结构是直接拿给OS使用的
+从磁盘中读取目录项后，都要立刻转换为fat32_dirent
+同样，之后要修改目录项信息，也需要将fat32_dirent转换为fat32_dir_entry后再写入
+*/
+
+
 //shortname
 //工具函数，从fat32_short_name_dir_entry中获取文件初始簇号
 static uint32 get_start_clusterno_in_short_entry(fat32_short_name_dir_entry* sde){
@@ -288,61 +663,6 @@ static void get_full_short_name(fat32_short_name_dir_entry* sde,char* full_name)
                 full_name[point]=0;
         }
     }
-}
-
-/*
-关于fat32目录项，需要说明的是:
-对于fat32_dir_entry，无论是fat32_short_name_dir_entry，还是fat32_long_name_dir_entry
-他们都是目录项存储在磁盘上的格式，并不适合直接拿来给OS使用
-因此我们需要对其进行一些转换，使其更适合OS使用
-于是就有了fat32_dirent,这个结构是直接拿给OS使用的
-从磁盘中读取目录项后，都要立刻转换为fat32_dirent
-同样，之后要修改目录项信息，也需要将fat32_dirent转换为fat32_dir_entry后再写入
-*/
-
-
-//shortname
-//一个比较重要的中间函数
-//根据父目录项(parent)，文件名(name,包括扩展名)，读取磁盘上的目录项(fat32_dir_entry)
-//并将fat32_dir_entry转换为fat32_dirent
-//将信息写入des_de指针指向的位置
-static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_dirent* des_de){
-    char full_name[FILE_NAME_LENGTH+1];
-    //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
-    //blk为起始簇号
-    for(uint32 clus=parent->start_clusterno;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1)){
-        uint32 start_sec=clusterno_to_sectorno(clus);  //根据簇号确定簇的起始扇区号
-        for(int sec_off=0;sec_off<dbr_info.sectors_per_cluster;sec_off++){    //遍历该簇所有扇区
-            buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
-            for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
-                fat32_dir_entry dentry;
-                memcpy(&dentry,buf->data+off,DIR_ENTRY_BYTES);
-                if(dentry.short_name_dentry.atrribute==ATTR_LONG_NAME){ //暂时跳过长文件名目录项
-                    //panic("not support long name dentry yet\n");
-                    continue;
-                }
-                get_full_short_name(&dentry.short_name_dentry,full_name);   //获取该目录项指向的文件的文件全名
-                if(!strcmp(name,full_name)){    //与name参数比较
-                    //如果名字一致，那么就算找到了
-                    release_buffer(buf);    //释放缓冲区
-                    //将dentry中的信息转到des_de中
-                    memcpy(des_de->name, full_name,12);    //文件名
-                    des_de->attribute=dentry.short_name_dentry.atrribute;  //属性
-                    des_de->clusterno_in_parent=clus;    //在父目录中的簇位置
-                    des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
-                    des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
-                    //des_dir->current_clusterno=des_dir->start_clusterno;
-                    des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
-                    des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
-                    if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
-                        des_de->start_clusterno=dbr_info.root_dir_clusterno;
-                    return 0;
-                }
-            }
-            release_buffer(buf);
-        }
-    }
-    return -1;
 }
 
 //shortname
@@ -405,6 +725,99 @@ static void fat32_dirent_write_to_disk(fat32_dirent* de){
     */
     release_buffer(buf);
 }
+
+
+//shortname
+//一个比较重要的中间函数
+//根据父目录项(parent)，文件名(name,包括扩展名)，读取磁盘上的目录项(fat32_dir_entry)
+//并将fat32_dir_entry转换为fat32_dirent
+//将信息写入des_de指针指向的位置
+static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_dirent* des_de){
+    char full_name[FILE_NAME_LENGTH+1];
+
+    uint8 buffer_for_entry[32];
+    memset(buffer_for_entry,0,sizeof(uint8)*32);
+
+    fat32_dir_entry dentry;
+    memset(&dentry,0,sizeof(fat32_dir_entry));
+
+    //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
+    //clus为起始簇号
+    for(uint32 clus=parent->start_clusterno;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1)){
+        uint32 start_sec=clusterno_to_sectorno(clus);  //根据簇号确定簇的起始扇区号
+        for(int sec_off=0;sec_off<dbr_info.sectors_per_cluster;sec_off++){    //遍历该簇所有扇区
+            buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
+            for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
+                if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
+                {
+                    memcpy(&dentry,buf->data+off,DIR_ENTRY_BYTES);
+                    if(dentry.short_name_dentry.atrribute==ATTR_LONG_NAME){ //是长文件名目录项
+
+                        int id_num = dentry.short_name_dentry.name[0] & 0x1f; //  取出序号
+                        
+                        if( (dentry.short_name_dentry.name[0]&LAST_LONG_ENTRY) == LAST_LONG_ENTRY ) // 是否为 长文件名目录项 最后一项
+                        {
+                            dentry.long_dir_entry_num =id_num; //记录 长文件名目录项 总数
+                        }
+                        
+                        memcpy(&dentry.long_name_dentry[id_num-1], &dentry.short_name_dentry,DIR_ENTRY_BYTES); // 存入对应的缓冲区
+                        memset(&dentry.short_name_dentry,0,DIR_ENTRY_BYTES);// 清空短文件名目录项
+                        continue;
+                    }
+                    else{
+                        
+                        if(dentry.long_dir_entry_num == 0 || check_chksum(&dentry) == 0) //缓冲区中无长文件名目录项，或者 校验失败
+                        {
+                            get_full_short_name(&dentry.short_name_dentry,full_name);   //获取该目录项指向的文件的文件全名
+                            if(!strcmp(name,full_name)){    //与name参数比较
+                                //如果名字一致，那么就算找到了
+                                release_buffer(buf);    //释放缓冲区
+                                //将dentry中的信息转到des_de中
+                                memcpy(des_de->name, full_name,12);    //文件名
+                                des_de->attribute=dentry.short_name_dentry.atrribute;  //属性
+                                des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
+                                des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
+                                //des_de->current_clusterno=des_de->start_clusterno;
+                                des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
+                                des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                                if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
+                                    des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                                return 0;
+                            }
+                        }
+                        else
+                        {
+                            //缓冲区中有长文件名目录且校验成功
+                            int len = get_full_long_name(&dentry,full_name);// 注意需要传入整个dentry,如果没有错误，那么长目录项缓冲区会被清空
+                            if(len>0)
+                            {
+                                if(!strcmp(name,full_name))
+                                {
+                                    //如果名字一致，那么就算找到了
+                                    release_buffer(buf);
+                                    memcpy(des_de->name, full_name,len+1);    //文件名
+                                    des_de->attribute=dentry.short_name_dentry.atrribute;  //属性
+                                    des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
+                                    des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
+                                    des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
+                                    des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                                    if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
+                                        des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                                    return 0;
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            release_buffer(buf);
+        }
+    }
+    return -1;
+}
+
+
 
 //将指定的目录项移动至链表头部
 static void move_dirent_to_dcache_head(fat32_dirent* de){
@@ -505,7 +918,9 @@ void release_dirent(fat32_dirent* de){
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     if(file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
         return NULL;
-    upper(file_name);   //文件名字母全部转为大写
+    
+    //upper(file_name);   //文件名字母全部转为大写
+    
     if(!strcmp(file_name,"/"))  //若为根目录，则直接返回根目录项
         return &dcache.root_dir;
     if(*file_name=='/'){    //若为绝对路径
@@ -541,16 +956,33 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         memcpy(temp_name,file_name+beg_pos,slash_pos-beg_pos);
         //获取名字后，直接寻找
         child=acquire_dirent(parent,temp_name);
-        //完成寻找后，就可以释放之前的父目录了
-        if(parent!=NULL && parent!=current_de)
-            release_dirent(parent);
+        
         //如果没有找到，返回NULL
         if(child==NULL){
-            printk("%s : file not found\n",temp_name);
-            return NULL;
+
+            if(strlen(temp_name) <= 11)
+            {   
+                printk("find_dirent temp_name : %s",temp_name);
+
+                upper(temp_name);
+
+                child=acquire_dirent(parent,temp_name);
+                if(child==NULL)
+                {
+                    printk("%s : file not found\n",temp_name);
+                    
+                    if(parent!=NULL && parent!=current_de)
+                        release_dirent(parent);
+                        
+                    return NULL;
+                }
+            }
+            
         }
         //printk("%s, %x\n",child->name,child->start_clusterno);
 
+        if(parent!=NULL && parent!=current_de)
+                    release_dirent(parent);
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
         slash_pos++;
