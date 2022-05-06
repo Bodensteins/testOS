@@ -168,6 +168,7 @@ typedef struct fat32_fsinfo{
 #define ATTR_LONG_NAME      0x0F
 #define LAST_LONG_ENTRY     0x40
 
+
 //短文件名目录项中几个字段的偏移
 #define SHORT_DENTRY_ATRRIBUTE_OFFSET 0xB
 #define SHORT_DENTRY_START_clusterNO_HIGH_OFFSET 0x14
@@ -210,11 +211,11 @@ typedef struct fat32_short_name_dir_entry{
 typedef struct fat32_long_name_dir_entry{
     uint8 atrribute;
     char name1[10];
-    uint8 symbol;
-    uint8 system_reserve;
+    uint8 symbol;   // 0x0F
+    uint8 system_reserve; // 0x00
     uint8 verify_value;
     char name2[12];
-    uint16 start_cluster;
+    uint16 start_cluster;// 0x00 0x00 
     char name3[4];
 }__attribute__((packed, aligned(4))) fat32_long_name_dir_entry;
 

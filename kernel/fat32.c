@@ -122,7 +122,7 @@ void test_dot()
 */
 int longname_to_shorname(char name_to_splite[],char shortname[])
 {
-     printk("%s\n",name_to_splite);
+     //printk("%s\n",name_to_splite);
      //printk("%s\n",shortname);
 
     int len = strlen(name_to_splite);
@@ -147,7 +147,7 @@ int longname_to_shorname(char name_to_splite[],char shortname[])
         {
             shortname[i+2] =  name_to_splite[i];
         }
-        printk("%s\n",shortname);
+        //printk("%s\n",shortname);
     }
     else if(len >9)
     {
@@ -162,7 +162,7 @@ int longname_to_shorname(char name_to_splite[],char shortname[])
         {
            shortname[i+2] =  name_to_splite[j];
         }
-        printk("%s\n",shortname);
+        //printk("%s\n",shortname);
     }
     else
     {
@@ -246,23 +246,112 @@ void test_for_chksum_calc()
 
 
 
-int fill_longname_entry(char longname[],char shortname[])
-{
-    fat32_short_name_dir_entry short_name_dirent;
-    fat32_long_name_dir_entry  long_name_dirent[5];
 
+
+/*
+    根据输入的长文件名，填充长文件名目录项
+    文件名不超过64个字符
+    fat32_long_name_dir_entry long_name_dir_entry[5];
+    返回-1，填充失败
+    返回0，填充成功
+*/
+int fill_longname_entry(char longname[],
+                        fat32_long_name_dir_entry *long_name_dir_entry)
+{
+    //fat32_short_name_dir_entry fat32_short_name_dir_entry;
+    int name_len = strlen(longname);
+    if(name_len > 64) return -1;
+
+    int splite_num = (name_len / 13) +1; // 分成几个长目录项
+          
+
+    //long_name_dir_entry[5];// 长目录项填充位置
+    memset(long_name_dir_entry,0xFF,sizeof(uint8)*5*32);
     
+    char shortname[12]="  -  -  -  ";
+
+    longname_to_shorname(longname,shortname);
+    //printk("%s\n",shortname);
+    uint8 chksum = chksum_calc(shortname);
+
+    for(int i = 0; i<splite_num; i++)
+    {
+        (long_name_dir_entry+i)->atrribute = i+1;
+        (long_name_dir_entry+i)->symbol = ATTR_LONG_NAME;
+        (long_name_dir_entry+i)->system_reserve = 0;
+        (long_name_dir_entry+i)->verify_value = chksum;
+        (long_name_dir_entry+i)->start_cluster = 0;
+
+        char name_splited[14];
+        int remain_len = 13;
+        if(i+1 == splite_num) //如果是最后一块
+        {
+            (long_name_dir_entry+i)->atrribute |= LAST_LONG_ENTRY;
+            remain_len = name_len % 13;
+            //printk("\nremian len: %d\n",remain_len);
+        }
+        
+        
+        memcpy(name_splited,longname+i*13,remain_len);
+        name_splited[remain_len]='\0';
+        
+        printk("\n----%d------\n",i);
+        printk("\nname_splited:%s\n",name_splited);
+        //printk("\nname_splited:%s\n",longname+i*13);
+        
+        int k =0;
+        for(int j =0;k<5 && k<remain_len ;k++,j++)
+        {
+            (long_name_dir_entry+i)->name1[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name1[j*2+1] = 0;
+        }
+ 
+        for(int j =0;k<11 && k<remain_len;k++,j++)
+        {
+            (long_name_dir_entry+i)->name2[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name2[j*2+1] = 0;
+        }
+
+        for(int j =0;k<13 && k<remain_len;k++,j++)
+        {
+            (long_name_dir_entry+i)->name3[j*2] = name_splited[k];
+            (long_name_dir_entry+i)->name3[j*2+1] = 0;
+        }
+    }
+
 
     return 0;
 }
 
 
+void test_for_fill_longentry()
+{
+
+    char longname[] = "aa.bbb.c.dddd.hhh.gg.asvfdsoh.ajhgonfgopcn.shaif";
+    fat32_long_name_dir_entry long_name_dir_entry[5];
+    fill_longname_entry(longname,long_name_dir_entry);
+
+    for(int i = 4;i>= 0; i--)
+    {
+        printk("----------%d-----------\n",i);
+        uint8 * dir_entry = &long_name_dir_entry[i].atrribute;
+        
+        for(int j =0;j<16;j++)
+            printk("%x  ",dir_entry[j]);
+        printk("\n");
+
+        dir_entry = (uint8*)&long_name_dir_entry[i].name2[2];
+        for(int j =0;j<16;j++)
+            printk("%x  ",dir_entry[j]);
+        printk("\n");
+    }
+}
 
 //fat32文件系统相关初始化，在OS启动时调用
 void fat32_init(){
 
     buffer *buf;
-    
+    test_for_fill_longentry();
     //test_for_long2shortname();
     //test_for_chksum_calc();
 
@@ -457,6 +546,9 @@ static int read_dirent_from_disk(fat32_dirent* parent, char *name, fat32_dirent*
                 memcpy(&dentry,buf->data+off,DIR_ENTRY_BYTES);
                 if(dentry.short_name_dentry.atrribute==ATTR_LONG_NAME){ //暂时跳过长文件名目录项
                     //panic("not support long name dentry yet\n");
+
+
+                    
                     continue;
                 }
                 get_full_short_name(&dentry.short_name_dentry,full_name);   //获取该目录项指向的文件的文件全名
