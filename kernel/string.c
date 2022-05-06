@@ -10,6 +10,8 @@
 
 
 void* memset(void* dest, int byte, size_t len) {
+  if(len<=0)
+    return dest;
   if ((((uintptr_t)dest | len) & (sizeof(uintptr_t) - 1)) == 0) {
     uintptr_t word = byte & 0xFF;
     word |= word << 8;

@@ -50,7 +50,7 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
-    //test_sdcard();
+    test_sdcard();
     insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
     schedule(); //进入schedule开始调度进程
 }
@@ -97,20 +97,49 @@ process* load_user_programe(){
 
 
 uint8 buf[BSIZE];
+void clear_cluster(uint32 clusterno);
+uint32 alloc_cluster();
+uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);
+void fat_update_next_clusterno(uint32 clusterno, uint32 next_clusterno, uint32 fatno);
 // A simple test for sdcard read/write test
 void test_sdcard(void) {
-    /*
-    fat32_dirent* de=find_dirent(NULL,"/main");
-    if(de!=NULL){
-        int ret=read_by_dirent(de,buf,120,1200);
-        printk("off: 120, rsize: 1200 ,ret: %d\n",ret);
-    }
+
+    memset(buf,'a',BSIZE);
+    
+    fat32_dirent* de=find_dirent(NULL, "/temp");
+    int ret=write_by_dirent(de,buf,de->file_size-1,BSIZE);
+    printk("%d\n",ret);
+    printk("%x\n",de->start_clusterno);
     release_dirent(de);
-	*/
-    sdcard_read_sector(buf,0);
-    for(int i=0;i<BISZE;i++){
-        if(i%16==0)printk("\n");
+    
+    //printk("%x\n",fat_find_next_clusterno(3,1));
+    //printk("%x\n",fat_find_next_clusterno(4,2));
+
+    //int ret=write_by_dirent(de,"1234567890",de->file_size,10);
+    //printk("%d\n",ret);
+    //read_by_dirent(de,buf,0,10);
+    //printk("%s\n",(char*)buf);
+    //printk("%x\n",de->start_clusterno);
+    //printk("%d\n",de->file_size);
+    //release_dirent(de);
+    //printk("done");
+/*
+    sdcard_read_sector(buf,_blockno_to_sectorno(0x2));
+    for(int i=0;i<BSIZE;i++){
+        if(i%16==0)
+            printk("\n");
         printk("%x ",buf[i]);
     }
+*/
+
+/*
+    fat32_dirent* de2=find_dirent(NULL, "/file.txt");
+    //int ret=write_by_dirent(de,"1234567",0,7);
+    //printk("%d\n",ret);
+    read_by_dirent(de2,buf,0,26);
+    printk("%s\n",(char*)buf);
+    printk("%x\n",_blockno_to_sectorno(de2->start_clusterno));
+    release_dirent(de2);
+*/
     while (1) ;
 }

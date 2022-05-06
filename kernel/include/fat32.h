@@ -35,7 +35,7 @@ typedef struct fat32_mbr_dpt{
     uint8  end_head;
     uint16 end_cyl_sect;
     uint32 start_lba;     //* 分区的第一个扇区，DBR的开始扇区
-    uint32 Size;   //* 总扇区数
+    uint32 size;   //* 总扇区数
 } __attribute__((packed, aligned(4))) fat32_mbr_dpt;
 
 //DBR中各种字段在DBR扇区中的偏移，详情参考fat32格式
@@ -62,7 +62,7 @@ typedef struct fat32_mbr_dpt{
 //DBR_BPB字段,建议用于索引
 typedef struct fat32_dbr_bpb{
     uint16 bytes_per_sec;  //*每扇区字节数     512
-    uint8 sec_per_clus;   //*每簇扇区数        8
+    uint8 sec_per_clus;   //*每簇扇区数        8、16、32、64
     uint16 reserved_sec_cnt;   //* 保留扇区数      32
     uint8 fat_cnt;    //* FAT表数           2
     uint16 root_ent_cnt; //                  0
@@ -170,8 +170,8 @@ typedef struct fat32_fsinfo{
 
 //短文件名目录项中几个字段的偏移
 #define SHORT_DENTRY_ATRRIBUTE_OFFSET 0xB
-#define SHORT_DENTRY_START_clusterNO_HIGH_OFFSET 0x14
-#define SHORT_DENTRY_START_clusterNO_LOW_OFFSET 0x1A
+#define SHORT_DENTRY_START_CLUSTERNO_HIGH_OFFSET 0x14
+#define SHORT_DENTRY_START_CLUSTERNO_LOW_OFFSET 0x1A
 #define SHORT_DENTRY_FILE_SIZE_OFFSET 0x1C
 
 //fat32目录项格式
@@ -233,11 +233,13 @@ typedef struct fat32_dirent{
     uint32 start_clusterno;   //文件起始扇区号
     //uint32 current_clusterno;  
     uint32 total_clusters;    //文件总共扇区号
-    uint32 offset_in_parent;    //文件目录项在父目录中的偏移
+    uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
+    uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移
     uint8 dev;  //设备号(一般是0，表示sd卡)
     struct fat32_dirent* parent;    //父目录的目录项
     uint32 ref_count;   //该目录项的引用数量
     uint8 valid;    //是否有效
+    uint8 dirty;    //
     struct fat32_dirent* prev;  //在LRU双向循环链表中，指向该目录项的上一个链表节点
     struct fat32_dirent* next;  //在LRU双向循环链表中，指向该目录项的下一个链表节点
     sleeplock sleeplock;    //睡眠锁

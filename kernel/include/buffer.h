@@ -18,7 +18,7 @@ sd卡缓冲区
     syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
 */
 
-#define BISZE 512 //单个buffer中的数据大小，与一个扇区大小相同，512字节
+#define BSIZE 512 //单个buffer中的数据大小，与一个扇区大小相同，512字节
 #define NBUFFER 128 //buffer数量
 
 //单个缓冲区(buffer)的结构
@@ -31,7 +31,7 @@ typedef struct buffer{
     struct sleeplock sleeplock;  //缓冲区睡眠锁
     struct buffer *prev;    //在LRU双向循环链表中，指向该buffer的上一个链表节点
     struct buffer *next;    //在LRU双向循环链表中，指向该buffer的下一个链表节点
-    uint8 data[BISZE];      //buffer中的数据区，存储从sd卡扇区中读出来的512字节
+    uint8 data[BSIZE];      //buffer中的数据区，存储从sd卡扇区中读出来的512字节
 }buffer;
 
 //buffer缓存，维护buffer列表并将其组织为一个双向循环链表
@@ -45,5 +45,6 @@ void buffer_init(); //缓冲区初始化，OS启动时调用
 buffer* acquire_buffer(uint dev, uint sectorno); //根据设备号和扇区号，获取一个buffer
 void release_buffer(buffer *buf);   //释放一个buffer
 void buffer_write(buffer *buf); //将该buffer中的数据写入设备(目前的设备就一个sd卡)
+void write_to_buffer(buffer *buf, void*src, int off, int wsize);    //将src中的数据写入buf，off为buf写入位置的偏移,wsize为写入的数据多少
 
 #endif

@@ -1,6 +1,7 @@
 #include "include/buffer.h"
 #include "include/spinlock.h"
 #include "include/sleeplock.h"
+#include "include/string.h"
 
 #ifndef QEMU
 #include "sd/include/sdcard.h"
@@ -140,3 +141,15 @@ void buffer_write(buffer *buf){
         //panic("buffer_write\n");
     buffer_write_to_dev(buf);
 }
+
+//将src中的数据写入buf，off为buf写入位置的偏移,wsize为写入的数据多少
+void write_to_buffer(buffer *buf, void*src, int off, int wsize){
+    if(off>=BSIZE)
+        return;
+    if(off+wsize>BSIZE){
+        wsize=BSIZE-off;
+    }
+    buf->dirty=1;
+    memcpy(buf->data+off, src, wsize);
+}
+
