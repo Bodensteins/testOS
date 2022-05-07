@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "sbi.h": "c",
+        "memlayout.h": "c",
+        "plic.h": "c",
+        "printk.h": "c",
+        "buf.h": "c",
+        "types.h": "c",
+        "riscv.h": "c",
+        "vm.h": "c",
+        "kalloc.h": "c",
+        "fat32.h": "c"
+    }
+}

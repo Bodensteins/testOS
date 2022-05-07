@@ -9,6 +9,7 @@
 #include "include/fat32.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/printk.h"
 
 /* fields that start with "_" are something we don't use */
 
@@ -69,6 +70,27 @@ static struct entry_cache {
 
 static struct dirent root;
 
+
+/*
+根据字节码判断是否为MBR
+1 为 DBR
+0 出错
+*/
+int is_DBR(struct buf *buf)
+{
+    uint8* data = buf->data;
+    printk("SDcard is_MBR called\n");
+    //printk("%x %x %x",data[0],data[1],data[2]);
+    if((unsigned int)data[0]==JMP_CODE_0x0 && (unsigned int)data[1]==JMP_CODE_0x1 && (unsigned int)data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
+    {
+        printk("SDcard Sector is DBR\n");
+        return 1;
+    }   
+
+    return 0;
+}
+
+
 /**
  * Read the Boot Parameter Block.
  * @return  0       if success
@@ -80,8 +102,24 @@ int fat32_init()
     printf("[fat32_init] enter!\n");
     #endif
     struct buf *b = bread(0, 0);
+    
+    int DBR_Sector = 0;
+    memmove(&DBR_Sector,(b->data + MBR_DPT_OFFSET),4);
+    //printf("%x",DBR_Sector);
+    //panic("not FAT32 volume");
+    b = bread(0, DBR_Sector);
+
+
+    
+    if(is_DBR(b) !=1 )
+    {
+        panic("not FAT32 volume");
+    }
+
+    /*
     if (strncmp((char const*)(b->data + 82), "FAT32", 5))
         panic("not FAT32 volume");
+        */
     // fat.bpb.byts_per_sec = *(uint16 *)(b->data + 11);
     memmove(&fat.bpb.byts_per_sec, b->data + 11, 2);            // avoid misaligned load on k210
     fat.bpb.sec_per_clus = *(b->data + 13);

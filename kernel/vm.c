@@ -14,6 +14,9 @@
  */
 pagetable_t kernel_pagetable;
 
+
+
+
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 /*
@@ -161,8 +164,14 @@ walkaddr(pagetable_t pagetable, uint64 va)
 void
 kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
 {
+
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
+  {
+    printf("%x\n%x\n%x\n%x\n%x\n ",kernel_pagetable,va,sz,pa,perm);
     panic("kvmmap");
+
+  }
+    
 }
 
 // translate a kernel virtual address to

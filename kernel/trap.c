@@ -12,7 +12,7 @@
 #include "include/console.h"
 #include "include/timer.h"
 #include "include/disk.h"
-
+#include "include/printk.h"
 extern char trampoline[], uservec[], userret[];
 
 // in kernelvec.S, calls kerneltrap().
@@ -50,6 +50,7 @@ trapinithart(void)
 void
 usertrap(void)
 {
+  printf("usertrap()\n");
   // printf("run in usertrap\n");
   int which_dev = 0;
 
@@ -157,6 +158,9 @@ kerneltrap() {
   if(intr_get() != 0)
     panic("kerneltrap: interrupts enabled");
 
+  //printk("kkkkkkkkkkkkkkkkkkkkkkkkk\n");
+
+
   if((which_dev = devintr()) == 0){
     printf("\nscause %p\n", scause);
     printf("sepc=%p stval=%p hart=%d\n", r_sepc(), r_stval(), r_tp());
@@ -185,7 +189,7 @@ kerneltrap() {
 //          0 if not recognized. 
 int devintr(void) {
 	uint64 scause = r_scause();
-
+/*
 	#ifdef QEMU 
 	// handle external interrupt 
 	if ((0x8000000000000000L & scause) && 9 == (scause & 0xff)) 
@@ -195,6 +199,8 @@ int devintr(void) {
 	// which is not available on k210. 
 	if (0x8000000000000001L == scause && 9 == r_stval()) 
 	#endif 
+*/
+  if (0x8000000000000001L == scause && 9 == r_stval()) 
 	{
 		int irq = plic_claim();
 		if (UART_IRQ == irq) {

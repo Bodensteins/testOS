@@ -7,7 +7,8 @@ SECTIONS
 {
     /* Load the kernel at this address: "." means the current address */
     . = BASE_ADDRESS;
-
+    PROVIDE(_text_start = .);
+    
     kernel_start = .;
 
     . = ALIGN(4K);

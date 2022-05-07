@@ -4,6 +4,14 @@
 #include "sleeplock.h"
 #include "stat.h"
 
+#define MBR_DPT_OFFSET      0x1c6
+
+#define JMP_CODE_0x0  0xEB
+#define JMP_CODE_0x1  0x58
+#define JMP_CODE_0x2  0x90
+
+
+
 #define ATTR_READ_ONLY      0x01
 #define ATTR_HIDDEN         0x02
 #define ATTR_SYSTEM         0x04

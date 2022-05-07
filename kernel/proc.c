@@ -523,6 +523,11 @@ wait(uint64 addr)
   }
 }
 
+static inline void inithartid(unsigned long hartid) {
+  asm volatile("mv tp, %0" : : "r" (hartid & 0x1));
+
+  //printf("inithartid: %x\n",hartid);
+}
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -533,10 +538,14 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
+
+  int hartid = r_tp();
+
+  
+  //printf("-------------------%d scheduler enter OK ------------------------\n",hartid);
   struct proc *p;
   struct cpu *c = mycpu();
   extern pagetable_t kernel_pagetable;
-
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
@@ -546,6 +555,8 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
+        printf("-------------------%d scheduler find RUNNABLE ------------------------\n",hartid);
+        //printf("progress name: %s",p->name);
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.

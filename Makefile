@@ -38,7 +38,8 @@ OBJS += \
   $K/disk.o \
   $K/fat32.o \
   $K/plic.o \
-  $K/console.o
+  $K/console.o\
+  #$K/mem.o   \
 
 ifeq ($(platform), k210)
 OBJS += \
@@ -49,6 +50,7 @@ OBJS += \
   $K/sdcard.o \
   $K/dmac.o \
   $K/sysctl.o \
+  $K/printk.o \
 
 else
 OBJS += \
@@ -65,8 +67,8 @@ else
 RUSTSBI = ./bootloader/SBI/sbi-qemu
 endif
 
-# TOOLPREFIX	:= riscv64-unknown-elf-
-TOOLPREFIX	:= riscv64-linux-gnu-
+TOOLPREFIX	:= riscv64-unknown-elf-
+#TOOLPREFIX	:= riscv64-linux-gnu-
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
@@ -78,6 +80,7 @@ CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
+CFLAGS += -mstrict-align
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 ifeq ($(mode), debug) 
@@ -98,14 +101,21 @@ ifeq ($(platform), qemu)
 linker = ./linker/qemu.ld
 endif
 
+$K/mem.o: $K/mem.S
+	$(CC) $(CFLAGS) -c -o $K/mem.o $K/mem.S
+
+
+
 # Compile Kernel
 $T/kernel: $(OBJS) $(linker) $U/initcode
 	@if [ ! -d "./target" ]; then mkdir target; fi
-	@$(LD) $(LDFLAGS) -T $(linker) -o $T/kernel $(OBJS)
+	@$(LD) $(LDFLAGS) -T $(linker) -o $T/kernel $(OBJS) 
 	@$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	@$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym
-  
-build: $T/kernel userprogs
+
+
+
+build:  $T/kernel userprogs
 
 # Compile RustSBI
 RUSTSBI:
