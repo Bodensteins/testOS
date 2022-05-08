@@ -35,6 +35,7 @@
 //#define PLIC 0x0C200000
 #define UARTHS 0x38000000
 #define GPIOHS 0x38001000
+#define DMAC 0x50000000
 #define GPIO 0x50200000
 #define SPI_SLAVE 0x50240000
 #define FPIOA 0x502B0000
@@ -98,7 +99,13 @@
 #define PHYSTOP (KERNBASE+0x600000L)
 //#define PHYSTOP (KERNBASE + 128*1024*1024)
 
-
+#ifdef QEMU     // QEMU 
+#define UART_IRQ    10 
+#define DISK_IRQ    1
+#else           // k210 
+#define UART_IRQ    33
+#define DISK_IRQ    27
+#endif 
 
 // User memory layout.
 // Address zero first:

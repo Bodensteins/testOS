@@ -410,7 +410,7 @@ void sdcard_write_sector(uint8 *buf, int sectorno) {
 		panic("sdcard: invalid response token");
 	}
 	
-	timeout = 0xffffff;
+	timeout = 0xfffff;
 	while (--timeout) {
 		sd_read_data(&result, 1);
 		if (0 != result) break;
@@ -445,28 +445,28 @@ static uint8 sectors_per_block=0x40;
 static uint32 bytes_per_sector=0x200;
 static uint8 total_fats=0x2;
 static uint32 sector_per_fat=0x770;
-static uint32 root_dirclusterno=0x2;
+static uint32 root_dir_blockno=0x2;
 
-int _clusterno_to_sectorno(int clusterno){
-	int sectorno=dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats+sectors_per_block*(clusterno-root_dirclusterno);
+int _blockno_to_sectorno(int blockno){
+	int sectorno=dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats+sectors_per_block*(blockno-root_dir_blockno);
 	return sectorno;
 }
 
-int _sectorno_to_clusterno(int sectorno){
-	int clusterno=(sectorno-dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats)/sectors_per_block+2;
-	return clusterno;
+int _sectorno_to_blockno(int sectorno){
+	int blockno=(sectorno-dbr_start_sector+dbr_reserve_sector+sector_per_fat*total_fats)/sectors_per_block+2;
+	return blockno;
 }
 
-void sdcard_read_cluster(uint8*buf, int clusterno){
-	int sectorno=_clusterno_to_sectorno(clusterno);
+void sdcard_read_block(uint8*buf, int blockno){
+	int sectorno=_blockno_to_sectorno(blockno);
 	for(int i=0;i<sectors_per_block;i++){
 		sdcard_read_sector(buf+i*bytes_per_sector, sectorno+i);
 		
 	}
 }
 
-void sdcard_write_cluster(uint8*buf, int clusterno){
-	int sectorno=_clusterno_to_sectorno(clusterno);
+void sdcard_write_block(uint8*buf, int blockno){
+	int sectorno=_blockno_to_sectorno(blockno);
 	for(int i=0;i<sectors_per_block;i++){
 		sdcard_write_sector(buf+i*bytes_per_sector, sectorno+i);
 	}

@@ -413,7 +413,7 @@ void fat32_init(){
 }
 
 //工具函数，作用是将簇号(clusterno)转换为该簇的第一个扇区的扇区号(sectorno)
-static uint32 clusterno_to_sectorno(uint32 clusterno){
+uint32 clusterno_to_sectorno(uint32 clusterno){
     int sectorno=mbr_info.start_lba+dbr_info.dbr_reserve_sectors;
     sectorno+=dbr_info.sectors_per_fat*dbr_info.total_fats;
     sectorno+=dbr_info.sectors_per_cluster*(clusterno-dbr_info.root_dir_clusterno);
@@ -484,6 +484,7 @@ void clear_cluster(uint32 clusterno){
     buffer *buf;
     uint32 sec=clusterno_to_sectorno(clusterno);
     for(int i=0;i<dbr_info.sectors_per_cluster;i++){
+        printk("%d\n",i);
         buf=acquire_buffer(DEVICE_DISK_NUM,sec+i);
         buf->dirty=1;
         memset(buf->data,0,BSIZE);

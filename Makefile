@@ -60,7 +60,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy		#目标文件格式转换器
 OBJDUMP = $(TOOLPREFIX)objdump		#反汇编器
 
 #编译参数
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax

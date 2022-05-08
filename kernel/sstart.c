@@ -12,6 +12,7 @@
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
+//#include "sd/include/dmac.h"
 #include "sd/include/sdcard.h"
 #include "include/fat32.h"
 #endif
@@ -31,7 +32,7 @@ void return_to_user();
 void user_trap();
 
 process* load_user_programe();      //加载第一个进程，暂时先用这个
-void test_sdcard(void);     //sd卡测试函数，临时编写在此
+void test_sd(void);     //sd卡测试函数，临时编写在此
 
 
 
@@ -125,11 +126,12 @@ void s_start(){
    
 #ifndef QEMU    //如果不是运行在qemu上(即是运行在k210上)
     fpioa_pin_init();   //fpioa初始化
+    //dmac_init();    //dmac初始化
     sdcard_init();  //sd卡驱动初始化
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
-    //test_sdcard();
+    test_sd();
     insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
     //test_for_read_entry_form_disk();
 
@@ -178,21 +180,42 @@ process* load_user_programe(){
 
 
 uint8 buf[BSIZE];
+uint32 clusterno_to_sectorno(uint32 clusterno);
 void clear_cluster(uint32 clusterno);
 uint32 alloc_cluster();
 uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);
 void fat_update_next_clusterno(uint32 clusterno, uint32 next_clusterno, uint32 fatno);
 // A simple test for sdcard read/write test
-void test_sdcard(void) {
+void test_sd(void) {
 
-    memset(buf,'a',BSIZE);
+
+    //clear_cluster(80);
+    memset(buf,0,BSIZE);
+    int sec=clusterno_to_sectorno(80);
+    for(int i=0;i<1111;i++){
+        printk("%d\n",i);
+        //uint64 time=0xffffff;
+        //while(time--){}
+        sdcard_read_sector(buf,i+sec);
+    }
     
+    //sdcard_read_sector(buf,0);
+    //for(int i=0;i<BSIZE;i++){
+    //    if(i%16==0)
+    //        printk("\n");
+    //    printk("%x ",buf[i]);
+    //}
+    printk("done\n");
+
+    //memset(buf,'a',BSIZE);
+    
+    /*
     fat32_dirent* de=find_dirent(NULL, "/temp");
     int ret=write_by_dirent(de,buf,de->file_size-1,BSIZE);
     printk("%d\n",ret);
     printk("%x\n",de->start_clusterno);
     release_dirent(de);
-    
+    */
     //printk("%x\n",fat_find_next_clusterno(3,1));
     //printk("%x\n",fat_find_next_clusterno(4,2));
 

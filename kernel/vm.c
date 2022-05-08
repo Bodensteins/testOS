@@ -136,6 +136,9 @@ void kernel_vm_init(){
     kernel_pagetable=(pagetable_t)alloc_physical_page();
     memset(kernel_pagetable,0,PGSIZE);
 
+    // uart registers
+    kernel_vm_map(UARTHS, UARTHS, PGSIZE, PTE_R | PTE_W);
+
     #ifdef QEMU
     kernel_vm_map(UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
@@ -153,6 +156,9 @@ void kernel_vm_init(){
     // GPIOHS
     kernel_vm_map(GPIOHS, GPIOHS, 0x1000, PTE_R | PTE_W);
 
+    // DMAC
+    //kernel_vm_map(DMAC, DMAC, 0x1000, PTE_R | PTE_W);
+
     // GPIO
     kernel_vm_map(GPIO, GPIO, 0x1000, PTE_R | PTE_W);
 
@@ -161,6 +167,9 @@ void kernel_vm_init(){
 
     // FPIOA
     kernel_vm_map(FPIOA, FPIOA, 0x1000, PTE_R | PTE_W);
+
+    // SYSCTL
+    //kernel_vm_map(SYSCTL, SYSCTL, 0x1000, PTE_R | PTE_W);
 
     // SPI0
     kernel_vm_map(SPI0, SPI0, 0x1000, PTE_R | PTE_W);
