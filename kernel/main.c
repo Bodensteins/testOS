@@ -77,6 +77,7 @@ main(unsigned long hartid, unsigned long dtb_pa)
     binit();         // buffer cache
     fileinit();      // file table
     userinit();      // first user process
+
     printf("hart 0 init done\n");
     
     for(int i = 1; i < NCPU; i++) {
@@ -89,6 +90,7 @@ main(unsigned long hartid, unsigned long dtb_pa)
     for(;;)
     ;
     */
+   
   }
   else
   {
@@ -109,6 +111,6 @@ main(unsigned long hartid, unsigned long dtb_pa)
     ;
     */
   }
-  
+
   scheduler();
 }

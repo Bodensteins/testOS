@@ -223,7 +223,7 @@ UPROGS=\
 
 userprogs: $(UPROGS)
 
-dst=/mnt
+dst=/media/wangyx/B61E-EFFB
 
 # @sudo cp $U/_init $(dst)/init
 # @sudo cp $U/_sh $(dst)/sh

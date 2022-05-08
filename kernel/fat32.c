@@ -28,6 +28,21 @@ typedef struct short_name_entry {
     uint32      file_size;
 } __attribute__((packed, aligned(4))) short_name_entry_t;
 
+
+//fat32长文件名目录项
+//具体参见fat32目录项格式
+typedef struct fat32_long_name_dir_entry{
+    uint8 atrribute;
+    char name1[10];
+    uint8 symbol;   // 0x0F
+    uint8 system_reserve; // 0x00
+    uint8 verify_value;
+    char name2[12];
+    uint16 start_cluster;// 0x00 0x00 
+    char name3[4];
+}__attribute__((packed, aligned(4))) fat32_long_name_dir_entry;
+
+
 typedef struct long_name_entry {
     uint8       order;
     wchar       name1[5];
@@ -70,7 +85,7 @@ static struct entry_cache {
 
 static struct dirent root;
 
-
+uint32 DBR_Sector = 0;
 /*
 根据字节码判断是否为MBR
 1 为 DBR
@@ -91,6 +106,33 @@ int is_DBR(struct buf *buf)
 }
 
 
+void test_FAT32()
+{
+    /*
+    寻找FAT32 bug 暂时添加
+    
+    
+    */
+   printf("!!!!!!!!!!!!FAT32 TEST  START!!!!!!!!!!!!!!!!!\n");
+    char path[]="/_find";
+
+    struct dirent *ep = ename(path);
+    if(ep == NULL)
+    {
+        printf("\nDONT FIND\n");
+
+    }
+    else{
+        printf("\nFIND FILE %s\n",ep->filename);
+        
+    }
+
+
+    printf("!!!!!!!!!!!!FAT32 TEST END!!!!!!!!!!!!!!!!!\n");
+}
+
+
+
 /**
  * Read the Boot Parameter Block.
  * @return  0       if success
@@ -103,7 +145,7 @@ int fat32_init()
     #endif
     struct buf *b = bread(0, 0);
     
-    uint32 DBR_Sector = 0;
+    
     memmove(&DBR_Sector,(b->data + MBR_DPT_OFFSET),4);
     printf("%x",DBR_Sector);
     //panic("not FAT32 volume");
@@ -129,7 +171,7 @@ int fat32_init()
     fat.bpb.tot_sec = *(uint32 *)(b->data + 32);
     fat.bpb.fat_sz = *(uint32 *)(b->data + 36);
     fat.bpb.root_clus = *(uint32 *)(b->data + 44);
-    fat.first_data_sec =DBR_Sector + fat.bpb.rsvd_sec_cnt + fat.bpb.fat_cnt * fat.bpb.fat_sz; //***
+    fat.first_data_sec =DBR_Sector + fat.bpb.rsvd_sec_cnt + fat.bpb.fat_cnt * fat.bpb.fat_sz; //error fixed
     fat.data_sec_cnt = fat.bpb.tot_sec - fat.first_data_sec;
     fat.data_clus_cnt = fat.data_sec_cnt / fat.bpb.sec_per_clus;
     fat.byts_per_clus = fat.bpb.sec_per_clus * fat.bpb.byts_per_sec;
@@ -142,6 +184,7 @@ int fat32_init()
     printf("[FAT32 init]fat_cnt: %d\n", fat.bpb.fat_cnt);
     printf("[FAT32 init]fat_sz: %d\n", fat.bpb.fat_sz);
     printf("[FAT32 init]first_data_sec: %d\n", fat.first_data_sec);
+    printf("[FAT32 init]:data_clus_cnt %d\n", fat.data_clus_cnt);
 
     #ifdef DEBUG
     
@@ -158,6 +201,8 @@ int fat32_init()
     root.valid = 1;
     root.prev = &root;
     root.next = &root;
+
+    // 串成循环链表
     for(struct dirent *de = ecache.entries; de < ecache.entries + ENTRY_CACHE_NUM; de++) {
         de->dev = 0;
         de->valid = 0;
@@ -170,12 +215,18 @@ int fat32_init()
         root.next->prev = de;
         root.next = de;
     }
+
+    // 寻找FAT32 bug 暂时添加
+    //test_FAT32();
+
+
     return 0;
 }
 
 /**
  * @param   cluster   cluster number starts from 2, which means no 0 and 1
  */
+// 根据簇号，计算起始的扇区号
 static inline uint32 first_sec_of_clus(uint32 cluster)
 {
     return ((cluster - 2) * fat.bpb.sec_per_clus) + fat.first_data_sec;
@@ -186,15 +237,18 @@ static inline uint32 first_sec_of_clus(uint32 cluster)
  * @param   cluster     number of a data cluster
  * @param   fat_num     number of FAT table from 1, shouldn't be larger than bpb::fat_cnt
  */
+// 根据簇号，和FAT表号，寻找在FAT表中，该簇项对应的扇区
 static inline uint32 fat_sec_of_clus(uint32 cluster, uint8 fat_num)
 {
-    return fat.bpb.rsvd_sec_cnt + (cluster << 2) / fat.bpb.byts_per_sec + fat.bpb.fat_sz * (fat_num - 1);
+    //error fixed
+    return DBR_Sector +fat.bpb.rsvd_sec_cnt + (cluster << 2) / fat.bpb.byts_per_sec + fat.bpb.fat_sz * (fat_num - 1);
 }
 
 /**
  * For the given number of a data cluster, return the offest in the corresponding sector in a FAT table.
  * @param   cluster   number of a data cluster
  */
+// 根据簇号，和FAT表号，寻找在FAT表中，簇项对应的扇区中的具体偏移
 static inline uint32 fat_offset_of_clus(uint32 cluster)
 {
     return (cluster << 2) % fat.bpb.byts_per_sec;
@@ -204,6 +258,7 @@ static inline uint32 fat_offset_of_clus(uint32 cluster)
  * Read the FAT table content corresponded to the given cluster number.
  * @param   cluster     the number of cluster which you want to read its content in FAT table
  */
+// 根据簇号，读取FAT表中 对应项的内容，即下一簇的簇号
 static uint32 read_fat(uint32 cluster)
 {
     if (cluster >= FAT32_EOC) {
@@ -225,20 +280,22 @@ static uint32 read_fat(uint32 cluster)
  * @param   cluster     the number of cluster to write its content in FAT table
  * @param   content     the content which should be the next cluster number of FAT end of chain flag
  */
+//根据簇号，向FAT表中对应项写入相应的内容
 static int write_fat(uint32 cluster, uint32 content)
 {
     if (cluster > fat.data_clus_cnt + 1) {
         return -1;
     }
-    uint32 fat_sec = fat_sec_of_clus(cluster, 1);
+    uint32 fat_sec = fat_sec_of_clus(cluster, 1); 
     struct buf *b = bread(0, fat_sec);
     uint off = fat_offset_of_clus(cluster);
     *(uint32 *)(b->data + off) = content;
-    bwrite(b);
+    bwrite(b);  // 写回，仅向FAT1写入
     brelse(b);
     return 0;
 }
 
+//清空簇
 static void zero_clus(uint32 cluster)
 {
     uint32 sec = first_sec_of_clus(cluster);
@@ -250,16 +307,16 @@ static void zero_clus(uint32 cluster)
         brelse(b);
     }
 }
-
+// 分配一个可用的空簇
 static uint32 alloc_clus(uint8 dev)
 {
     // should we keep a free cluster list? instead of searching fat every time.
     struct buf *b;
-    uint32 sec = fat.bpb.rsvd_sec_cnt;
+    uint32 sec =  DBR_Sector + fat.bpb.rsvd_sec_cnt;  // error fixed
     uint32 const ent_per_sec = fat.bpb.byts_per_sec / sizeof(uint32);
-    for (uint32 i = 0; i < fat.bpb.fat_sz; i++, sec++) {
+    for (uint32 i = 0; i < fat.bpb.fat_sz; i++, sec++) { // 遍历 FAT1表中扇区
         b = bread(dev, sec);
-        for (uint32 j = 0; j < ent_per_sec; j++) {
+        for (uint32 j = 0; j < ent_per_sec; j++) {// 遍历 FAT1一个扇区所有表项
             if (((uint32 *)(b->data))[j] == 0) {
                 ((uint32 *)(b->data))[j] = FAT32_EOC + 7;
                 bwrite(b);
@@ -273,26 +330,28 @@ static uint32 alloc_clus(uint8 dev)
     }
     panic("no clusters");
 }
-
+// 释放簇，向FAT表中对应项写入0
 static void free_clus(uint32 cluster)
 {
     write_fat(cluster, 0);
 }
 
+//写入的簇号，是否写入，是否为用户，数据，和偏移字节数，写入数量
 static uint rw_clus(uint32 cluster, int write, int user, uint64 data, uint off, uint n)
 {
     if (off + n > fat.byts_per_clus)
         panic("offset out of range");
     uint tot, m;
     struct buf *bp;
-    uint sec = first_sec_of_clus(cluster) + off / fat.bpb.byts_per_sec;
-    off = off % fat.bpb.byts_per_sec;
+    
+    uint sec = first_sec_of_clus(cluster) + (off / fat.bpb.byts_per_sec); // 偏移所在的扇区
+    off = off % fat.bpb.byts_per_sec; // 在该扇区中 的偏移
 
     int bad = 0;
     for (tot = 0; tot < n; tot += m, off += m, data += m, sec++) {
         bp = bread(0, sec);
         m = BSIZE - off % BSIZE;
-        if (n - tot < m) {
+        if (n - tot < m) {  // 分扇区写入
             m = n - tot;
         }
         if (write) {
@@ -862,8 +921,8 @@ int enext(struct dirent *dp, struct dirent *ep, uint off, int *count)
 struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
 {
 
-    printf("------------dirlookup filename: %s\n",filename);
-    printf("------------dirlookup dp filename: %s\n",dp->filename);
+    //printf("------------dirlookup filename: %s\n",filename);
+    //printf("------------dirlookup dp filename: %s\n",dp->filename);
 
     if (!(dp->attribute & ATTR_DIRECTORY))
         panic("dirlookup not DIR");
@@ -876,7 +935,7 @@ struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
         return edup(dp->parent);
     }
     if (dp->valid != 1) {
-        printf("------------dirlookup dp invaild\n");
+        //printf("------------dirlookup dp invaild\n");
         return NULL;
     }
     struct dirent *ep = eget(dp, filename);
@@ -906,24 +965,24 @@ struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
         *poff = off;
     }
     eput(ep);
-    printf("------------dirlookup last return\n");
+    //printf("------------dirlookup last return\n");
     return NULL;
 }
 
 static char *skipelem(char *path, char *name)
 {
-    printf("------------ skipelem path 1 : %s\n",path);
+    //printf("------------ skipelem path 1 : %s\n",path);
     while (*path == '/') {
         path++;
     }
     if (*path == 0) { return NULL; }
-    printf("------------ skipelem path 2: %s\n",path);
+    //printf("------------ skipelem path 2: %s\n",path);
     char *s = path;
     while (*path != '/' && *path != 0) {
         path++;
     }
     int len = path - s;
-    printf("------------ skipelem path len: %d\n",len);
+    //printf("------------ skipelem path len: %d\n",len);
     if (len > FAT32_MAX_FILENAME) {
         len = FAT32_MAX_FILENAME;
     }
@@ -946,11 +1005,12 @@ static struct dirent *lookup_path(char *path, int parent, char *name)
     } else {
         return NULL;
     }
+    /*
     printf("------------ lookup_path path: %s\n",path);
-
+*/
     while ((path = skipelem(path, name)) != 0) {
-        printf("------------lookup_path skipelem return  path:--%s--\n",path);
-        printf("------------lookup_path skipelem return  name: %s\n",name);
+        //printf("------------lookup_path skipelem return  path:--%s--\n",path);
+        //printf("------------lookup_path skipelem return  name: %s\n",name);
 
         elock(entry);
         if (!(entry->attribute & ATTR_DIRECTORY)) {
@@ -966,7 +1026,7 @@ static struct dirent *lookup_path(char *path, int parent, char *name)
         if ((next = dirlookup(entry, name, 0)) == 0) {
             eunlock(entry);
             eput(entry);
-            printf("------------lookup_path  dirlookup return failed\n");
+            //printf("------------lookup_path  dirlookup return failed\n");
             return NULL;
         }
         eunlock(entry);

@@ -42,6 +42,8 @@ sys_exec(void)
       goto bad;
   }
 
+  
+  /*
   struct proc *p = myproc();
   if(p ==initproc)
   {
@@ -49,7 +51,7 @@ sys_exec(void)
     printf("sys_exec: %s\n exec:%p\n",path,argv);
 
   }
-
+  */
   int ret = exec(path, argv);
 
 

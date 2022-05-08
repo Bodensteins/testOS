@@ -651,12 +651,13 @@ forkret(void)
     // regular process (e.g., because it calls sleep), and thus cannot
     // be run from main().
     // printf("[forkret]first scheduling\n");
+    /*
     if(myproc() == initproc)
     {
         printf("---------------------------forkret: the footprint of initproc-----------\n");
 
     }
-
+    */
     first = 0;
     fat32_init();
     myproc()->cwd = ename("/");
