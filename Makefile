@@ -26,7 +26,8 @@ KERN_OBJS := \
 	$K/spinlock.o \
 	$K/sleeplock.o \
 	$K/buffer.o \
-	$K/sysexec.o
+	$K/sysexec.o \
+	$K/plic.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \

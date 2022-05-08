@@ -77,9 +77,8 @@
 #endif
 
 
-// qemu puts programmable interrupt controller here.
 #ifndef QEMU
-#define PLIC 0x0c200000L
+#define PLIC 0x0c000000L
 #else
 #define PLIC 0x0c000000L
 #endif

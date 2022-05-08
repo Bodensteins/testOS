@@ -9,6 +9,7 @@
 #include "include/schedule.h"
 #include "include/buffer.h"
 #include "include/elf.h"
+#include "include/plic.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
@@ -123,7 +124,7 @@ void s_start(){
 
     proc_list_init();   //进程池初始化
     trap_init();    //trap初始化，设置内核态特权寄存器
-   
+    plic_init_temp();
 #ifndef QEMU    //如果不是运行在qemu上(即是运行在k210上)
     fpioa_pin_init();   //fpioa初始化
     //dmac_init();    //dmac初始化
@@ -131,7 +132,7 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
-    test_sd();
+    //test_sd();
     insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
     //test_for_read_entry_form_disk();
 
@@ -179,7 +180,7 @@ process* load_user_programe(){
 }
 
 
-uint8 buf[BSIZE];
+
 uint32 clusterno_to_sectorno(uint32 clusterno);
 void clear_cluster(uint32 clusterno);
 uint32 alloc_cluster();
@@ -188,15 +189,13 @@ void fat_update_next_clusterno(uint32 clusterno, uint32 next_clusterno, uint32 f
 // A simple test for sdcard read/write test
 void test_sd(void) {
 
-
+    while(1);
     //clear_cluster(80);
+    uint8 buf[BSIZE];
     memset(buf,0,BSIZE);
-    int sec=clusterno_to_sectorno(80);
     for(int i=0;i<1111;i++){
         printk("%d\n",i);
-        //uint64 time=0xffffff;
-        //while(time--){}
-        sdcard_read_sector(buf,i+sec);
+        sdcard_read_sector(buf,i);
     }
     
     //sdcard_read_sector(buf,0);

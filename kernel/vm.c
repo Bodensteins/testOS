@@ -150,14 +150,15 @@ void kernel_vm_init(){
     kernel_vm_map(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
 
     // PLIC
-    kernel_vm_map(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+    kernel_vm_map(PLIC, PLIC, 0x4000, PTE_R | PTE_W);
+    kernel_vm_map(PLIC + 0x200000, PLIC + 0x200000, 0x4000, PTE_R | PTE_W);
 
     #ifndef QEMU
     // GPIOHS
     kernel_vm_map(GPIOHS, GPIOHS, 0x1000, PTE_R | PTE_W);
 
     // DMAC
-    //kernel_vm_map(DMAC, DMAC, 0x1000, PTE_R | PTE_W);
+    kernel_vm_map(DMAC, DMAC, 0x1000, PTE_R | PTE_W);
 
     // GPIO
     kernel_vm_map(GPIO, GPIO, 0x1000, PTE_R | PTE_W);
@@ -169,7 +170,7 @@ void kernel_vm_init(){
     kernel_vm_map(FPIOA, FPIOA, 0x1000, PTE_R | PTE_W);
 
     // SYSCTL
-    //kernel_vm_map(SYSCTL, SYSCTL, 0x1000, PTE_R | PTE_W);
+    kernel_vm_map(SYSCTL, SYSCTL, 0x1000, PTE_R | PTE_W);
 
     // SPI0
     kernel_vm_map(SPI0, SPI0, 0x1000, PTE_R | PTE_W);

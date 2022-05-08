@@ -253,6 +253,7 @@ w_mscratch(uint64 x)
 // irqs (interrupts)
 #define CAUSE_TIMER 0x8000000000000007
 #define CAUSE_TIMER_S_TRAP 0x8000000000000005
+#define CAUSE_EXTERN_IRQ 0x8000000000000001L
 static inline uint64
 r_scause()
 {

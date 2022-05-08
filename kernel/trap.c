@@ -8,8 +8,11 @@
 #include "include/trap.h"
 #include "include/vm.h"
 #include "include/schedule.h"
+#include "include/plic.h"
 
 static int ticks=0; //计时器
+
+void handle_extern_irq();
 
 //系统调用中断处理函数
 void handle_syscall(){ 
@@ -37,11 +40,15 @@ void handle_timer_trap(){
 //trap初始化，OS启动时调用
 void trap_init(){
     //设置sstatus寄存器，具体参见riscv特权寄存器
+    /*
     uint64 x = r_sstatus(); 
     x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
     x |= SSTATUS_SIE;       //enable supervisor-mode interrupts.
     x |= SSTATUS_SPIE;  // enable interrupts in user mode
     w_sstatus(x);
+    */
+
+    w_sstatus(r_sstatus() | SSTATUS_SIE);
 
     w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);    //开启中断使能位
     w_stvec((uint64)kernel_trap_vec);   //trap初始化时还处于内核态，因此先将stvec的值设置位kernel_trap_vec
@@ -57,12 +64,15 @@ void user_trap(){
     current->trapframe->epc=r_sepc();   //获取trap发生时的那条指令的虚拟地址
     uint64 cause=r_scause();    //获取trap发生的原因
     w_stvec((uint64)kernel_trap_vec);
-    switch (cause){     //目前仅仅处理时钟中断和系统调用
+    switch (cause){     
         case CAUSE_TIMER_S_TRAP:
             handle_timer_trap(); 
             break;
         case CAUSE_USER_ECALL:
             handle_syscall();
+            break;
+        case CAUSE_EXTERN_IRQ:
+            handle_extern_irq();
             break;
         default:
             break;
@@ -79,7 +89,8 @@ void user_trap_ret(){
 
 //内核态发生trap时，调用该函数处理
 //内核态中断主要是处理设备中断，而目前的设备中断只有时钟中断
-void kernel_trap(){    
+void kernel_trap(){
+    printk("enter kernel_trap\n");    
     uint64 sepc=r_sepc();
     uint64 status=r_sstatus();
     uint64 cause=r_scause();
@@ -89,12 +100,46 @@ void kernel_trap(){
     if(intr_get() != 0)
         panic("kerneltrap: interrupts enabled");
     switch (cause){
-        case CAUSE_TIMER_S_TRAP:    //目前内核态中断仅仅处理时钟中断
+        case CAUSE_TIMER_S_TRAP:
             handle_timer_trap();
+            break;
+        case CAUSE_EXTERN_IRQ:
+            handle_extern_irq();
             break;
         default:
             break;
     }
     w_sepc(sepc);
     w_sstatus(status);
+}
+
+void handle_extern_irq(){
+    //printk("enter extern_irq\n");
+    if(9 == r_stval()){
+        int irq = plic_claim();
+		if (UART_IRQ == irq) {
+			// keyboard input 
+			int c = sbi_console_getchar();
+			//if (-1 != c) {
+			//	consoleintr(c);
+			//}
+            printk("keyboard input:");
+            putc(c);
+            printk("\n");
+		}
+        /*
+		else if (DISK_IRQ == irq) {
+			disk_intr();
+		}
+        */
+		else if (irq) {
+			printk("unexpected interrupt irq = %d\n", irq);
+		}
+        
+
+		if (irq) { plic_complete(irq);}
+
+		w_sip(r_sip() & ~2);    // clear pending bit
+		sbi_set_mie();
+    }
 }
