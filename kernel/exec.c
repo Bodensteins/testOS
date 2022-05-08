@@ -13,6 +13,9 @@
 #include "include/printf.h"
 #include "include/string.h"
 
+
+
+extern struct proc *initproc;
 // Load a program segment into pagetable at virtual address va.
 // va must be page-aligned
 // and the pages from va to va+sz must already be mapped.
@@ -63,11 +66,21 @@ int exec(char *path, char **argv)
     kpagetable[i] = 0;
   }
 
+
   if((ep = ename(path)) == NULL) {
     #ifdef DEBUG
     printf("[exec] %s not found\n", path);
     #endif
+    /*
+    initproc bad find file!!!!!!!
+    if(p == initproc)
+    {
+      printf("-------------------- exec: test bad find file failed intiproc footprint -----------------\n");
+
+    }
+    */
     goto bad;
+    
   }
   elock(ep);
 
@@ -104,6 +117,15 @@ int exec(char *path, char **argv)
 
   p = myproc();
   uint64 oldsz = p->sz;
+/*
+initproc doesn't s Load program into memory OK
+
+  if(p == initproc)
+    {
+      printf("-------------------- exec: test bad is Load program into memory OK intiproc footprint -----------------\n");
+
+    }
+*/
 
   // Allocate two pages at the next page boundary.
   // Use the second as the user stack.
@@ -164,6 +186,12 @@ int exec(char *path, char **argv)
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
+    if(p == initproc)
+    {
+      printf("-------------------- exec: bad intiproc footprint -----------------\n");
+
+    }
+  
   #ifdef DEBUG
   printf("[exec] reach bad\n");
   #endif

@@ -11,8 +11,8 @@
 #include "include/string.h"
 #include "include/printf.h"
 
-extern int exec(char *path, char **argv);
-
+extern  int exec(char *path, char **argv);
+extern struct proc* initproc;
 uint64
 sys_exec(void)
 {
@@ -42,7 +42,19 @@ sys_exec(void)
       goto bad;
   }
 
+  struct proc *p = myproc();
+  if(p ==initproc)
+  {
+
+    printf("exec: %s\n exec:%p\n",path,argv);
+
+  }
+
   int ret = exec(path, argv);
+
+
+
+
 
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
     kfree(argv[i]);

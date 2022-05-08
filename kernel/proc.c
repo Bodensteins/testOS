@@ -13,6 +13,7 @@
 #include "include/file.h"
 #include "include/trap.h"
 #include "include/vm.h"
+#include "include/printk.h"
 
 
 struct cpu cpus[NCPU];
@@ -539,7 +540,7 @@ void
 scheduler(void)
 {
 
-  int hartid = r_tp();
+  
 
   
   //printf("-------------------%d scheduler enter OK ------------------------\n",hartid);
@@ -555,7 +556,16 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        printf("-------------------%d scheduler find RUNNABLE ------------------------\n",hartid);
+
+        //int hartid = r_tp();
+        //printf("-------------------%d scheduler find RUNNABLE ------------------------\n",hartid);
+        /*
+        if(p == initproc)
+        {
+          printf("-------------------hart: %d  find initproc------------------------\n",hartid);
+
+        }
+        */
         //printf("progress name: %s",p->name);
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
@@ -577,6 +587,9 @@ scheduler(void)
       release(&p->lock);
     }
     if(found == 0) {
+      /*
+      printf("-------------------hart: %d  don't find progress------------------------\n",hartid);
+      */
       intr_on();
       asm volatile("wfi");
     }
@@ -632,11 +645,18 @@ forkret(void)
   // Still holding p->lock from scheduler.
   release(&myproc()->lock);
 
+
   if (first) {
     // File system initialization must be run in the context of a
     // regular process (e.g., because it calls sleep), and thus cannot
     // be run from main().
     // printf("[forkret]first scheduling\n");
+    if(myproc() == initproc)
+    {
+        printf("---------------------------forkret: the footprint of initproc-----------\n");
+
+    }
+
     first = 0;
     fat32_init();
     myproc()->cwd = ename("/");

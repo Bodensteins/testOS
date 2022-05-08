@@ -79,7 +79,7 @@ static struct dirent root;
 int is_DBR(struct buf *buf)
 {
     uint8* data = buf->data;
-    printk("SDcard is_MBR called\n");
+    printk("SDcard is_DBR called\n");
     //printk("%x %x %x",data[0],data[1],data[2]);
     if((unsigned int)data[0]==JMP_CODE_0x0 && (unsigned int)data[1]==JMP_CODE_0x1 && (unsigned int)data[2]==JMP_CODE_0x2) // EB 58 90 DBR 跳转指令
     {

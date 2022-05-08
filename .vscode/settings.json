@@ -9,6 +9,10 @@
         "riscv.h": "c",
         "vm.h": "c",
         "kalloc.h": "c",
-        "fat32.h": "c"
+        "fat32.h": "c",
+        "syscall.h": "c",
+        "sysinfo.h": "c",
+        "proc.h": "c",
+        "random": "c"
     }
 }

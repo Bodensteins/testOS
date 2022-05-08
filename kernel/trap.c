@@ -17,7 +17,7 @@ extern char trampoline[], uservec[], userret[];
 
 // in kernelvec.S, calls kerneltrap().
 extern void kernelvec();
-
+extern struct proc *initproc;
 int devintr();
 
 // void
@@ -50,7 +50,10 @@ trapinithart(void)
 void
 usertrap(void)
 {
-  printf("usertrap()\n");
+  int hartid = r_tp();
+  printf("--------------%d usertrap()----------------\n",hartid);
+  
+
   // printf("run in usertrap\n");
   int which_dev = 0;
 
@@ -62,7 +65,16 @@ usertrap(void)
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
-  
+  /*
+  if(p == initproc)
+  {
+      printk("----------------- initproc footprint into usertrap -----------------\n");
+
+  }
+  */
+
+
+
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
@@ -70,6 +82,13 @@ usertrap(void)
     // system call
     if(p->killed)
       exit(-1);
+
+
+    if(p == initproc)
+    {
+      printk("----------------- initproc footprint into usertrap  syscall-----------------\n");
+
+    }
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
     p->trapframe->epc += 4;
@@ -85,6 +104,13 @@ usertrap(void)
     printf("\nusertrap(): unexpected scause %p pid=%d %s\n", r_scause(), p->pid, p->name);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     // trapframedump(p->trapframe);
+
+    if(p == initproc)
+    {
+      printf("----------------- initproc footprint  end -----------------\n");
+
+    }
+
     p->killed = 1;
   }
 
@@ -104,7 +130,17 @@ usertrap(void)
 void
 usertrapret(void)
 {
+
+
+
   struct proc *p = myproc();
+  
+
+  if(p == initproc)
+    {
+      printk("----------------- usertrapre: initproc footprint -----------------\n");
+
+    }
 
   // we're about to switch the destination of traps from
   // kerneltrap() to usertrap(), so turn off interrupts until
