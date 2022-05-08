@@ -13,6 +13,7 @@
         "syscall.h": "c",
         "sysinfo.h": "c",
         "proc.h": "c",
-        "random": "c"
+        "random": "c",
+        "typeinfo": "c"
     }
 }

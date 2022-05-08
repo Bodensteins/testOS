@@ -46,7 +46,7 @@ sys_exec(void)
   if(p ==initproc)
   {
 
-    printf("exec: %s\n exec:%p\n",path,argv);
+    printf("sys_exec: %s\n exec:%p\n",path,argv);
 
   }
 

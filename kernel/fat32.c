@@ -103,9 +103,9 @@ int fat32_init()
     #endif
     struct buf *b = bread(0, 0);
     
-    int DBR_Sector = 0;
+    uint32 DBR_Sector = 0;
     memmove(&DBR_Sector,(b->data + MBR_DPT_OFFSET),4);
-    //printf("%x",DBR_Sector);
+    printf("%x",DBR_Sector);
     //panic("not FAT32 volume");
     b = bread(0, DBR_Sector);
 
@@ -129,19 +129,22 @@ int fat32_init()
     fat.bpb.tot_sec = *(uint32 *)(b->data + 32);
     fat.bpb.fat_sz = *(uint32 *)(b->data + 36);
     fat.bpb.root_clus = *(uint32 *)(b->data + 44);
-    fat.first_data_sec = fat.bpb.rsvd_sec_cnt + fat.bpb.fat_cnt * fat.bpb.fat_sz;
+    fat.first_data_sec =DBR_Sector + fat.bpb.rsvd_sec_cnt + fat.bpb.fat_cnt * fat.bpb.fat_sz; //***
     fat.data_sec_cnt = fat.bpb.tot_sec - fat.first_data_sec;
     fat.data_clus_cnt = fat.data_sec_cnt / fat.bpb.sec_per_clus;
     fat.byts_per_clus = fat.bpb.sec_per_clus * fat.bpb.byts_per_sec;
     brelse(b);
 
-    #ifdef DEBUG
     printf("[FAT32 init]byts_per_sec: %d\n", fat.bpb.byts_per_sec);
+    printf("[FAT32 init]hidd_sec: %d\n", fat.bpb.hidd_sec);
     printf("[FAT32 init]root_clus: %d\n", fat.bpb.root_clus);
     printf("[FAT32 init]sec_per_clus: %d\n", fat.bpb.sec_per_clus);
     printf("[FAT32 init]fat_cnt: %d\n", fat.bpb.fat_cnt);
     printf("[FAT32 init]fat_sz: %d\n", fat.bpb.fat_sz);
     printf("[FAT32 init]first_data_sec: %d\n", fat.first_data_sec);
+
+    #ifdef DEBUG
+    
     #endif
 
     // make sure that byts_per_sec has the same value with BSIZE 
@@ -858,6 +861,10 @@ int enext(struct dirent *dp, struct dirent *ep, uint off, int *count)
  */
 struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
 {
+
+    printf("------------dirlookup filename: %s\n",filename);
+    printf("------------dirlookup dp filename: %s\n",dp->filename);
+
     if (!(dp->attribute & ATTR_DIRECTORY))
         panic("dirlookup not DIR");
     if (strncmp(filename, ".", FAT32_MAX_FILENAME) == 0) {
@@ -869,6 +876,7 @@ struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
         return edup(dp->parent);
     }
     if (dp->valid != 1) {
+        printf("------------dirlookup dp invaild\n");
         return NULL;
     }
     struct dirent *ep = eget(dp, filename);
@@ -898,20 +906,24 @@ struct dirent *dirlookup(struct dirent *dp, char *filename, uint *poff)
         *poff = off;
     }
     eput(ep);
+    printf("------------dirlookup last return\n");
     return NULL;
 }
 
 static char *skipelem(char *path, char *name)
 {
+    printf("------------ skipelem path 1 : %s\n",path);
     while (*path == '/') {
         path++;
     }
     if (*path == 0) { return NULL; }
+    printf("------------ skipelem path 2: %s\n",path);
     char *s = path;
     while (*path != '/' && *path != 0) {
         path++;
     }
     int len = path - s;
+    printf("------------ skipelem path len: %d\n",len);
     if (len > FAT32_MAX_FILENAME) {
         len = FAT32_MAX_FILENAME;
     }
@@ -934,7 +946,12 @@ static struct dirent *lookup_path(char *path, int parent, char *name)
     } else {
         return NULL;
     }
+    printf("------------ lookup_path path: %s\n",path);
+
     while ((path = skipelem(path, name)) != 0) {
+        printf("------------lookup_path skipelem return  path:--%s--\n",path);
+        printf("------------lookup_path skipelem return  name: %s\n",name);
+
         elock(entry);
         if (!(entry->attribute & ATTR_DIRECTORY)) {
             eunlock(entry);
@@ -945,9 +962,11 @@ static struct dirent *lookup_path(char *path, int parent, char *name)
             eunlock(entry);
             return entry;
         }
+
         if ((next = dirlookup(entry, name, 0)) == 0) {
             eunlock(entry);
             eput(entry);
+            printf("------------lookup_path  dirlookup return failed\n");
             return NULL;
         }
         eunlock(entry);

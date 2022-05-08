@@ -65,7 +65,8 @@ int exec(char *path, char **argv)
   for (int i = 0; i < PX(2, MAXUVA); i++) {
     kpagetable[i] = 0;
   }
-
+  if(p == initproc)
+    printf("------------ exec path: %s\n",path);
 
   if((ep = ename(path)) == NULL) {
     #ifdef DEBUG
