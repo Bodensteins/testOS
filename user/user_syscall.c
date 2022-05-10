@@ -72,3 +72,8 @@ uint64 close(int fd){
     return user_syscall(fd,0,0,0,0,0,0,SYS_close);
 }
 
+uint64 clone(uint64 flag, void *stack, size_t sz){
+    if(stack!=NULL)
+        stack+=sz;
+    return user_syscall(flag,(uint64)stack,0,0,0,0,0,SYS_clone);
+}

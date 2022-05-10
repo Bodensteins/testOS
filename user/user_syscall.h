@@ -11,5 +11,6 @@ uint64 kill(uint64 pid);    //根据pid杀死进程
 uint64 execve(char *file_name, char **argv, char **env);   //根据文件路径和名字加载可执行文件
 uint64 simple_write(char *s, size_t n);     //一个简单的输出字符串到屏幕上的系统调用
 uint64 close(int fd);   //根据文件描述符关闭文件
+uint64 clone(uint64 flag, void *stack, size_t sz);
 
 #endif

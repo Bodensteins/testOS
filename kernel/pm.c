@@ -48,6 +48,7 @@ void free_physical_page(void* pa){
     if((uint64)pa%PGSIZE!=0 || 
         (uint64)pa<free_pm_min_addr || 
         (uint64)pa>free_pm_max_addr){
+            printk("pa: %p\n",pa);
             panic("free_physical_page");
         }
     memset(pa, 1, PGSIZE);

@@ -116,6 +116,11 @@ int free_process(process* proc){
 //实现fork功能，创建一个一模一样的新进程，与UNIX的fork功能一致
 //为了简单，没有写时复制机制
 uint64 do_fork(process *parent){
+    return do_clone(parent,0,0);
+}
+
+//实现clone系统调用
+uint64 do_clone(process *parent, uint64 flag, uint64 stack){
     process *child;
     child=alloc_process();  //从进程池分配一个新的进程
 
@@ -123,8 +128,21 @@ uint64 do_fork(process *parent){
     for(int i=0;i<parent->segment_num;i++){
         switch(parent->segment_map_info[i].seg_type){
             case STACK_SEGMENT: //用户栈段
+                /*
+                if(stack!=0){
+                    segment_map_info* seg=child->segment_map_info+i;
+                    user_vm_unmap(child->pagetable, seg->va,seg->page_num*PGSIZE,1);
+                    seg->page_num=0;
+                    seg->va=stack;
+                    // Do we need to copy data in parent's stack to child here?
+                }
+                else{
+                    memcpy((void*)find_pa_align_pgsize(child->pagetable, child->segment_map_info[i].va),
+                        (void*)find_pa_align_pgsize(parent->pagetable, parent->segment_map_info[i].va), PGSIZE);
+                }
+                */
                 memcpy((void*)find_pa_align_pgsize(child->pagetable, child->segment_map_info[i].va),
-                (void*)find_pa_align_pgsize(parent->pagetable, parent->segment_map_info[i].va), PGSIZE);
+                        (void*)find_pa_align_pgsize(parent->pagetable, parent->segment_map_info[i].va), PGSIZE);
                 break; 
             case TRAPFRAME_SEGMENT://trapframe段
                 *child->trapframe = *parent->trapframe;
@@ -137,6 +155,11 @@ uint64 do_fork(process *parent){
                 break;
         }
     }
+
+    /*
+    if(stack!=0)
+        child->trapframe->regs.sp=stack;
+    */
 
     //将父进程的文件描述符都复制给子进程
     for(int i=0;i<N_OPEN_FILE;i++){

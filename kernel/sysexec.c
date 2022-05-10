@@ -33,7 +33,7 @@ static void release_memory(pagetable_t pagetable, int sz, segment_map_info *map,
 //暂时不处理argv参数，一律为NULL
 int do_execve(char *path, char **argv, char **env){
     //temporary
-    if(env!=NULL){
+    if(env!=NULL && env[0]!=NULL){
         printk("not support env yet\n");
     }
 
@@ -109,7 +109,7 @@ int do_execve(char *path, char **argv, char **env){
             phdr.flags & ELF_PROG_FLAG_EXEC ? CODE_SEGMENT : DATA_SEGMENT;
         temp_seg_num++;
     }
-    
+
     //接下来为进程分配用户栈
     uint64 user_stack=(uint64)alloc_physical_page();
     if(!user_stack){
@@ -221,7 +221,7 @@ static void clear_proc_pages(process *current){
 //清空segement_map_info的CODE段和DATA段
 //实际上CODE和DATA在elf里面是一个段
 static int clear_proc_segment_map(segment_map_info *segment_map_info, int segment_num){
-    for(int i=segment_num;i>=0;i++){
+    for(int i=segment_num-1;i>=0;i++){
         if(segment_map_info[i].seg_type==CODE_SEGMENT ||
             segment_map_info[i].seg_type==DATA_SEGMENT){
                 segment_num--;

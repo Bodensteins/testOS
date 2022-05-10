@@ -8,6 +8,6 @@ int main(int argc, char *argv[]){
         printf(argv[i]);
     }
     printf("test end!\n");    
-    while(1){}
+    exit(0);
     return 0;
 }

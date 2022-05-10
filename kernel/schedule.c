@@ -57,6 +57,8 @@ void delete_from_runnable_queue(process *proc){
     return;
 }
 
+static void release_process_memory(process *proc);
+
 //进程调度函数，每次时钟中断都会调用这个函数
 //采用循环轮转方法调度进程
 //维护一个就绪队列
@@ -70,27 +72,7 @@ void schedule(){
 
     if(current!=NULL && current->state==ZOMBIE){    //如果当前进程死亡，则给他收尸
         //printk("zombie: %d\n", current->pid);
-        current->state=UNUSED;  //状态置为UNUSED
-        
-        for(int i=0;i<N_OPEN_FILE;i++){ //关闭所有还打开的文件
-            if(current->open_files[i]!=NULL)
-                release_file(current->open_files[i]);
-        }
-
-        release_dirent(current->cwd);   //释放当前目录的目录项缓冲
-
-        for(int i=0;i<current->segment_num;i++){    //根据segment_map_info释放进程占用的内存
-            segment_map_info* seg=current->segment_map_info+i;
-            int free=1;
-            if(seg->seg_type==SYSTEM_SEGMENT){  //trampoline段为内核和所有进程共享，不能释放，只是解除地址映射
-                free=0;
-            }
-            user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,free);
-        }
-        
-        free_pagetable(current->pagetable);     //将页表占用的内存释放
-        current->segment_map_info->page_num=0;
-        current->size=0;
+        release_process_memory(current);
     }
 
     if (runnable_queue==NULL)   //如果就绪队列为空，则返回
@@ -99,7 +81,33 @@ void schedule(){
     //取队列首端进程为当前进程
     current=runnable_queue; 
     runnable_queue=runnable_queue->queue_next;
-    //printk("running process: %d\n",current->pid);
+    printk("running process: %d\n",current->pid);
     current->state=RUNNING;
     switch_to(current);     //切换到新的当前进程
+}
+
+
+static void release_process_memory(process *proc){
+    proc->state=UNUSED;  //状态置为UNUSED
+        
+    for(int i=0;i<N_OPEN_FILE;i++){ //关闭所有还打开的文件
+        if(proc->open_files[i]!=NULL)
+            release_file(proc->open_files[i]);
+    }
+
+    release_dirent(proc->cwd);   //释放当前目录的目录项缓冲
+
+    for(int i=0;i<proc->segment_num;i++){    //根据segment_map_info释放进程占用的内存
+        segment_map_info* seg=proc->segment_map_info+i;
+        int free=1;
+        if(seg->seg_type==SYSTEM_SEGMENT){  //trampoline段为内核和所有进程共享，不能释放，只是解除地址映射
+            free=0;
+        }
+        if(seg->page_num>0)
+            user_vm_unmap(proc->pagetable, seg->va,seg->page_num*PGSIZE,free);
+    }
+    
+    free_pagetable(proc->pagetable);     //将页表占用的内存释放
+    proc->segment_map_info->page_num=0;
+    proc->size=0;
 }

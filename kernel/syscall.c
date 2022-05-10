@@ -15,6 +15,7 @@ uint64 sys_kill();
 uint64 sys_open();
 uint64 sys_simple_write();
 uint64 sys_close();
+uint64 sys_clone();
 uint64 sys_execve();
 
 //将系统调用函数组织为一个函数指针数组
@@ -27,6 +28,7 @@ static uint64 (*syscalls[])() = {
     [SYS_open] sys_open,
     [SYS_write] sys_simple_write,
     [SYS_close] sys_close,
+    [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
 };
 
@@ -161,23 +163,43 @@ uint64 sys_close(){
     return 0;
 }
 
-//exec系统调用
+uint64 sys_clone(){
+    uint64 flag=current->trapframe->regs.a0;
+    uint64 stack=current->trapframe->regs.a1;
+    return do_clone(current,flag,stack);
+}
+
+//execve系统调用
 uint64 sys_execve(){
     //a0存储可执行文件名指针(包含路径)
     char *file_name=(char*)current->trapframe->regs.a0;
     file_name=va_to_pa(current->pagetable,file_name);   //虚拟地址转换为物理地址
     
+    //a1存储argv地址
     char **user_argv=(char**)current->trapframe->regs.a1;
     char *argv[MAXARG+1];
     if(user_argv!=NULL){
-        user_argv=va_to_pa(current->pagetable,user_argv);
+        user_argv=va_to_pa(current->pagetable,user_argv);      //虚拟地址转换为物理地址
         int argc;
         for(argc=0;user_argv[argc]!=NULL && argc<MAXARG;argc++){
-            argv[argc]=va_to_pa(current->pagetable,user_argv[argc]);
+            argv[argc]=va_to_pa(current->pagetable,user_argv[argc]);    //虚拟地址转换为物理地址
         }
         argv[argc]=NULL;
     }
     char **av=user_argv!=NULL?argv:NULL;
 
-    return do_execve(file_name,av,NULL);    //调用do_exec
+    //a2存储env地址
+    char **user_env=(char**)current->trapframe->regs.a2;
+    char *env[MAXENV+1];
+    if(user_env!=NULL){
+        user_env=va_to_pa(current->pagetable,user_env);     //虚拟地址转换为物理地址
+        int envc;
+        for(envc=0;user_env[envc]!=NULL && envc<MAXENV;envc++){
+            env[envc]=va_to_pa(current->pagetable,user_env[envc]);      //虚拟地址转换为物理地址
+        }
+        env[envc]=NULL;
+    }
+    char **ev=user_env!=NULL?env:NULL;
+
+    return do_execve(file_name,av,ev);    //调用do_execve
 }
