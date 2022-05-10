@@ -104,6 +104,6 @@ void reparent(process *); //重新设置指定进程的父进程(如果父进程
 void yield(); //当前进程让出CPU
 uint64 do_kill(uint64); //根据pid杀死当前进程
 void switch_to(process*); //切换到指定进程
-int do_exec(char*, char**); //从磁盘中加载可执行文件到内存中
+int do_execve(char*, char**, char**); //从磁盘中加载可执行文件到内存中
 
 #endif

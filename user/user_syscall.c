@@ -58,8 +58,8 @@ uint64 kill(uint64 pid){
 }
 
 //从外存中根据文件路径和名字加载可执行文件
-uint64 exec(char *file_name){
-    return user_syscall((uint64)file_name,0,0,0,0,0,0,SYS_exec);
+uint64 execve(char *file_name, char **argv, char **env){
+    return user_syscall((uint64)file_name,(uint64)argv,(uint64)env,0,0,0,0,SYS_execve);
 }
 
 //一个简单的输出字符串到屏幕上的系统调用

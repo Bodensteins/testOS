@@ -23,16 +23,22 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
 static void clear_proc_pages(process *current);
 //清空segement_map_info的CODE段和DATA段
 static int clear_proc_segment_map(segment_map_info *segment_map_info, int segment_num);
+//argv和env压栈(int main(int argc, char argv**, char **env))
+static int push_stack(pagetable_t pagetable, char **argv, int *ac);
+//当发生错误时，调用该函数释放已经分配的资源
+static void release_memory(pagetable_t pagetable, int sz, segment_map_info *map, fat32_dirent *de);
+
 
 //根据可执行文件名和路径，将程序加载入内存中，并释放旧程序的内存
 //暂时不处理argv参数，一律为NULL
-int do_exec(char *path, char **argv){
+int do_execve(char *path, char **argv, char **env){
     //temporary
-    if(argv!=NULL)
-        return -1;
-    
-    fat32_dirent *de;   //可执行文件目录项
-    pagetable_t pagetable;  //新页表
+    if(env!=NULL){
+        printk("not support env yet\n");
+    }
+
+    fat32_dirent *de=NULL;   //可执行文件目录项
+    pagetable_t pagetable=NULL;  //新页表
     elf64_header hdr;   //elf文件头
 
     //分配新的semgent_map_info
@@ -46,7 +52,7 @@ int do_exec(char *path, char **argv){
     //为新页表分配内存
     pagetable=(pagetable_t)alloc_physical_page();
     if(pagetable==NULL){
-        free_physical_page(temp_map);
+        release_memory(pagetable,0,temp_map,de);
         return -1;
     }
     memset(pagetable,0,PGSIZE);
@@ -55,8 +61,7 @@ int do_exec(char *path, char **argv){
     de=find_dirent(current->cwd,path);
     if(de==NULL){
         return -1;
-        free_physical_page(temp_map);
-        free_pagetable(pagetable);
+        release_memory(pagetable,0,temp_map,de);
     }
     
     //根据文件目录项读取elf文件头信息
@@ -64,9 +69,7 @@ int do_exec(char *path, char **argv){
         read_by_dirent(de,&hdr,0,sizeof(elf64_header))!=sizeof(elf64_header) ||
         hdr.magic!=ELF_MAGIC
     ){
-        free_physical_page(temp_map);
-        release_dirent(de);
-        free_pagetable(pagetable);
+        release_memory(pagetable,0,temp_map,de);
         return -1;
     }
     
@@ -84,24 +87,20 @@ int do_exec(char *path, char **argv){
             phdr.mem_size!=phdr.file_size ||
             phdr.va+phdr.mem_size<phdr.va
         ){
-            free_physical_page(temp_map);
-            release_dirent(de);
-            free_pagetable(pagetable);
+            release_memory(pagetable,sz,temp_map,de);
             return -1;
         }
         else if(phdr.type!=ELF_PROG_LOAD)   //程序段的类型必须是可加载的
             continue;
         
        //根据可执行文件目录项de和程序头phdr，将该程序段加载入内存中，并映射到页表pagetable中
-        int pg_cnt=load_prog_segment(pagetable,de,&phdr);
-        if(pg_cnt<0){
-            free_physical_page(temp_map);
-            release_dirent(de);
-            free_pagetable(pagetable);
-            return -1;
-        }
         if(phdr.va>=sz)
             sz=phdr.va+phdr.mem_size;   //记录当前程序在内存中的大小
+        int pg_cnt=load_prog_segment(pagetable,de,&phdr);
+        if(pg_cnt<0){
+            release_memory(pagetable,sz,temp_map,de);
+            return -1;
+        }
 
         //更新segment_map_info
         temp_map[temp_seg_num].page_num=pg_cnt;
@@ -114,9 +113,7 @@ int do_exec(char *path, char **argv){
     //接下来为进程分配用户栈
     uint64 user_stack=(uint64)alloc_physical_page();
     if(!user_stack){
-        free_physical_page(temp_map);
-        release_dirent(de);
-        free_pagetable(pagetable);
+        release_memory(pagetable,sz,temp_map,de);
         return -1;
     }
     //在页表中映射栈的地址
@@ -130,14 +127,22 @@ int do_exec(char *path, char **argv){
             break;
         }
     }
-    
-    //接下来应该处理argv参数，并将其压入用户栈
-    //不过暂时还没有实现
-    //handle argv
-    //to do
+
+    //接下来处理argv参数，并将其压入用户栈
+    int argc=0;
+    uint64 sp=USER_STACK_TOP;
+    if(argv!=NULL){
+        sp=push_stack(pagetable,argv,&argc);
+        if(sp<0){
+            release_memory(pagetable,sz,temp_map,de);
+            return -1;
+        }
+        current->trapframe->regs.a1=sp;
+    }
     
     //接下来清理进程之前的内存
     clear_proc_pages(current);
+
     //将新的segment_map_info交给当前进程
     segment_map_info *old_map=current->segment_map_info;
     current->segment_map_info=temp_map;
@@ -152,11 +157,11 @@ int do_exec(char *path, char **argv){
     current->pagetable=pagetable;   //启用新页表
     current->trapframe->epc=hdr.entry;  //epc寄存器设置为程序入口的虚拟地址，使得之后进入用户态可以跳到新程序开头
     current->size=sz;   //进程大小
-    current->trapframe->regs.sp=USER_STACK_TOP; //sp寄存器设为栈底
+    current->trapframe->regs.sp=sp; //sp寄存器设为栈底
 
     release_dirent(de); //释放目录项缓冲
     free_physical_page(old_map);    //释放旧的segment_map_info
-    return 0;
+    return argc;
 }
 
 //根据可执行文件目录项de和程序头phdr，将该程序段加载入内存中，并映射到页表pagetable中
@@ -225,4 +230,49 @@ static int clear_proc_segment_map(segment_map_info *segment_map_info, int segmen
             break;
     }
     return segment_num;
+}
+
+static int push_stack(pagetable_t pagetable, char **argv, int *ac){
+    uint64 sp=USER_STACK_TOP, sb=USER_STACK_TOP-PGSIZE;
+    uint64 argv_ptr[MAXARG+1];
+    int argc;
+    for(argc=0;argv[argc]!=NULL && argc<MAXARG;argc++){
+        int arglen=strlen(argv[argc])+1;
+        sp-=arglen;
+        sp-=(sp%16);    // riscv sp must be 16-byte aligned
+        if(sp<sb){
+            //bad
+            return -1;
+        }
+        //copy argv into stack
+        char* sp_pa=va_to_pa(pagetable,(char *)sp);
+        memcpy(sp_pa,argv[argc],arglen);
+        argv_ptr[argc]=sp;
+    }
+    argv_ptr[argc]=0;
+    *ac=argc;
+
+    int argclen=(argc+1)*sizeof(uint64);
+    sp-=argclen;
+    sp-=(sp%16);
+    if(sp<sb){
+        //bad
+        return -1;
+    }
+    //copy argv_ptr into stack
+    char* sp_pa=va_to_pa(pagetable,(char *)sp);
+    memcpy(sp_pa,argv_ptr,argclen);
+    return sp;
+}
+
+static void release_memory(pagetable_t pagetable ,int sz, segment_map_info *map, fat32_dirent *de){
+    printk("execve error\n");
+    if(pagetable!=NULL && sz>=0){
+        user_vm_unmap(pagetable,USER_STACK_TOP-PGSIZE,PGSIZE,1);
+        free_pagetable2(pagetable,sz,1);
+    }
+    if(map!=NULL)
+        free_physical_page(map);
+    if(de!=NULL)
+        release_dirent(de);
 }

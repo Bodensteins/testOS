@@ -58,6 +58,12 @@ void user_vm_unmap(pagetable_t pd, uint va, uint size, int is_free_pa);
 //释放页表占用的内存空间
 void free_pagetable(pagetable_t pagetable);
 
+/*
+解除页表虚拟地址从0到size映射关系，
+如果is_free不为0，则将pte指向的有效物理内存也一并释放，
+并不释放页表
+*/
+void free_pagetable2(pagetable_t pagetable, uint64 sz, int is_free);
 
 //生成pte的属性
 //is_read为1是可读

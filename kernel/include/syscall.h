@@ -30,6 +30,12 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 
-uint64 syscall();   //
+#define SYS_clone 220
+#define SYS_execve 221
+#define SYS_wait4 260
+
+uint64 syscall();
+
+
 
 #endif

@@ -69,6 +69,8 @@ void *va_to_pa(pagetable_t pd, void* va){
 //注意，va，pa均会被页对齐
 //相当于xv6中的mappages
 static int map_pages(pagetable_t pd, uint va, uint size, uint pa, int permission){
+    if(size<=0)
+        return 0;
     uint64 addr=PGROUNDDOWN(va);    //起始虚拟地址，页对齐
     uint64 last=PGROUNDDOWN(va+size-1);     //终止虚拟地址，页对齐
     for(pte_t *pte; addr<=last; addr+=PGSIZE,pa+=PGSIZE){   //循环，将起始地址到最终地址全部映射
@@ -88,6 +90,8 @@ static int map_pages(pagetable_t pd, uint va, uint size, uint pa, int permission
 //该函数即是在指定的页表中将[va , va+sz)的虚拟地址区间解除与其对应的物理地址的映射关系
 //相当于xv6中的uvmunmap函数
 void unmap_pages(pagetable_t pd, uint va, uint size, int is_free_pa){
+    if(size<=0)
+        return;
     uint64 addr=PGROUNDDOWN(va);     //起始虚拟地址，页对齐
     uint64 last=PGROUNDDOWN(va+size-1);     //终止虚拟地址，页对齐
     for(pte_t* pte;addr<=last;addr+=PGSIZE){    //循环，将起始地址到最终地址全部解除映射
@@ -240,24 +244,11 @@ void free_pagetable(pagetable_t pagetable){
 }
 
 /*
-暂未使用的页表释放函数
-如果is_free不为0，则将pte指向的有效物理内存也一并释放
+解除页表虚拟地址从0到size映射关系，
+如果is_free不为0，则将pte指向的有效物理内存也一并释放，
+并不释放页表
 */
-void free_pagetable2(pagetable_t pagetable, uint64 sz, int is_free){
-    for(int i = 0; i < 512; i++){
-    pte_t pte = pagetable[i];
-    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
-      // this PTE points to a lower-level page table.
-      uint64 child = PTE_TO_PA(pte);
-      free_pagetable((pagetable_t)child);
-      pagetable[i] = 0;
-    } else if(pte & PTE_V){
-      if(is_free){
-          free_physical_page((void*)PTE_TO_PA(pte));
-      }
-      else
-        panic("freewalk:leaf");
-    }
-  }
-  free_physical_page((void*)pagetable);
+void free_pagetable2(pagetable_t pagetable, uint64 size, int is_free){
+    user_vm_unmap(pagetable,0,size,is_free);
+    //free_pagetable(pagetable);
 }

@@ -15,7 +15,7 @@ uint64 sys_kill();
 uint64 sys_open();
 uint64 sys_simple_write();
 uint64 sys_close();
-uint64 sys_exec();
+uint64 sys_execve();
 
 //将系统调用函数组织为一个函数指针数组
 //效仿xv6的设计
@@ -24,10 +24,10 @@ static uint64 (*syscalls[])() = {
     [SYS_exit] sys_exit,
     [SYS_read] sys_read,
     [SYS_kill] sys_kill,
-    [SYS_exec] sys_exec,
     [SYS_open] sys_open,
     [SYS_write] sys_simple_write,
     [SYS_close] sys_close,
+    [SYS_execve] sys_execve,
 };
 
 //syscall，由trap调用至此
@@ -143,14 +143,6 @@ uint64 sys_kill(){
     return do_kill(pid);
 }
 
-//exec系统调用，目前并不支持参数
-uint64 sys_exec(){
-    //a0存储可执行文件名指针(包含路径)
-    char *file_name=(char*)current->trapframe->regs.a0;
-    file_name=va_to_pa(current->pagetable,file_name);   //虚拟地址转换为物理地址
-    return do_exec(file_name,NULL);    //调用do_exec
-}
-
 //一个简单的print系统调用，临时写在这的
 uint64 sys_simple_write(){
     char* str=(char*)current->trapframe->regs.a0;
@@ -167,4 +159,25 @@ uint64 sys_close(){
     release_file(current->open_files[fd]);  //释放file
     current->open_files[fd]=NULL;
     return 0;
+}
+
+//exec系统调用
+uint64 sys_execve(){
+    //a0存储可执行文件名指针(包含路径)
+    char *file_name=(char*)current->trapframe->regs.a0;
+    file_name=va_to_pa(current->pagetable,file_name);   //虚拟地址转换为物理地址
+    
+    char **user_argv=(char**)current->trapframe->regs.a1;
+    char *argv[MAXARG+1];
+    if(user_argv!=NULL){
+        user_argv=va_to_pa(current->pagetable,user_argv);
+        int argc;
+        for(argc=0;user_argv[argc]!=NULL && argc<MAXARG;argc++){
+            argv[argc]=va_to_pa(current->pagetable,user_argv[argc]);
+        }
+        argv[argc]=NULL;
+    }
+    char **av=user_argv!=NULL?argv:NULL;
+
+    return do_execve(file_name,av,NULL);    //调用do_exec
 }
