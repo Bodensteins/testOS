@@ -31,7 +31,7 @@ void handle_timer_trap(){
         ticks=0;    //计时器归零
         if(current->state==RUNNING){    //将当前进程插入就绪队列
             current->state=READY;
-            insert_to_runnable_queue(current);
+            insert_into_queue(&runnable_queue,current);
         }
         schedule();     //调用schedule调度进程
   }

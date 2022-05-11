@@ -37,11 +37,6 @@ uint64 fork(){
     return user_syscall(0,0,0,0,0,0,0,SYS_fork);
 }
 
-//进程退出
-uint64 exit(int code){
-    return user_syscall(code,0,0,0,0,0,0,SYS_exit);
-}
-
 //打开文件
 uint64 open(char *file_name, int mode){
     return user_syscall((uint64)file_name,mode,0,0,0,0,0,SYS_open);
@@ -76,4 +71,27 @@ uint64 clone(uint64 flag, void *stack, size_t sz){
     if(stack!=NULL)
         stack+=sz;
     return user_syscall(flag,(uint64)stack,0,0,0,0,0,SYS_clone);
+}
+
+uint64 wait4(int pid, int *status, uint64 options){
+    return user_syscall((uint64)pid,(uint64)status,options,0,0,0,0,SYS_wait4);
+}
+
+//进程退出
+uint64 exit(int code){
+    return user_syscall(code,0,0,0,0,0,0,SYS_exit);
+}
+
+//获取父进程pid
+uint64 getppid(){
+    return user_syscall(0,0,0,0,0,0,0,SYS_getppid);
+}
+
+//获取当前进程pid
+uint64 getpid(){
+    return user_syscall(0,0,0,0,0,0,0,SYS_getpid);
+}
+
+uint64 sched_yield(){
+    return user_syscall(0,0,0,0,0,0,0,SYS_sched_yield);
 }

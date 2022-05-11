@@ -2,12 +2,14 @@
 #include "user_syscall.h"
 
 int main(int argc, char *argv[]){
-    printf("test begin!\n");
+    printf("main begin!\n");
     printf("argc: %d\n",argc);
-    for(int i=0;i<4;i++){
+    for(int i=0;i<argc;i++){
         printf(argv[i]);
     }
-    printf("test end!\n");    
-    exit(0);
+    printf("pid: %d\n",getpid());
+    printf("ppid: %d\n",getppid());
+    printf("main end!\n");    
+    exit(22);
     return 0;
 }

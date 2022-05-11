@@ -41,7 +41,7 @@ void init_sleeplock(sleeplock *lock, char *name);   //初始化睡眠锁
 void acquire_sleeplock(sleeplock *lock);    //当前进程试图占用睡眠锁
 void release_sleeplock(sleeplock *lock);    //释放睡眠锁
 int is_holding_sleeplock(sleeplock* lock);  //是否持有锁？
-void insert_into_sleep_queue(sleeplock* lock, process* proc);   //将进程插入某个睡眠锁的睡眠队列
+void insert_into_sleeplock_queue(sleeplock* lock, process* proc);   //将进程插入某个睡眠锁的睡眠队列
 void sleep_on_lock(sleeplock* sleeplock, spinlock *spinlock);   //令当前进程在某睡眠锁上睡眠(加入该锁的睡眠队列)
 void wakeup1_on_lock(sleeplock* sleeplock);     //叫醒某个睡眠锁队列中首端的进程
 

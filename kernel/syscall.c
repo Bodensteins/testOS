@@ -9,27 +9,38 @@
 
 //系统调用函数声明
 uint64 sys_fork();
-uint64 sys_exit();
 uint64 sys_read();
 uint64 sys_kill();
 uint64 sys_open();
 uint64 sys_simple_write();
 uint64 sys_close();
+
+uint64 sys_exit();
 uint64 sys_clone();
 uint64 sys_execve();
+uint64 sys_wait4();
+uint64 sys_getppid();
+uint64 sys_getpid();
+uint64 sys_sched_yield();
 
 //将系统调用函数组织为一个函数指针数组
 //效仿xv6的设计
 static uint64 (*syscalls[])() = {
     [SYS_fork] sys_fork,
-    [SYS_exit] sys_exit,
     [SYS_read] sys_read,
     [SYS_kill] sys_kill,
     [SYS_open] sys_open,
     [SYS_write] sys_simple_write,
     [SYS_close] sys_close,
+
+
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
+    [SYS_wait4] sys_wait4,
+    [SYS_exit] sys_exit,
+    [SYS_getppid] sys_getppid,
+    [SYS_getpid] sys_getpid,
+    [SYS_sched_yield] sys_sched_yield,
 };
 
 //syscall，由trap调用至此
@@ -47,14 +58,7 @@ uint64 sys_fork(){
     return do_fork(current);
 }
 
-//进程退出
-uint64 sys_exit(){
-    int code=current->trapframe->regs.a0;
-    if(current->pid==1)
-        sbi_shutdown();
-    free_process(current);
-    return code;
-}
+
 
 //工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
 //一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
@@ -202,4 +206,40 @@ uint64 sys_execve(){
     char **ev=user_env!=NULL?env:NULL;
 
     return do_execve(file_name,av,ev);    //调用do_execve
+}
+
+//父进程等待子进程结束
+uint64 sys_wait4(){
+    int pid=(int)current->trapframe->regs.a0;
+    int* status=(int*)current->trapframe->regs.a1;
+    status=va_to_pa(current->pagetable,status);
+    uint64 options=current->trapframe->regs.a2;
+    return do_wait4(pid,status,options);
+}
+
+//进程退出
+uint64 sys_exit(){
+    int xstate=current->trapframe->regs.a0;
+    return do_exit(xstate);
+}
+
+//获取父进程pid
+uint64 sys_getppid(){
+    if(current->parent!=NULL)
+        return current->parent->pid;
+    else{
+        printk("process has no parent!\n");
+        return 0;
+    }
+}
+
+//获取进程pid
+uint64 sys_getpid(){
+    return current->pid;
+}
+
+//进程放弃CPU
+uint64 sys_sched_yield(){
+    do_yield();
+    return 0;
 }

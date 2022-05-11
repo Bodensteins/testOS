@@ -28,6 +28,7 @@
         "array": "c",
         "string": "c",
         "string_view": "c",
-        "random": "c"
+        "random": "c",
+        "thread": "c"
     }
 }

@@ -1,25 +1,28 @@
 #include "user_syscall.h"
 #include "stdio.h"
 
-char stack[1024];
-
 int main(){
-    printf("test\n");
+    printf("\nwait4 test begin\n");
     
-    int pid=clone(0,stack,1024);
+    int pid=fork();
 
     if(pid==0){
-        char *argv[5]={"try ", "more ","test!", "\n", NULL};
+        char *argv[5]={"wait4 ", "and ","execve ", "test!\n", NULL};
         for(int i=0;i<4;i++){
             printf(argv[i]);
         }
-        printf("\n...................................\n");
-        execve("/main",argv, NULL);
+        printf("\n...................................\n\n");
+        execve("main",argv, NULL);
     }
 
     else{
-        printf("ok!\n");
+        int status=0;
+        int ret=wait4(-1,&status,0);
+        status=status>>8;
+        printf("ret=%d, status=%d\n",ret,status);
     }
+
+    printf("\nwait4 test end\n");
 
     while(1){
     }

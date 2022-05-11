@@ -74,6 +74,7 @@ typedef struct process{
   int segment_num;  //记录进程有几个栈
 
   proc_state state; //进程状态
+  int exit_state; //进程退出状态
   int killed; //是否被杀死(这个似乎有点多余)
   int size; //进程在内存中的大小
   uint64 pid; //进程pid
@@ -91,20 +92,36 @@ typedef struct process{
 
   //trapframe，在进入内核态的时候保存进程上下文信息
   trapframe *trapframe;
+
+  //等待子进程结束时，保存wait4参数
+  struct {
+    int wpid;
+    int *wstatus;
+    uint64 woptions;
+  }wait4_args; 
+
 }process;
+
+
+#define WAIT_OPTIONS_WNOHANG 		1
+#define WAIT_OPTIONS_WUNTRACED 		2
+#define WAIT_OPTIONS_WCONTINUED 	8
+
 
 extern process proc_list[NPROC];  //进程池
 extern process* current;  //当前运行的进程(目前未实现多核机制，因此先用这个全局变量代替)
 
 void proc_list_init();  //进程池初始化函数，OS启动时调用
 process *alloc_process(); //从进程池中分配一个未使用(UNUSED)的进程
-int free_process(process* proc);  //释放一个进程(将其状态置为ZOMBIE)
+int process_zombie(process* proc);  //释放一个进程(将其状态置为ZOMBIE)
 uint64 do_fork(process *parent);  //实现fork功能，创建一个一模一样的新进程，与UNIX的fork功能一致
 uint64 do_clone(process *parent, uint64 flag, uint64 stack); //实现clone系统调用
 void reparent(process *); //重新设置指定进程的父进程(如果父进程终止的话)
-void yield(); //当前进程让出CPU
+void do_yield(); //当前进程让出CPU
+uint64 do_exit(int xstate); //实际执行进程结束的函数
 uint64 do_kill(uint64); //根据pid杀死当前进程
 void switch_to(process*); //切换到指定进程
 int do_execve(char*, char**, char**); //从磁盘中加载可执行文件到内存中
+uint64 do_wait4(int pid, int* status, uint64 options);  //实际执行wait4的函数
 
 #endif

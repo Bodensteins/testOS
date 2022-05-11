@@ -60,9 +60,8 @@ int is_holding_sleeplock(sleeplock* lock){
 }
 
 //将进程插入某个睡眠锁的睡眠队列
-void insert_into_sleep_queue(sleeplock* lock, process* proc){
-    proc->queue_next=lock->sleep_queue->queue_next;
-    lock->sleep_queue=proc;
+void insert_into_sleeplock_queue(sleeplock* lock, process* proc){
+    insert_into_queue(&(lock->sleep_queue),proc);
 }
 
 //令当前进程在某睡眠锁上睡眠(加入该锁的睡眠队列)
@@ -81,7 +80,7 @@ void sleep_on_lock(sleeplock* sleeplock, spinlock *spinlock){
     }
     
     p->state=SLEEPING;
-    insert_into_sleep_queue(sleeplock,p);
+    insert_into_sleeplock_queue(sleeplock,p);
     schedule();
 }
 
@@ -95,7 +94,7 @@ void wakeup1_on_lock(sleeplock* sleeplock){
     process *p=sleeplock->sleep_queue;
     sleeplock->sleep_queue=p->queue_next;
     p->state=READY;
-    insert_to_runnable_queue(p);
+    insert_into_queue(&runnable_queue,p);
 
     //release()
 }

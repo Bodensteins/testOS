@@ -133,7 +133,8 @@ void s_start(){
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
     //test_sd();
-    insert_to_runnable_queue(load_user_programe()); //加载第一个用户进程进入内存(临时这样，之后可改)
+    process *proc=load_user_programe();
+    insert_into_queue(&runnable_queue,proc); //加载第一个用户进程进入内存(临时这样，之后可改)
     //test_for_read_entry_form_disk();
 
     schedule(); //进入schedule开始调度进程
@@ -175,6 +176,10 @@ process* load_user_programe(){
     release_dirent(de); //释放目录项缓冲区
 
     proc->cwd=find_dirent(NULL,"/");    //设置工作目录为根目录
+
+    proc->state=READY;
+
+    proc->parent=proc;
 
     return proc;    //返回该进程
 }
