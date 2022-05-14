@@ -28,7 +28,7 @@ void plic_init_temp(){
     int hart=0;
 
     writed(1, PLIC + DISK_IRQ * sizeof(uint32));
-	writed(1, PLIC + UART_IRQ * sizeof(uint32));
+	  writed(1, PLIC + UART_IRQ * sizeof(uint32));
 
     uint32 *hart_m_enable = (uint32*)PLIC_MENABLE(hart);
     *(hart_m_enable) = readd(hart_m_enable) | (1 << DISK_IRQ);

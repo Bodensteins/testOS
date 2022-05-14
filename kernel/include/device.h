@@ -2,20 +2,27 @@
 #define _DEVICE_H_
 
 #include "types.h"
+//#include "spinlock.h"
 
 /*
 设备管理相关
-这里还没怎么设计好，先忽略
 */
 
+#define DEVICE_DISK_NUM 0
+#define DEVICE_CONSOLE_NUM 1
+
 typedef struct device{
-    enum {BLOCK_TYPE, CHARACTER_TYPE, NONE_TYPE} type;
+    //enum {BLOCK_TYPE, CHARACTER_TYPE, NONE_TYPE} type;
     int (*read)(void* ,int);
     int (*write)(void* ,int);
 }device;
 
-#define NDEV 16
+#ifndef NDEV
+#define NDEV 8
+#endif
 
 extern device dev_list[NDEV];
+
+void device_init();
 
 #endif

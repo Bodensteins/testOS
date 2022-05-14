@@ -60,7 +60,7 @@ typedef struct trapframe{
 }trapframe;
 
 #define NPROC 64  //最大进程数量
-#define N_OPEN_FILE 16  //每个进程最大可打开的文件数量
+#define N_OPEN_FILE 128  //每个进程最大可打开的文件数量
 
 //进程的pcb，保存进程的各种信息
 typedef struct process{

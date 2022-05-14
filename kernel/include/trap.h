@@ -13,4 +13,6 @@ void user_trap();   //用户态trap转到该函数处理
 void user_trap_ret();   //trap处理结束后返回用户态 (在usertrapve.S中定义)
 void kernel_trap(); //内核态trap转到该函数处理
 
+void clear_plic(int irq);
+
 #endif

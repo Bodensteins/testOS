@@ -75,14 +75,17 @@ int delete_from_queue(process **queue, process *proc){
 //维护一个就绪队列
 //每当经过一个时间片后，将当前进程插入就绪队列尾端，并将队列首端进程设置为当前运行进程
 void schedule(){
-
     if(proc_list[0].state==ZOMBIE){ //如果1号进程死亡，则系统关机
         sbi_shutdown();
     }
-
+    
     if (runnable_queue==NULL){   //如果就绪队列为空，则返回
-        //printk("yes?\n");
-        return;
+        if(current->state!=RUNNING){
+            intr_on();
+            while(runnable_queue==NULL);
+        }
+        else
+            return;
     }
 
     //取队列首端进程为当前进程

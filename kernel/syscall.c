@@ -6,6 +6,7 @@
 #include "include/file.h"
 #include "include/fcntl.h"
 #include "include/sbi.h"
+#include "include/console.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -14,6 +15,9 @@ uint64 sys_kill();
 uint64 sys_open();
 uint64 sys_simple_write();
 uint64 sys_close();
+
+uint64 sys_simple_read();
+uint64 sys_simple_write();
 
 uint64 sys_exit();
 uint64 sys_clone();
@@ -33,6 +37,8 @@ static uint64 (*syscalls[])() = {
     [SYS_write] sys_simple_write,
     [SYS_close] sys_close,
 
+    [SYS_simple_read] sys_simple_read,
+    [SYS_simple_write] sys_simple_write,
 
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
@@ -57,8 +63,6 @@ uint64 syscall(){
 uint64 sys_fork(){
     return do_fork(current);
 }
-
-
 
 //工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
 //一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
@@ -144,17 +148,26 @@ uint64 sys_read(){
     return rsize;   //返回实际读取的数据
 }
 
+//根据pid杀死进程
 uint64 sys_kill(){
     uint64 pid=current->trapframe->regs.a0;
     return do_kill(pid);
 }
 
-//一个简单的print系统调用，临时写在这的
-uint64 sys_simple_write(){
-    char* str=(char*)current->trapframe->regs.a0;
+//控制台读，临时写在这里
+uint64 sys_simple_read(){
+    char* str=(char*)current->trapframe->regs.a1;
     str=(char*)va_to_pa(current->pagetable,str);
-    printk(str);
-    return current->trapframe->regs.a1;
+    int sz=current->trapframe->regs.a2;
+    return read_from_console(str,sz);
+}
+
+//一个简单的print系统调用，临时写在这里
+uint64 sys_simple_write(){
+    char* str=(char*)current->trapframe->regs.a1;
+    str=(char*)va_to_pa(current->pagetable,str);
+    int sz=current->trapframe->regs.a2;
+    return write_to_console(str,sz);
 }
 
 //关闭文件

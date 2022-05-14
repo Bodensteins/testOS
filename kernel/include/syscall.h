@@ -26,7 +26,8 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 
-
+#define SYS_simple_read 99
+#define SYS_simple_write 100
 
 #define SYS_clone 220
 #define SYS_execve 221

@@ -27,7 +27,9 @@ KERN_OBJS := \
 	$K/sleeplock.o \
 	$K/buffer.o \
 	$K/sysexec.o \
-	$K/plic.o
+	$K/plic.o \
+	$K/console.o \
+	$K/device.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -116,6 +118,12 @@ k210-port = /dev/ttyUSB0	#k210的USB端口
 #编译所有目标文件的标签
 build: $T/kernel $T/main $T/test
 
+all: $T/kernel $(SBI)
+	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
+	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
+	cp $T/k210.bin os.bin
+
 #运行k210的标签
 k210: build
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
@@ -144,4 +152,4 @@ endif
 clean:
 	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d
 
-.PHONY: clean qemu run build
+.PHONY: clean qemu run build all

@@ -10,6 +10,8 @@
 #include "include/buffer.h"
 #include "include/elf.h"
 #include "include/plic.h"
+#include "include/console.h"
+#include "include/device.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
@@ -18,9 +20,6 @@
 #include "include/fat32.h"
 #endif
 
-#ifndef BSIZE
-#define BSIZE 512
-#endif
 
 /*
 初始化OS
@@ -117,6 +116,10 @@ void test_for_read_entry_form_disk()
 //entry.S跳转到s_start
 void s_start(){
     printk("entering into system...\n");
+    
+    console_init();
+    device_init();
+
     pm_init();  //物理页面初始化
     kernel_vm_init();   //内核页表初始化
     
@@ -136,7 +139,6 @@ void s_start(){
     process *proc=load_user_programe();
     insert_into_queue(&runnable_queue,proc); //加载第一个用户进程进入内存(临时这样，之后可改)
     //test_for_read_entry_form_disk();
-
     schedule(); //进入schedule开始调度进程
 }
 

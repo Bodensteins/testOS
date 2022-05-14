@@ -60,8 +60,8 @@ int do_execve(char *path, char **argv, char **env){
     //根据路径和文件名获取elf文件的目录项
     de=find_dirent(current->cwd,path);
     if(de==NULL){
-        return -1;
         release_memory(pagetable,0,temp_map,de);
+        return -1;
     }
     
     //根据文件目录项读取elf文件头信息
@@ -82,11 +82,13 @@ int do_execve(char *path, char **argv, char **env){
     uint64 sz=0;    //记录程序的大小
     for(int i=0,psz=sizeof(elf64_prog_header);i<hdr.ph_num;i++){
         //读取程序头信息(phdr)
+
         if(
             read_by_dirent(de,&phdr,hdr.ph_off+i*psz,psz)!=psz ||
-            phdr.mem_size!=phdr.file_size ||
+            phdr.mem_size<phdr.file_size ||
             phdr.va+phdr.mem_size<phdr.va
         ){
+            printk("memsz:%d, filesz:%d\n",phdr.mem_size,phdr.file_size);
             release_memory(pagetable,sz,temp_map,de);
             return -1;
         }
@@ -97,6 +99,7 @@ int do_execve(char *path, char **argv, char **env){
         if(phdr.va>=sz)
             sz=phdr.va+phdr.mem_size;   //记录当前程序在内存中的大小
         int pg_cnt=load_prog_segment(pagetable,de,&phdr);
+
         if(pg_cnt<0){
             release_memory(pagetable,sz,temp_map,de);
             return -1;
@@ -133,6 +136,7 @@ int do_execve(char *path, char **argv, char **env){
     uint64 sp=USER_STACK_TOP;
     if(argv!=NULL){
         sp=push_stack(pagetable,argv,&argc);
+
         if(sp<0){
             release_memory(pagetable,sz,temp_map,de);
             return -1;
@@ -193,8 +197,10 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
         if(phdr->file_size-pg_cnt*PGSIZE<PGSIZE)
             sz=phdr->file_size-pg_cnt*PGSIZE;
 
+        int sz1;
         //读取elf文件中的内容
-        if(read_by_dirent(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz)!=sz){
+        if((sz1=read_by_dirent(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
+            printk("sz=%d\n, sz1=%d\n",sz,sz1);
             return -1;
         }
     }

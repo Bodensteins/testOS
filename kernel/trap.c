@@ -9,6 +9,7 @@
 #include "include/vm.h"
 #include "include/schedule.h"
 #include "include/plic.h"
+#include "include/console.h"
 
 static int ticks=0; //计时器
 
@@ -26,29 +27,25 @@ void handle_timer_trap(){
     ticks++;    //计时器递增
     sbi_set_timer(r_time()+TIMER_INTERVAL); //设置下一次时钟中断的时间间隔
     w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
-    
-    if(ticks==TIME_SLICE){  //如果时间片到了
+    if(ticks==TIME_SLICE && current!=NULL){  //如果时间片到了
         ticks=0;    //计时器归零
         if(current->state==RUNNING){    //将当前进程插入就绪队列
             current->state=READY;
             insert_into_queue(&runnable_queue,current);
         }
         schedule();     //调用schedule调度进程
-  }
+    }
 }
 
 //trap初始化，OS启动时调用
 void trap_init(){
     //设置sstatus寄存器，具体参见riscv特权寄存器
-    /*
+    
     uint64 x = r_sstatus(); 
     x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
     x |= SSTATUS_SIE;       //enable supervisor-mode interrupts.
     x |= SSTATUS_SPIE;  // enable interrupts in user mode
     w_sstatus(x);
-    */
-
-    w_sstatus(r_sstatus() | SSTATUS_SIE);
 
     w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);    //开启中断使能位
     w_stvec((uint64)kernel_trap_vec);   //trap初始化时还处于内核态，因此先将stvec的值设置位kernel_trap_vec
@@ -75,6 +72,8 @@ void user_trap(){
             handle_extern_irq();
             break;
         default:
+            printk("scause=%p\n",(void*)cause);
+            panic("unhandled trap\n");
             break;
     }
     user_trap_ret();    //返回用户态
@@ -90,7 +89,7 @@ void user_trap_ret(){
 //内核态发生trap时，调用该函数处理
 //内核态中断主要是处理设备中断，而目前的设备中断只有时钟中断
 void kernel_trap(){
-    printk("enter kernel_trap\n");    
+    //printk("enter kernel_trap\n");    
     uint64 sepc=r_sepc();
     uint64 status=r_sstatus();
     uint64 cause=r_scause();
@@ -107,6 +106,8 @@ void kernel_trap(){
             handle_extern_irq();
             break;
         default:
+            printk("scause=%p\n",(void*)cause);
+            panic("unhandled trap\n");
             break;
     }
     w_sepc(sepc);
@@ -114,32 +115,30 @@ void kernel_trap(){
 }
 
 void handle_extern_irq(){
-    //printk("enter extern_irq\n");
-    if(9 == r_stval()){
-        int irq = plic_claim();
-		if (UART_IRQ == irq) {
+    if(r_stval()==9){
+        int irq=plic_claim();
+		if (irq==UART_IRQ){
 			// keyboard input 
-			int c = sbi_console_getchar();
-			//if (-1 != c) {
-			//	consoleintr(c);
-			//}
-            printk("keyboard input:");
-            putc(c);
-            printk("\n");
+			int c=sbi_console_getchar();
+			if (c!=-1)
+				console_intr(c);
 		}
-        /*
-		else if (DISK_IRQ == irq) {
-			disk_intr();
+		else if (irq==DISK_IRQ){
+			panic("disk interrupt\n");
 		}
-        */
-		else if (irq) {
-			printk("unexpected interrupt irq = %d\n", irq);
-		}
-        
+		else if (irq){
+			printk("irq=%d\n", irq);
+            panic("unexpected interrupt\n");
+        }
 
-		if (irq) { plic_complete(irq);}
-
-		w_sip(r_sip() & ~2);    // clear pending bit
-		sbi_set_mie();
+		clear_plic(irq);
     }
+}
+
+void clear_plic(int irq){
+    if (irq)
+        plic_complete(irq);
+
+	w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
+	sbi_set_mie();
 }

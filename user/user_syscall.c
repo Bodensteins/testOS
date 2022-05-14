@@ -57,9 +57,14 @@ uint64 execve(char *file_name, char **argv, char **env){
     return user_syscall((uint64)file_name,(uint64)argv,(uint64)env,0,0,0,0,SYS_execve);
 }
 
-//一个简单的输出字符串到屏幕上的系统调用
+//从键盘输入字符串
+uint64 simple_read(char *s, size_t n){
+    return user_syscall(0,(uint64)s,n,0,0,0,0,SYS_simple_read);
+}
+
+//输出字符串到屏幕
 uint64 simple_write(char *s, size_t n){
-    return user_syscall((uint64)s,n,0,0,0,0,0,SYS_write);
+    return user_syscall(1,(uint64)s,n,0,0,0,0,SYS_simple_write);
 }
 
 //根据文件描述符关闭文件
