@@ -136,9 +136,9 @@ void handle_extern_irq(){
 }
 
 void clear_plic(int irq){
-    if (irq)
+    if (irq){
         plic_complete(irq);
-
+    }
 	w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
 	sbi_set_mie();
 }

@@ -156,7 +156,9 @@ test、main源码放在user目录中
 process* load_user_programe(){
     process* proc=alloc_process();  //从内存池获取一个新进程
     
-    fat32_dirent* de=find_dirent(NULL,"/test"); //在sd卡根目录中找到test可执行文件
+    fat32_dirent* root=find_dirent(NULL,"/");    //设置工作目录为根目录
+
+    fat32_dirent* de=find_dirent(root,"../test"); //在sd卡根目录中找到test可执行文件
     char* code=alloc_physical_page();   //分配一页
     elf64_header hdr;
     elf64_prog_header phdr;
@@ -175,9 +177,9 @@ process* load_user_programe(){
     proc->segment_map_info[3].page_num=1;
     proc->segment_map_info[3].seg_type=CODE_SEGMENT;
     proc->segment_num++;
-    release_dirent(de); //释放目录项缓冲区
+    release_dirent(de); //释放目录项缓冲区    
 
-    proc->cwd=find_dirent(NULL,"/");    //设置工作目录为根目录
+    proc->cwd=root;
 
     proc->state=READY;
 

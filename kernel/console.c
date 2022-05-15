@@ -1,6 +1,5 @@
 #include "include/console.h"
 #include "include/sleeplock.h"
-#include "include/file.h"
 #include "include/device.h"
 #include "include/schedule.h"
 #include "include/process.h"

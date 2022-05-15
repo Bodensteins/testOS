@@ -1,0 +1,72 @@
+目前文件系统相关依赖为：
+	syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
+计划在file.c层和fat32.c层中间加一层inode.c，以实现fat32向vfs的转换，inode.c层对文件的操作应只依赖fat32.c层提供的接口。最后形成如下所示的依赖结构：
+	syscall.c-->file.c-->inode.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
+该结构实现后file.c及其他代码层应只需要依赖inode.c层中的接口即可实现对文件的操作
+
+
+与fat32文件系统相关的接口全部在fat32.c中实现
+目前已完成：长短文件名目录项解析、文件内容的随机读取和写入、文件内容的删除
+待完成：文件的创建和删除(本质上是在修改目录文件中的目录项，应该可以利用已有接口完成)
+
+
+fat32.c层对外接口(均在fat32.h中声明)：
+
+1、fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);
+功能：根据当前目录的目录项(current_de)和文件路径名(file_name)寻找文件目录项
+参数： current_de，类型：fat32_dirent*，说明：指向欲搜索目录的fat32目录项指针
+参数：file_name，类型：char*，说明：文件本身的全名加上其所在路径，可以是绝对路径，如/a/b/t.txt，此时则忽略current_de，也可以是相对路径，如b/t.txt，则此时就在current_de指向的目录中寻找b/t.txt
+返回值：返回一个fat32_dirent类型的指针，指向当前找到的文件的fat32目录项
+备注：在通过该函数获取目录项并使用完成后一定要及时调用release_dirent释放目录项
+
+2、void release_dirent(fat32_dirent* de); 
+功能：释放一个目录项，并将对目录项的修改写入磁盘
+参数：de，类型：fat32_dirent*，说明：欲释放的文件目录项
+备注：fat32目录项存于缓冲区中，而缓冲区的大小有限，且对目录项的修改也只是先暂存于缓冲区中，因此在通过find_dirent函数获取目录项并使用完成后一定要及时将其释放
+
+3、int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);
+功能：根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
+参数：de，类型：fat32_dirent*，说明：指向欲读文件的目录项的指针
+参数：dst，类型：void*，说明：用来存放数据的目的缓冲区指针
+参数：offset，类型：uint，说明：读取文件的开始位置，即偏移量
+参数：rsize，类型：uint，说明：读取文件的字节数量
+返回值：返回实际读取的字节数量，int类型
+备注：该函数实现了对文件的随机读取。如果de或dst为NULL、offset超过文件大小、rsize小于0则直接返回0；如果offset加rsize超过文件大小则将rsize设置为文件大小减offset
+
+4、int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize);
+功能：根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
+参数：de，类型：fat32_dirent*，说明：指向欲写入文件的目录项的指针
+参数：dst，类型：void*，说明：用来存放写入数据的缓冲区指针
+参数：offset，类型：uint，说明：写入文件的开始位置，即偏移量
+参数：rsize，类型：uint，说明：写入文件的字节数量
+返回值：返回实际写入的字节数量，int类型
+备注：该函数实现了对文件(包括目录文件)的随机写入，包括覆盖与追加。如果如果de或dst为NULL、rsize小于0则直接返回0；如果offset超过文件大小则将offset设置为文件大小；如果写入文件的位置已有数据则覆盖之前的数据；如果写入数据的位置超出文件大小则进行数据追加并更新文件目录项的文件大小字段；如果追加时缺少簇则分配一个新簇并更新fat表
+
+5、void trunc_by_dirent(fat32_dirent *de); 
+功能：根据文件的目录项，释放文件占用的所有簇，即清空文件的所有数据
+参数：de，类型：fat32_dirent*，说明：指向欲清空文件的目录项的指针
+备注：清空后文件大小和文件起始簇号均置为0
+
+
+fat32_dirent结构体内容：
+typedef struct fat32_dirent{
+    char name[FILE_NAME_LENGTH+1];  //文件名(包括扩展名)
+    uint8 attribute;    //文件属性
+    uint32 file_size;   //文件大小
+    uint32 start_clusterno;   //文件起始扇区号  
+    uint32 total_clusters;    //文件总共扇区号
+    uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
+    uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移
+    uint8 dev;  //设备号(一般是0，表示sd卡)
+    struct fat32_dirent* parent;    //父目录的目录项
+    uint32 ref_count;   //该目录项的引用数量
+    uint8 valid;    //是否有效
+    uint8 dirty;    //脏位，表示缓冲区中目录项的内容和磁盘中的是否一致，即目录项更新是否有写入磁盘(0为一致，否则不一致)
+    struct fat32_dirent* prev;  //在LRU双向循环链表中，指向该目录项的上一个链表节点
+    struct fat32_dirent* next;  //在LRU双向循环链表中，指向该目录项的下一个链表节点
+    sleeplock sleeplock;    //睡眠锁
+}fat32_dirent;
+
+inode.c中的inode应与fat32_dirent一一对应，均表示文件的元数据。inode应为fat32_dirent的再封装，vfs要求的dirent则指向inode，之后上层的file结构体、process结构体等应使用inode.c中提供的接口。
+
+

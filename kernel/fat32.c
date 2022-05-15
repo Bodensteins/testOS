@@ -389,6 +389,7 @@ void fat32_init(){
     dcache.root_dir.attribute=ATTR_DIRECTORY;
     //dcache.root_dir.current_clusterno=dbr_info.root_dir_clusterno;
     dcache.root_dir.dev=DEVICE_DISK_NUM;
+    dcache.root_dir.parent=&dcache.root_dir;
     dcache.root_dir.start_clusterno=dbr_info.root_dir_clusterno;
     memcpy(dcache.root_dir.name,"/",1);
     init_sleeplock(&dcache.root_dir.sleeplock,"root fat32_dirent");
@@ -421,16 +422,14 @@ uint32 clusterno_to_sectorno(uint32 clusterno){
 }
 
 //工具函数，作用是将扇区号(sectorno)转换为其所在簇的簇号(clusterno)
-//由于目前暂未使用这个函数，而makefile中开启了将warning转换为error的选项，保留该函数会导致编译不通过，因此先注释掉
-/*
 static uint32 sectorno_to_clusterno(uint32 sectorno){
-    int clusterno=sectorno-mbr_info.dbr_start_sector;
+    int clusterno=sectorno-mbr_info.start_lba;
     clusterno+=dbr_info.dbr_reserve_sectors;
     clusterno+=dbr_info.sectors_per_fat*dbr_info.total_fats;
     clusterno/=dbr_info.sectors_per_cluster+2;
     return clusterno;
 }
-*/
+
 
 //工具函数，给定簇号(clusterno)和第几个fat表(fatno取1或2)，返回该簇号在fat表中对应位置的扇区号
 //这个函数用于fat_find_next_clusterno函数中
@@ -494,7 +493,6 @@ void clear_cluster(uint32 clusterno){
 
 //工具函数，遍历FAT表，找到一个未被使用的簇，清空其内容，更新FAT，返回该簇号
 //也许可以优化，如维护一个空闲簇列表以代替遍历
-//bug
 uint32 alloc_cluster(){
     printk("enter alloc cluster\n");
     buffer* buf;
@@ -667,34 +665,8 @@ static void get_full_short_name(fat32_short_name_dir_entry* sde,char* full_name)
 }
 
 //shortname
-//temporary
 //de->name保证为短文件名
 static void fat32_dirent_to_short_name_dir_entry(fat32_short_name_dir_entry *sde, fat32_dirent *de){
-    /*
-    int slash_pos=1;
-    while(slash_pos<SHORT_NAME_LENGTH+1){
-        if(de->name[slash_pos]=='.')
-            break;
-        if(de->name[slash_pos]==0){
-            memcpy(sde->name,de->name,slash_pos);
-            memset(sde->name+slash_pos,0x20,SHORT_NAME_LENGTH-slash_pos);
-            slash_pos=0;
-            break;
-        }
-        slash_pos++;
-    }
-    if(slash_pos>=SHORT_NAME_LENGTH+1)
-        return;
-    if(slash_pos!=0){
-        memcpy(sde->name,de->name,slash_pos);
-        memset(sde->name+slash_pos,0x20,SHORT_NAME_LENGTH-slash_pos);
-        for(int i=slash_pos+1,j=0;i<EXTEND_NAME_LENGTH;i++,j++){
-            sde->extend_name[j]=de->name[i];
-            if(de->name[i]==0)
-                sde->extend_name[j]=0x20;
-        }
-    }
-    */
     sde->atrribute=de->attribute;
     sde->file_size=de->file_size;
     sde->start_clusterno_high=(uint16)(de->start_clusterno >> 16);
@@ -702,7 +674,6 @@ static void fat32_dirent_to_short_name_dir_entry(fat32_short_name_dir_entry *sde
 }
 
 //shortname
-//temporary
 //工具函数，将目录项缓冲中的数据写入磁盘
 static void fat32_dirent_write_to_disk(fat32_dirent* de){
     fat32_dir_entry dentry;
@@ -718,12 +689,6 @@ static void fat32_dirent_write_to_disk(fat32_dirent* de){
         de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_START_CLUSTERNO_LOW_OFFSET, 2);
     write_to_buffer(buf, &dentry.short_name_dentry.file_size, 
         de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_FILE_SIZE_OFFSET, 4);
-    /*
-    write_to_buffer(buf, &dentry.short_name_dentry.name, 
-        de->offset_in_parent%dbr_info.bytes_per_sector, SHORT_NAME_LENGTH);
-    write_to_buffer(buf, &dentry.short_name_dentry.extend_name, 
-        de->offset_in_parent%dbr_info.bytes_per_sector+8, EXTEND_NAME_LENGTH);
-    */
     release_buffer(buf);
 }
 
@@ -802,8 +767,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
                                     des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
                                     des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
                                     des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
-                                    if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
-                                        des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                                    //if(des_de->start_clusterno==0x0)
+                                        //des_de->start_clusterno=dbr_info.root_dir_clusterno;
                                     return 0;
                                 }
 
@@ -878,6 +843,8 @@ fat32_dirent* acquire_dirent(fat32_dirent* parent, char* name){
 
 //释放目录项缓冲区
 void release_dirent(fat32_dirent* de){
+    if(de==NULL)
+        return;
     //if(!is_holding_sleeplock(&de->sleeplock))
         //panic("release_dirent\n");
     if(de==&dcache.root_dir){
@@ -955,6 +922,23 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         //根据beg_pos和slash_pos确定当前要寻找的目录名或文件名
         memset(temp_name,0,FILE_NAME_LENGTH+1);
         memcpy(temp_name,file_name+beg_pos,slash_pos-beg_pos);
+        slash_pos++;
+        beg_pos=slash_pos;
+        
+        if(!strcmp(temp_name,".")){
+            if(is_end)
+                return child;
+            continue;
+        }
+        else if(!strcmp(temp_name,"..")){
+            child=parent->parent;
+            release_dirent(parent);
+            parent=child;
+            if(is_end)
+                return child;
+            continue;
+        }
+
         //获取名字后，直接寻找
         child=acquire_dirent(parent,temp_name);
         
@@ -986,8 +970,6 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
                     release_dirent(parent);
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
-        slash_pos++;
-        beg_pos=slash_pos;
     }
     return child;
 }
@@ -999,8 +981,8 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
     if(de==NULL || dst==NULL)
         return 0;
 
-    //读取的文件不能为目录，offset不能超过文件大小，rsize不能小于等于0
-    if((de->attribute & ATTR_DIRECTORY) || offset>de->file_size || rsize<=0)
+    //offset不能超过文件大小，rsize不能小于等于0
+    if(offset>de->file_size || rsize<=0)
         return 0;
 
     //根据offset和file_size调整实际读取文件的数据大小
@@ -1162,7 +1144,7 @@ void trunc_by_dirent(fat32_dirent *de){
         uint32 next_clus=fat_find_next_clusterno(clus,1);
         fat_update_next_clusterno(clus,0,1);
         fat_update_next_clusterno(clus,0,2);
-        clus = next_clus;
+        clus=next_clus;
     }
     de->file_size=0;
     de->start_clusterno=0;
