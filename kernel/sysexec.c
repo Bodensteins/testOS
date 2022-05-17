@@ -97,7 +97,7 @@ int do_execve(char *path, char **argv, char **env){
         
        //根据可执行文件目录项de和程序头phdr，将该程序段加载入内存中，并映射到页表pagetable中
         if(phdr.va>=sz)
-            sz=phdr.va+phdr.mem_size;   //记录当前程序在内存中的大小
+            sz=phdr.va+phdr.file_size;   //记录当前程序在内存中的大小
         int pg_cnt=load_prog_segment(pagetable,de,&phdr);
 
         if(pg_cnt<0){
@@ -109,7 +109,7 @@ int do_execve(char *path, char **argv, char **env){
         temp_map[temp_seg_num].page_num=pg_cnt;
         temp_map[temp_seg_num].va=phdr.va;
         temp_map[temp_seg_num].seg_type=
-            phdr.flags & ELF_PROG_FLAG_EXEC ? CODE_SEGMENT : DATA_SEGMENT;
+            phdr.flags & ELF_PROG_FLAG_EXEC ? CODE_SEGMENT : HEAP_SEGMENT;
         temp_seg_num++;
     }
 
@@ -214,7 +214,7 @@ static void clear_proc_pages(process *current){
     for(int i=0;i<current->segment_num;i++){
             segment_map_info* seg=current->segment_map_info+i;
             //释放代码段、数据段、栈段(实际上代码段和数据段都在一个段里面)
-            if(seg->seg_type==CODE_SEGMENT || seg->seg_type==DATA_SEGMENT || seg->seg_type==STACK_SEGMENT)
+            if(seg->seg_type==CODE_SEGMENT || seg->seg_type==HEAP_SEGMENT || seg->seg_type==STACK_SEGMENT)
                 user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,1);
             //如果是trapframe或trampoline段，则不释放，只是解除地址映射
             else if(seg->seg_type==TRAPFRAME_SEGMENT || seg->seg_type==SYSTEM_SEGMENT)
@@ -229,7 +229,7 @@ static void clear_proc_pages(process *current){
 static int clear_proc_segment_map(segment_map_info *segment_map_info, int segment_num){
     for(int i=segment_num-1;i>=0;i++){
         if(segment_map_info[i].seg_type==CODE_SEGMENT ||
-            segment_map_info[i].seg_type==DATA_SEGMENT){
+            segment_map_info[i].seg_type==HEAP_SEGMENT){
                 segment_num--;
         }
         else

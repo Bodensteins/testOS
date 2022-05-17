@@ -35,6 +35,7 @@
 #define SYS_exit 93
 #define SYS_getppid 173
 #define SYS_getpid 172
+#define SYS_brk 214
 #define SYS_sched_yield 124
 
 uint64 syscall();

@@ -5,6 +5,7 @@
 #include "include/types.h"
 #include "include/printk.h"
 #include "include/vm.h"
+#include "include/process.h"
 
 pagetable_t kernel_pagetable;   //内核页表
 
@@ -252,3 +253,76 @@ void free_pagetable2(pagetable_t pagetable, uint64 size, int is_free){
     user_vm_unmap(pagetable,0,size,is_free);
     //free_pagetable(pagetable);
 }
+
+static int get_dataseg_mapinfo(process *proc){
+    for(int i=0;i<proc->segment_num;i++){
+        if(proc->segment_map_info[i].seg_type==HEAP_SEGMENT)
+            return i;
+    }
+    return -1;
+}
+
+static int grow_heap(process *proc, uint64 new_sz){
+    uint64 old_sz=PGROUNDUP(proc->size);
+    int pgnum=0;
+    while(old_sz<new_sz){
+        uint64 pa=(uint64)alloc_physical_page();
+        if(pa==0){
+            printk("no more physical memory\n");
+            proc->size=old_sz;
+            return -1;
+        }
+        user_vm_map(proc->pagetable,old_sz,PGSIZE,pa,pte_permission(1,1,0,1));
+        old_sz+=PGSIZE;
+        pgnum++;
+    }
+
+    int seg_pos=get_dataseg_mapinfo(proc);
+    if(seg_pos<0){
+        seg_pos=proc->segment_num;
+        proc->segment_map_info[seg_pos].seg_type=HEAP_SEGMENT;
+        proc->segment_map_info[seg_pos].page_num=0;
+        proc->segment_map_info[seg_pos].va=proc->size;
+        proc->segment_num++;
+    }
+    proc->segment_map_info[seg_pos].page_num+=pgnum;
+    
+    proc->size=new_sz;
+    return 0;
+}
+
+static int shrink_heap(process *proc, uint64 new_sz){
+    int seg_pos=get_dataseg_mapinfo(proc);
+    if(seg_pos<0)
+        return -1;
+    if(new_sz<proc->segment_map_info[seg_pos].va)
+        return -1;
+    
+    uint64 newsz_align=PGROUNDUP(new_sz);
+    uint64 procsz_align=PGROUNDUP(proc->size);
+    if(newsz_align<procsz_align){
+        int pgnum=(procsz_align-newsz_align)/PGSIZE;
+        user_vm_unmap(proc->pagetable,newsz_align,pgnum*PGSIZE,1);
+        proc->segment_map_info[seg_pos].page_num-=pgnum;
+    }
+
+    proc->size=new_sz;
+    return 0;
+}
+
+uint64 do_brk(process *proc, uint64 new_sz){
+    if(new_sz==0 || new_sz==proc->size)
+        return proc->size;
+    
+    if(new_sz>proc->size){
+        if(grow_heap(proc,new_sz)==-1)
+            return (uint64)-1;
+    }
+    else{
+        if(shrink_heap(proc,new_sz)==-1)
+            return (uint64)-1;
+    }
+    
+    return 0;
+}
+

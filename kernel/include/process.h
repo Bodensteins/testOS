@@ -25,7 +25,7 @@ typedef enum proc_state { //进程状态
 //进程段信息
 typedef enum segment_type{
   CODE_SEGMENT,    // ELF segment
-  DATA_SEGMENT,    // ELF segment
+  HEAP_SEGMENT,    // heap segment
   STACK_SEGMENT,   // runtime segment
   TRAPFRAME_SEGMENT, // trapframe segment
   SYSTEM_SEGMENT,  // system segment
@@ -37,9 +37,6 @@ typedef enum segment_type{
 需要给他分配一个页
 维护一个数组，其中存储了进程不同的段的信息
 包括段的起始虚拟地址，占用的页数，段的类型
-这是之前自己加的一个结构，个人感觉这个结构处理起来挺麻烦
-xv6没有这个结构
-以后也许可以删除
 */
 typedef struct segment_map_info{
   uint64 va;
@@ -48,8 +45,6 @@ typedef struct segment_map_info{
 }segment_map_info;
 
 //trapframe，保存程序上下文
-//个人觉得xv6中的context和trapframe功能比较重叠
-//所以这里就删了context，而用trapframe代替其功能
 typedef struct trapframe{
     riscv_regs regs;
   /*   248 */ uint64 kernel_sp;   // kernel page table
@@ -58,6 +53,26 @@ typedef struct trapframe{
   /*  272 */ uint64 kernel_satp;           // saved user program counter
   /*  280 */ uint64 kernel_hartid; // saved kernel tp
 }trapframe;
+
+// Saved registers for kernel context switches.
+typedef struct context {
+	uint64 ra;
+	uint64 sp;
+
+	// callee-saved
+	uint64 s0;
+	uint64 s1;
+	uint64 s2;
+	uint64 s3;
+	uint64 s4;
+	uint64 s5;
+	uint64 s6;
+	uint64 s7;
+	uint64 s8;
+	uint64 s9;
+	uint64 s10;
+	uint64 s11;
+}context;
 
 #define NPROC 64  //最大进程数量
 #define N_OPEN_FILE 128  //每个进程最大可打开的文件数量
@@ -92,6 +107,8 @@ typedef struct process{
 
   //trapframe，在进入内核态的时候保存进程上下文信息
   trapframe *trapframe;
+
+  context context;
 
   //等待子进程结束时，保存wait4参数
   struct {

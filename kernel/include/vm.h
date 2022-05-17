@@ -9,6 +9,8 @@
 虽然函数名称不同，但设计的思路与xv6也没有太大区别
 */
 
+typedef struct process process;
+
 //内核页表
 extern pagetable_t kernel_pagetable;
 
@@ -77,5 +79,8 @@ int pte_permission(int is_read, int is_write, int is_exec, int is_user);
 //根据虚拟地址va和指定页表找到其对应物理页的物理地址pa
 //此处的pa不是va的对应物理地址，而是其所在物理页的地址，因此pa是页对齐的
 uint64 find_pa_align_pgsize(pagetable_t pd, uint64 va);
+
+//brk系统调用
+uint64 do_brk(process *proc, uint64 new_sz);
 
 #endif

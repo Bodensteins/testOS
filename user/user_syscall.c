@@ -97,6 +97,12 @@ uint64 getpid(){
     return user_syscall(0,0,0,0,0,0,0,SYS_getpid);
 }
 
+//改变进程堆内存大小，当addr为0时，返回当前进程大小
+int brk(uint64 addr){
+    return (int)user_syscall(addr,0,0,0,0,0,0,SYS_brk);
+}
+
+//进程放弃cpu
 uint64 sched_yield(){
     return user_syscall(0,0,0,0,0,0,0,SYS_sched_yield);
 }

@@ -25,6 +25,7 @@ uint64 sys_execve();
 uint64 sys_wait4();
 uint64 sys_getppid();
 uint64 sys_getpid();
+uint64 sys_brk();
 uint64 sys_sched_yield();
 
 //将系统调用函数组织为一个函数指针数组
@@ -46,6 +47,7 @@ static uint64 (*syscalls[])() = {
     [SYS_exit] sys_exit,
     [SYS_getppid] sys_getppid,
     [SYS_getpid] sys_getpid,
+    [SYS_brk] sys_brk,
     [SYS_sched_yield] sys_sched_yield,
 };
 
@@ -249,6 +251,13 @@ uint64 sys_getppid(){
 //获取进程pid
 uint64 sys_getpid(){
     return current->pid;
+}
+
+//改变进程堆内存大小
+//当addr为0时，返回当前进程大小
+uint64 sys_brk(){
+    uint64 addr=current->trapframe->regs.a0;
+    return do_brk(current,addr);
 }
 
 //进程放弃CPU

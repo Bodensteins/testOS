@@ -2,7 +2,7 @@
 #include "stdio.h"
 
 int main(){
-    printf("\nwait4 test begin\n");
+    printf("\nsyscall test begin\n");
     
     int pid=fork();
 
@@ -22,7 +22,7 @@ int main(){
         printf("ret=%d, status=%d\n",ret,status);
     }
 
-    printf("\nwait4 test end\n");
+    printf("\nsyscall test end\n");
 
     while(1){
     }

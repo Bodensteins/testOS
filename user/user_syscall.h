@@ -19,6 +19,7 @@ uint64 wait4(int pid, int *status, uint64 options);
 uint64 exit(int code);  //进程退出
 uint64 getppid();   //获取父进程pid
 uint64 getpid();    //获取当前进程pid
+int brk(uint64 addr);   //改变进程堆内存大小，当addr为0时，返回当前进程大小
 uint64 sched_yield();
 
 #endif

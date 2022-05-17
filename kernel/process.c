@@ -194,7 +194,7 @@ uint64 do_clone(process *parent, uint64 flag, uint64 stack){
             case CODE_SEGMENT:  //代码段
                 copy_segment(parent, child, i);
                 break;
-            case DATA_SEGMENT:  //数据段(但实际上elf文件似乎将代码和数据都放到了一个段，所以这里似乎并没有什么意义)
+            case HEAP_SEGMENT:  //数据段(但实际上elf文件似乎将代码和数据都放到了一个段，所以这里似乎并没有什么意义)
                 copy_segment(parent, child ,i);
                 break;
         }
@@ -326,7 +326,7 @@ static void release_process(process *proc){
             free=0;
         }
         if(seg->page_num>0)
-            user_vm_unmap(proc->pagetable, seg->va,seg->page_num*PGSIZE,free);
+            user_vm_unmap(proc->pagetable, PGROUNDUP(seg->va),seg->page_num*PGSIZE,free);
     }
     
     free_pagetable(proc->pagetable);     //将页表占用的内存释放
