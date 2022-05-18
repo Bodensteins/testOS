@@ -95,10 +95,16 @@ $T/main: $U/main.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	@$(OBJDUMP) -S $T/main > $T/main.asm
 
-#编译test程序
-$T/test: $U/test.o $(ULIB)
+#编译init程序
+$T/init: $U/init.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	@$(OBJDUMP) -S $@ > $@.asm
+
+#编译userinit程序
+$T/userinit: $U/userinit.o $(ULIB)
+	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/userinit.S -o $U/userinit.o
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $T/userinit.out $U/userinit.o
+	$(OBJCOPY) -S -O binary $T/userinit.out $T/userinit
 
 #CPU个数为1个
 ifndef CPUS
@@ -115,8 +121,10 @@ kernel-image = $T/kernel.bin	#烧写到k210的kernel二进制目标文件
 k210-bootloader = $T/rustsbi.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
+init: $T/userinit
+
 #编译所有目标文件的标签
-build: $T/kernel $T/main $T/test
+build: $T/kernel $T/main $T/init
 
 all: $T/kernel $(SBI)
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
@@ -150,6 +158,6 @@ endif
 
 #清理中间文件的标签
 clean:
-	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d
+	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/*.asm $T/.out *.bin
 
-.PHONY: clean qemu run build all
+.PHONY: clean qemu run build all init

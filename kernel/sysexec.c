@@ -215,10 +215,10 @@ static void clear_proc_pages(process *current){
             segment_map_info* seg=current->segment_map_info+i;
             //释放代码段、数据段、栈段(实际上代码段和数据段都在一个段里面)
             if(seg->seg_type==CODE_SEGMENT || seg->seg_type==HEAP_SEGMENT || seg->seg_type==STACK_SEGMENT)
-                user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,1);
+                user_vm_unmap(current->pagetable, PGROUNDUP(seg->va),seg->page_num*PGSIZE,1);
             //如果是trapframe或trampoline段，则不释放，只是解除地址映射
             else if(seg->seg_type==TRAPFRAME_SEGMENT || seg->seg_type==SYSTEM_SEGMENT)
-                user_vm_unmap(current->pagetable, seg->va,seg->page_num*PGSIZE,0);
+                user_vm_unmap(current->pagetable, PGROUNDUP(seg->va),seg->page_num*PGSIZE,0);
         }
     //释放页表占用的内存
     free_pagetable(current->pagetable);

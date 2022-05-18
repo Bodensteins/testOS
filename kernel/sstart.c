@@ -31,7 +31,7 @@ void return_to_user();
 
 void user_trap();
 
-process* load_user_programe();      //加载第一个进程，暂时先用这个
+//process* load_user_programe();      //加载第一个进程，现已不用
 void test_sd(void);     //sd卡测试函数，临时编写在此
 
 
@@ -135,30 +135,19 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
-    //test_sd();
-    process *proc=load_user_programe();
-    insert_into_queue(&runnable_queue,proc); //加载第一个用户进程进入内存(临时这样，之后可改)
-    //test_for_read_entry_form_disk();
+    load_user_proc();   //加载init进程
     schedule(); //进入schedule开始调度进程
 }
 
 
- /*
-编译时，会生成两个简单的进程：test、main
-在target目录下可以找到这两个可执行文件
-这两个程序主要是为了测试exec系统调用
-启动OS前，须先将test和mian写入sd卡的根目录下
-之后，OS会加载test作为1号进程，test会打印字符串会执行exec加载main程序，最后main打印"Hello world\n"字符串，然后死循环
-test、main源码放在user目录中
-如果能正确打印字符串则运行成功
- */
- //加载第一个用户进程进入内存(临时这样，之后可改)
+ //加载第一个用户进程进入内存，现已不用
+/*
 process* load_user_programe(){
     process* proc=alloc_process();  //从内存池获取一个新进程
     
     fat32_dirent* root=find_dirent(NULL,"/");    //设置工作目录为根目录
 
-    fat32_dirent* de=find_dirent(root,"../test"); //在sd卡根目录中找到test可执行文件
+    fat32_dirent* de=find_dirent(root,"/init"); //在sd卡根目录中找到init可执行文件
     char* code=alloc_physical_page();   //分配一页
     elf64_header hdr;
     elf64_prog_header phdr;
@@ -169,13 +158,14 @@ process* load_user_programe(){
 
     read_by_dirent(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));  //读取elf_prog_header
     read_by_dirent(de,code,phdr.offset,phdr.file_size); //将程序段读入内存
+
     proc->size=phdr.file_size;  //设置程序大小
     user_vm_map(proc->pagetable,phdr.va,PGSIZE,(uint64)code,
         pte_permission(1,1,1,1));   //地址映射入页表
     //更新segment_map_info
-    proc->segment_map_info[3].va=phdr.va;   
-    proc->segment_map_info[3].page_num=1;
-    proc->segment_map_info[3].seg_type=CODE_SEGMENT;
+    proc->segment_map_info[proc->segment_num].va=phdr.va;   
+    proc->segment_map_info[proc->segment_num].page_num=1;
+    proc->segment_map_info[proc->segment_num].seg_type=CODE_SEGMENT;
     proc->segment_num++;
     release_dirent(de); //释放目录项缓冲区    
 
@@ -187,7 +177,7 @@ process* load_user_programe(){
 
     return proc;    //返回该进程
 }
-
+*/
 
 
 uint32 clusterno_to_sectorno(uint32 clusterno);

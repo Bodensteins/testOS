@@ -54,7 +54,7 @@ void user_vm_map(pagetable_t page_dir, uint64 va, uint64 size, uint64 pa, int pe
 //size：连续地址的大小
 //is_free_pa：是否释放物理内存，0为不释放，否则为释放
 //该函数即是在用户页表中将[va , va+sz)的虚拟地址区间解除与其对应的物理地址的映射关系
-void user_vm_unmap(pagetable_t pd, uint va, uint size, int is_free_pa);
+void user_vm_unmap(pagetable_t pd, uint64 va, uint64 size, int is_free_pa);
 
 
 //释放页表占用的内存空间

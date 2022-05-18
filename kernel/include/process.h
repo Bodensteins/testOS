@@ -130,6 +130,7 @@ extern process* current;  //当前运行的进程(目前未实现多核机制，
 
 void proc_list_init();  //进程池初始化函数，OS启动时调用
 process *alloc_process(); //从进程池中分配一个未使用(UNUSED)的进程
+void load_user_proc(); //载入init进程
 int process_zombie(process* proc);  //释放一个进程(将其状态置为ZOMBIE)
 uint64 do_fork(process *parent);  //实现fork功能，创建一个一模一样的新进程，与UNIX的fork功能一致
 uint64 do_clone(process *parent, uint64 flag, uint64 stack); //实现clone系统调用

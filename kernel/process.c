@@ -58,6 +58,42 @@ static void open_file_list_init(process *proc){
     memset(proc->open_files,0,N_OPEN_FILE*sizeof(file));//所有指针都是NULL
 }
 
+//userinit机器码
+// od -t xC target/userinit
+uchar initcode[]={
+   0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x85, 0x02, 0x9b, 0x05, 0x00, 0x00, 0x13, 0x06, 0x00, 0x00,
+    0x93, 0x08, 0xd0, 0x0d, 0x73, 0x00, 0x00, 0x00, 0x13, 0x05, 0x00, 0x00, 0x93, 0x08, 0xd0, 0x05,
+    0x73, 0x00, 0x00, 0x00, 0xef, 0xf0, 0x5f, 0xff, 0x2f, 0x69, 0x6e, 0x69, 0x74, 0x00, 0x00, 0x28,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+//载入init进程
+void load_user_proc(){
+    process* proc=alloc_process();  //从内存池获取一个新进程
+
+    char* code=alloc_physical_page();   //分配一页
+    memset(code,0,PGSIZE);
+    memcpy(code,initcode,sizeof(initcode));
+    
+    proc->trapframe->epc=0;     //确定进程入口地址
+    proc->size=PGSIZE;  //设置程序大小
+
+    user_vm_map(proc->pagetable,0,PGSIZE,(uint64)code,
+        pte_permission(1,1,1,1));   //地址映射入页表
+    //更新segment_map_info
+    proc->segment_map_info[proc->segment_num].va=0;   
+    proc->segment_map_info[proc->segment_num].page_num=1;
+    proc->segment_map_info[proc->segment_num].seg_type=CODE_SEGMENT;
+    proc->segment_num++;
+
+
+    proc->cwd=find_dirent(NULL,"/");
+    proc->state=READY;
+    proc->parent=proc;
+
+    insert_into_queue(&runnable_queue,proc);
+}
+
 process *alloc_process(){
     
     int i;

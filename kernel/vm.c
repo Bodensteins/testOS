@@ -90,7 +90,7 @@ static int map_pages(pagetable_t pd, uint va, uint size, uint pa, int permission
 //is_free_pa：是否释放物理内存，0为不释放，否则为释放
 //该函数即是在指定的页表中将[va , va+sz)的虚拟地址区间解除与其对应的物理地址的映射关系
 //相当于xv6中的uvmunmap函数
-void unmap_pages(pagetable_t pd, uint va, uint size, int is_free_pa){
+void unmap_pages(pagetable_t pd, uint64 va, uint64 size, int is_free_pa){
     if(size<=0)
         return;
     uint64 addr=PGROUNDDOWN(va);     //起始虚拟地址，页对齐
@@ -222,7 +222,7 @@ void user_vm_map(pagetable_t page_dir, uint64 va, uint64 sz, uint64 pa, int perm
 //size：连续地址的大小
 //is_free_pa：是否释放物理内存，0为不释放，否则为释放
 //该函数即是在用户页表中将[va , va+sz)的虚拟地址区间解除与其对应的物理地址的映射关系
-void user_vm_unmap(pagetable_t pd, uint va, uint size, int is_free_pa){
+void user_vm_unmap(pagetable_t pd, uint64 va, uint64 size, int is_free_pa){
     unmap_pages(pd,va,size,is_free_pa);
 }
 
