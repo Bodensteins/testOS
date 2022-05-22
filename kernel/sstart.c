@@ -113,6 +113,15 @@ void test_for_read_entry_form_disk()
     
 }
 
+void test_for_create_entry_to_disk()
+{
+
+
+
+
+}
+
+
 //entry.S跳转到s_start
 void s_start(){
     printk("entering into system...\n");
@@ -135,6 +144,10 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
+
+
+
+    while(1) {};
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程

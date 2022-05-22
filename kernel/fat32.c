@@ -110,6 +110,7 @@ void test_dot()
     文件名长度，小于 9个字符，则从第一个字符开始填充，包括 dot . 
             例如： "a.txt"       -->  "A . T X T _ ~ 1 _ _ _"
                   "a.b.c.txt"   -->  "A . B . C . ~ 1 T X T"
+
     文件名长度，大于 9个字符，则从取文件名前6个字符，包括 (dot .)
                             取最后3个字符(包括)
  
@@ -125,7 +126,7 @@ int longname_to_shorname(char name_to_splite[],char shortname[])
      //printk("%s\n",name_to_splite);
      //printk("%s\n",shortname);
 
-    int len = strlen(name_to_splite);
+    int len = strlen(name_to_splite); 
     if(strlen(shortname) == 11)
     {
         char template[12] = "      ~1   ";
@@ -352,7 +353,7 @@ void fat32_init(){
 
     buffer *buf;
     //test_for_fill_longentry();
-    //test_for_long2shortname();
+    test_for_long2shortname();
     //test_for_chksum_calc();
 
     //读取mbr信息，0号扇区为mbr
