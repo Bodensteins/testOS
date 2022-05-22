@@ -22,6 +22,14 @@ int main(){
         printf("ret=%d, status=%d\n",ret,status);
     }
 
+    pid=fork();
+    if(pid==0){
+        execve("/getpid",NULL,NULL);
+    }
+    else{
+        wait4(-1,NULL,0);
+    }
+
     printf("\nsyscall test end\n");
 
     while(1){

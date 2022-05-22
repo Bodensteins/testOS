@@ -19,7 +19,8 @@ typedef enum proc_state { //进程状态
   SLEEPING,   //睡眠态
   READY,  //就绪态
   RUNNING,  //运行态
-  ZOMBIE    //僵尸态
+  ZOMBIE,    //僵尸态
+  TEMP
 }proc_state;
 
 //进程段信息
@@ -108,7 +109,9 @@ typedef struct process{
   //trapframe，在进入内核态的时候保存进程上下文信息
   trapframe *trapframe;
 
-  context context;
+  //context context;
+
+  char name[50];
 
   //等待子进程结束时，保存wait4参数
   struct {

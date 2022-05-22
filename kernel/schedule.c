@@ -92,6 +92,7 @@ void schedule(){
     current=runnable_queue; 
     runnable_queue=runnable_queue->queue_next;
     //printk("running process: %d\n",current->pid);
+    //printk("a0:%d\n",current->trapframe->regs.a0);
     current->state=RUNNING;
     switch_to(current);     //切换到新的当前进程
 }

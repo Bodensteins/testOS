@@ -166,6 +166,8 @@ uint64 sys_simple_read(){
 
 //一个简单的print系统调用，临时写在这里
 uint64 sys_simple_write(){
+    if(current->trapframe->regs.a0==8)
+        printk("here\n");
     char* str=(char*)current->trapframe->regs.a1;
     str=(char*)va_to_pa(current->pagetable,str);
     int sz=current->trapframe->regs.a2;

@@ -31,8 +31,8 @@ void return_to_user();
 
 void user_trap();
 
-//process* load_user_programe();      //加载第一个进程，现已不用
-void test_sd(void);     //sd卡测试函数，临时编写在此
+process* load_user_programe();      //加载第一个进程，现已不用
+//void test_sd(void);     //sd卡测试函数，临时编写在此
 
 
 
@@ -136,18 +136,19 @@ void s_start(){
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
     load_user_proc();   //加载init进程
+    //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
 }
 
 
- //加载第一个用户进程进入内存，现已不用
-/*
+ //加载第一个用户进程进入内存，测试用
+
 process* load_user_programe(){
     process* proc=alloc_process();  //从内存池获取一个新进程
     
     fat32_dirent* root=find_dirent(NULL,"/");    //设置工作目录为根目录
 
-    fat32_dirent* de=find_dirent(root,"/init"); //在sd卡根目录中找到init可执行文件
+    fat32_dirent* de=find_dirent(root,"/brk"); //在sd卡根目录中找到init可执行文件
     char* code=alloc_physical_page();   //分配一页
     elf64_header hdr;
     elf64_prog_header phdr;
@@ -177,9 +178,9 @@ process* load_user_programe(){
 
     return proc;    //返回该进程
 }
-*/
 
 
+/*
 uint32 clusterno_to_sectorno(uint32 clusterno);
 void clear_cluster(uint32 clusterno);
 uint32 alloc_cluster();
@@ -207,13 +208,13 @@ void test_sd(void) {
 
     //memset(buf,'a',BSIZE);
     
-    /*
+    
     fat32_dirent* de=find_dirent(NULL, "/temp");
     int ret=write_by_dirent(de,buf,de->file_size-1,BSIZE);
     printk("%d\n",ret);
     printk("%x\n",de->start_clusterno);
     release_dirent(de);
-    */
+    
     //printk("%x\n",fat_find_next_clusterno(3,1));
     //printk("%x\n",fat_find_next_clusterno(4,2));
 
@@ -225,16 +226,16 @@ void test_sd(void) {
     //printk("%d\n",de->file_size);
     //release_dirent(de);
     //printk("done");
-/*
+
     sdcard_read_sector(buf,_blockno_to_sectorno(0x2));
     for(int i=0;i<BSIZE;i++){
         if(i%16==0)
             printk("\n");
         printk("%x ",buf[i]);
     }
-*/
 
-/*
+
+
     fat32_dirent* de2=find_dirent(NULL, "/file.txt");
     //int ret=write_by_dirent(de,"1234567",0,7);
     //printk("%d\n",ret);
@@ -242,6 +243,7 @@ void test_sd(void) {
     printk("%s\n",(char*)buf);
     printk("%x\n",_blockno_to_sectorno(de2->start_clusterno));
     release_dirent(de2);
-*/
+
     while (1) ;
 }
+*/

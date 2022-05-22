@@ -63,9 +63,9 @@ int strncmp(char* str1, char* str2, uint n){
   if(n==0)
       return 0;
   else if(*str1>*str2)
-    return 1;
+    return n;
   else 
-    return -1;
+    return n;
 }
 
 int strlen(char *str){

@@ -54,6 +54,7 @@ void trap_init(){
 
 //当用户态发生trap时，user_trap_vec会跳转进入user_trap处理用户态的trap
 void user_trap(){
+    //printk("user_trap\n");
     //检查是否是来自用户态的trap
     if((r_sstatus() & SSTATUS_SPP) != 0)
         panic("usertrap: not from user mode");
@@ -71,8 +72,27 @@ void user_trap(){
         case CAUSE_EXTERN_IRQ:
             handle_extern_irq();
             break;
+        
+        /*
+        case CAUSE_STORE_ACCESS:
+        case CAUSE_LOAD_ACCESS:
+        case CAUSE_ILLEGAL_INSTRUCTION:
+        case CAUSE_FETCH_ACCESS:
+            do_exit(2500);
+            break;
+        */
+        
         default:
             printk("scause=%p\n",(void*)cause);
+            printk("epc=%p\n",(void*)current->trapframe->epc);
+            printk("epc_pa=%p\n",va_to_pa(current->pagetable, (void*)current->trapframe->epc));
+            printk("size=%d\n",current->size);
+            printk("stval=%p\n",(void*)r_stval());
+            printk("stval_pa=%p\n",(void*)va_to_pa(current->pagetable,(void*)(r_stval())));
+            printk("current pid:%d\n",current->pid);
+            printk("current name:%s\n",current->name);
+            printk("ra: %p\n",current->trapframe->regs.ra);
+            printk("sp: %p\n",current->trapframe->regs.sp);
             panic("unhandled trap\n");
             break;
     }

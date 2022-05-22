@@ -32,6 +32,7 @@ static void release_memory(pagetable_t pagetable, int sz, segment_map_info *map,
 //根据可执行文件名和路径，将程序加载入内存中，并释放旧程序的内存
 //暂时不处理argv参数，一律为NULL
 int do_execve(char *path, char **argv, char **env){
+    //printk("do_execve: %s\n",path);
     //temporary
     if(env!=NULL && env[0]!=NULL){
         printk("not support env yet\n");
@@ -73,6 +74,7 @@ int do_execve(char *path, char **argv, char **env){
         return -1;
     }
     
+    
     /*
     根据elf文件头信息(hdr)，读取所有的程序头信息(phdr)，并根据phdr读取所有的段(Segment)入内存
     我们的OS读取的elf文件目前还比较简单，一般只有一个段，因此也只有一个phdr，下面的循环一般只会执行一次
@@ -112,9 +114,10 @@ int do_execve(char *path, char **argv, char **env){
             phdr.flags & ELF_PROG_FLAG_EXEC ? CODE_SEGMENT : HEAP_SEGMENT;
         temp_seg_num++;
     }
-
+    
     //接下来为进程分配用户栈
     uint64 user_stack=(uint64)alloc_physical_page();
+    //printk("userstack=%p\n",(void*)user_stack);
     if(!user_stack){
         release_memory(pagetable,sz,temp_map,de);
         return -1;
@@ -122,11 +125,13 @@ int do_execve(char *path, char **argv, char **env){
     //在页表中映射栈的地址
     user_vm_map(pagetable,USER_STACK_TOP-PGSIZE,PGSIZE,user_stack,
         pte_permission(1,1,0,1));
+    user_vm_map(pagetable,USER_STACK_TOP,PGSIZE,(uint64)alloc_physical_page(),
+        pte_permission(1,1,0,1));
     //更新segment_map_info
     for(int i=0;i<temp_seg_num;i++){
         if(temp_map[i].seg_type==STACK_SEGMENT){
             temp_map[i].va=USER_STACK_TOP-PGSIZE;
-            temp_map[i].page_num=1;
+            temp_map[i].page_num=2;
             break;
         }
     }
@@ -143,7 +148,7 @@ int do_execve(char *path, char **argv, char **env){
         }
         current->trapframe->regs.a1=sp;
     }
-    
+
     //接下来清理进程之前的内存
     clear_proc_pages(current);
 
@@ -163,6 +168,9 @@ int do_execve(char *path, char **argv, char **env){
     current->size=sz;   //进程大小
     current->trapframe->regs.sp=sp; //sp寄存器设为栈底
 
+    memset(current->name,0,50);
+    memcpy(current->name,"/inexec\0",8);
+
     release_dirent(de); //释放目录项缓冲
     free_physical_page(old_map);    //释放旧的segment_map_info
     return argc;
@@ -171,8 +179,10 @@ int do_execve(char *path, char **argv, char **env){
 //根据可执行文件目录项de和程序头phdr，将该程序段加载入内存中，并映射到页表pagetable中
 static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog_header *phdr){
     //起始地址必须页对齐
-    if(phdr->va % PGSIZE !=0)
+    if(phdr->va % PGSIZE !=0){
+        printk("va :%p\n",(void*)phdr->va);
         panic("load_prog_segment: va is not page aligned\n");
+    }
 
     uint64 va,pa;
     int perm=0,pg_cnt=0;
@@ -213,11 +223,11 @@ static void clear_proc_pages(process *current){
     //根据segment_map_info释放进程占用的内存
     for(int i=0;i<current->segment_num;i++){
             segment_map_info* seg=current->segment_map_info+i;
-            //释放代码段、数据段、栈段(实际上代码段和数据段都在一个段里面)
-            if(seg->seg_type==CODE_SEGMENT || seg->seg_type==HEAP_SEGMENT || seg->seg_type==STACK_SEGMENT)
+            //释放堆段、栈段
+            if(seg->seg_type==HEAP_SEGMENT || seg->seg_type==STACK_SEGMENT)
                 user_vm_unmap(current->pagetable, PGROUNDUP(seg->va),seg->page_num*PGSIZE,1);
             //如果是trapframe或trampoline段，则不释放，只是解除地址映射
-            else if(seg->seg_type==TRAPFRAME_SEGMENT || seg->seg_type==SYSTEM_SEGMENT)
+            else if(seg->seg_type==TRAPFRAME_SEGMENT || seg->seg_type==SYSTEM_SEGMENT || seg->seg_type==CODE_SEGMENT)
                 user_vm_unmap(current->pagetable, PGROUNDUP(seg->va),seg->page_num*PGSIZE,0);
         }
     //释放页表占用的内存

@@ -10,6 +10,9 @@
 #define BSIZE 512
 #endif
 
+#undef SPI_CHIP_SELECT_3 
+#define SPI_CHIP_SELECT_3 0
+
 void SD_CS_HIGH(void) {
     gpiohs_set_pin(7, GPIO_PV_HIGH);
 }
@@ -410,14 +413,14 @@ void sdcard_write_sector(uint8 *buf, int sectorno) {
 		panic("sdcard: invalid response token");
 	}
 	
-	timeout = 0xfffff;
+	timeout = 0xffffff;
 	while (--timeout) {
 		sd_read_data(&result, 1);
 		if (0 != result) break;
 	}
 	if (0 == timeout) {
 		//release(&sdcard_lock);
-		panic("sdcard: timeout waiting for response");
+		//panic("sdcard: timeout waiting for response");
 	}
 	sd_end_cmd();
 
