@@ -258,6 +258,9 @@ fat32_dirent缓存，其管理思路与缓冲区管理类似，采用LRU算法�
 typedef struct fat32_dirent_cache{
     fat32_dirent dirent_list[DIRENT_LIST_LENGTH];   //fat32_dirent列表
     fat32_dirent root_dir;  //根目录，同时也是链表表头
+
+    uint32 (*calc_root_dir_file_size)(fat32_dirent* root_dir);
+
     spinlock spinlock;  //自旋锁
 }fat32_dirent_cache;
 
@@ -271,5 +274,6 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);   //�
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize);  //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
 void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文件占用的所有簇
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
-
+int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
+uint32 calc_root_dir_file_size(fat32_dirent *root_dir);
 #endif

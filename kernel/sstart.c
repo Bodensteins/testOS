@@ -116,8 +116,13 @@ void test_for_read_entry_form_disk()
 void test_for_create_entry_to_disk()
 {
 
-
-
+    fat32_dirent*p= find_dirent(NULL,"/");
+    printk("start_clusterno: %d  file_size: %d\n",p->start_clusterno,p->file_size);
+    char longname[] = "123456789123456789123456789";
+    if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
+    {
+        printk("创建成功");
+    };
 
 }
 
@@ -145,7 +150,7 @@ void s_start(){
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
 
-
+    test_for_create_entry_to_disk();
 
     while(1) {};
     load_user_proc();   //加载init进程
