@@ -1358,7 +1358,7 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     int ret =0;
     printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
     ret = write_by_dirent(parent, buf,parent->file_size,j);
-    release_dirent(parent);
+    //release_dirent(parent);
 
     printk("############end of write############\n");
 
