@@ -6,6 +6,7 @@
 #include "include/file.h"
 #include "include/fcntl.h"
 #include "include/sbi.h"
+#include "include/systime.h"
 #include "include/console.h"
 
 //系统调用函数声明
@@ -90,6 +91,8 @@ uint64 sys_open(){
 
     //在当前工作目录搜索文件目录项
     fat32_dirent* de=find_dirent(current->cwd, file_name);
+    //create_inode
+
     if(de==NULL)    //没找到，返回-1
         return -1;
     //lock

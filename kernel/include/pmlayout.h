@@ -106,6 +106,8 @@
 #define DISK_IRQ    27
 #endif 
 
+#define CLINT_MTIME (CLINT+0xBFF8)
+
 // User memory layout.
 // Address zero first:
 //   text

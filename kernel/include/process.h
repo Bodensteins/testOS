@@ -7,7 +7,7 @@
 #define TIME_SLICE 2
 
 #include "spinlock.h"
-
+#include "systime.h"
 #include "file.h"
 
 /*
@@ -108,6 +108,11 @@ typedef struct process{
 
   //trapframe，在进入内核态的时候保存进程上下文信息
   trapframe *trapframe;
+
+  //进程时间相关
+  tms times;  //进程运行时间
+  uint64 enter_ktimes;  //上一次进入内核的时间
+  uint64 leave_ktimes;  //上一次离开内核的时间
 
   //context context;
 

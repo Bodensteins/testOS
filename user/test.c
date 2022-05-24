@@ -25,7 +25,7 @@ char *test_files[] = {
 	//"pipe", 
 	//"read", 
 	//"times",
-	"umount", 
+	//"umount", 
 	//"uname", 
 	//"unlink", 
 	"wait", 

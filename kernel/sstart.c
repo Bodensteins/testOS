@@ -135,6 +135,7 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
+    test_sd();
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
@@ -180,70 +181,41 @@ process* load_user_programe(){
 }
 
 
-/*
+
 uint32 clusterno_to_sectorno(uint32 clusterno);
 void clear_cluster(uint32 clusterno);
 uint32 alloc_cluster();
 uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);
 void fat_update_next_clusterno(uint32 clusterno, uint32 next_clusterno, uint32 fatno);
+int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
 // A simple test for sdcard read/write test
+char buf[512]="abcdefgm\0";
 void test_sd(void) {
+    fat32_dirent *de=find_dirent(NULL,"/mnt");
+    
+    
+    
+    //memset(buf,'a',511);
+    //buf[511]=0;
+    //fat32_dirent *de=find_dirent(NULL,"/text.txt");
+    printk("sz=%d\n",de->file_size);
+    printk("prt=%d\n",de->clusterno_in_parent);
+    printk("cls=%d\n",de->start_clusterno);
 
-    while(1);
-    //clear_cluster(80);
-    uint8 buf[BSIZE];
-    memset(buf,0,BSIZE);
-    for(int i=0;i<1111;i++){
-        printk("%d\n",i);
-        sdcard_read_sector(buf,i);
-    }
+    //read_by_dirent(de,buf,200,de->file_size);
     
-    //sdcard_read_sector(buf,0);
-    //for(int i=0;i<BSIZE;i++){
-    //    if(i%16==0)
-    //        printk("\n");
-    //    printk("%x ",buf[i]);
-    //}
-    printk("done\n");
 
-    //memset(buf,'a',BSIZE);
-    
-    
-    fat32_dirent* de=find_dirent(NULL, "/temp");
-    int ret=write_by_dirent(de,buf,de->file_size-1,BSIZE);
-    printk("%d\n",ret);
-    printk("%x\n",de->start_clusterno);
-    release_dirent(de);
-    
-    //printk("%x\n",fat_find_next_clusterno(3,1));
-    //printk("%x\n",fat_find_next_clusterno(4,2));
+    //fat32_dirent *root=find_dirent(NULL,"/");
 
-    //int ret=write_by_dirent(de,"1234567890",de->file_size,10);
-    //printk("%d\n",ret);
-    //read_by_dirent(de,buf,0,10);
-    //printk("%s\n",(char*)buf);
-    //printk("%x\n",de->start_clusterno);
-    //printk("%d\n",de->file_size);
+    //printk("root c:%d\n",root->start_clusterno);
+
+    //int sz=write_by_dirent(de,buf,de->file_size,512);
+
+    //printk("new sz=%d\n",sz);
+
+    //printk(buf);
+
     //release_dirent(de);
-    //printk("done");
-
-    sdcard_read_sector(buf,_blockno_to_sectorno(0x2));
-    for(int i=0;i<BSIZE;i++){
-        if(i%16==0)
-            printk("\n");
-        printk("%x ",buf[i]);
-    }
-
-
-
-    fat32_dirent* de2=find_dirent(NULL, "/file.txt");
-    //int ret=write_by_dirent(de,"1234567",0,7);
-    //printk("%d\n",ret);
-    read_by_dirent(de2,buf,0,26);
-    printk("%s\n",(char*)buf);
-    printk("%x\n",_blockno_to_sectorno(de2->start_clusterno));
-    release_dirent(de2);
 
     while (1) ;
 }
-*/
