@@ -1,20 +1,19 @@
 #include "include/inode.h"
 #include "include/fat32.h"
+#include "include/printk.h"
 
 static vfs_inode_cache icache;
 
 fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
     fat32_dirent *de= find_dirent( current_de, file_name);
     if(de==NULL)    return  NULL;
-    int i=0;
-    for(;i<INODE_LIST_LENGTH;i++){
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             return de;
         }
     }
 
-    int i=0;
-    for(;i<INODE_LIST_LENGTH;i++){
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(icache.inode[i].i_de==NULL){
             icache.inode[i].i_ino=i;
             icache.inode[i].i_count=de->ref_count;
@@ -43,7 +42,7 @@ void release_dirent_i(fat32_dirent* de){
     }
 }
 
-vfs_inode* dirent_dup_i(fat32_dirent *de){
+fat32_dirent * dirent_dup_i(fat32_dirent *de){
     dirent_dup(de);
     int i=1;
     for(;i<INODE_LIST_LENGTH&&icache.inode[i].i_de;i++){

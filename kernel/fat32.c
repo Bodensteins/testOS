@@ -2,6 +2,7 @@
 #include "include/buffer.h"
 #include "include/string.h"
 #include "include/printk.h"
+#include "include/inode.h"
 
 /*
 目前实现的功能仅仅包括文件的读取

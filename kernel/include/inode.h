@@ -25,6 +25,6 @@ typedef struct  inode_cache{
 
 fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name);
 void release_dirent_i(fat32_dirent* de);
-vfs_inode* dirent_dup_i(fat32_dirent *de)
+fat32_dirent* dirent_dup_i(fat32_dirent *de);
 
 #endif
