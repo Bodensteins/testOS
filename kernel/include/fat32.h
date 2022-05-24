@@ -269,6 +269,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据
 void release_dirent(fat32_dirent* de); //释放一个目录项
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);   //根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize);  //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
+int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文件占用的所有簇
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
 int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
