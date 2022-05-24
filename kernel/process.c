@@ -176,7 +176,7 @@ uchar testcode[]={
 uchar initcode[]={
    0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x85, 0x02, 0x9b, 0x05, 0x00, 0x00, 0x13, 0x06, 0x00, 0x00,
     0x93, 0x08, 0xd0, 0x0d, 0x73, 0x00, 0x00, 0x00, 0x13, 0x05, 0x00, 0x00, 0x93, 0x08, 0xd0, 0x05,
-    0x73, 0x00, 0x00, 0x00, 0xef, 0xf0, 0x5f, 0xff, '/', 'i', 'n', 'i', 't', '\0', '\0', '\0', '\0', '\0', '\0', 0x00, 0x00, 
+    0x73, 0x00, 0x00, 0x00, 0xef, 0xf0, 0x5f, 0xff, '/', 't', 'i', 'm', 'e', 's', '\0', '\0', '\0', '\0', '\0', 0x00, 0x00, 
     0x00, 0x00, 0x00
 };
 
@@ -186,8 +186,8 @@ void load_user_proc(){
 
     uchar* code=alloc_physical_page();   //分配一页
     memset(code,0,PGSIZE);
-    memcpy(code,testcode,sizeof(testcode));
-    //memcpy(code,initcode,sizeof(initcode));
+    //memcpy(code,testcode,sizeof(testcode));
+    memcpy(code,initcode,sizeof(initcode));
     
     proc->trapframe->epc=0x1000;     //确定进程入口地址
     proc->size=sizeof(testcode)+0x1000;  //设置程序大小
@@ -301,6 +301,11 @@ void switch_to(process* proc) {
     
     //printk("switch_to %p\n",(char*)proc->trapframe->epc);
     //printk("switch to pid: %d\n",proc->pid);
+
+    //更新进程运行时间
+    uint64 tm=read_time();
+    current->leave_ktimes=tm;
+    current->times.stime+=(tm-current->enter_ktimes);
 
     //切换页表后调用return_to_user函数(定义于usertrapvec.S)
     //因此须将其转换为对应的虚拟地址
@@ -551,6 +556,9 @@ uint64 do_wait4(int pid, int* status, uint64 options){
             //acquire child's lock
             uint64 child_pid=child->pid;
             //release lock
+            current->times.cstime+=child->times.stime+child->times.cstime;
+			current->times.cutime+=child->times.utime+child->times.cutime;
+
             if(status!=NULL)
                 *status=child->exit_state<<8;   //获取子进程exit返回值
             release_process(child);     //释放其资源
@@ -572,6 +580,8 @@ uint64 do_wait4(int pid, int* status, uint64 options){
                 else{   //子进程确实结束了
                     uint64 child_pid=child->pid;
                     //release lock
+                    current->times.cstime+=child->times.stime+child->times.cstime;
+			        current->times.cutime+=child->times.utime+child->times.cutime;
                     if(status!=NULL)
                         *status=child->exit_state<<8;   //获取子进程exit返回值
                     release_process(child);      //释放其资源

@@ -4,10 +4,12 @@
 #include "types.h"
 
 typedef struct tms{
-    uint64 utime;		// user time 
-	uint64 stime;		// system time 
-	uint64 cutime;		// user time of children 
-	uint64 cstime;		// system time of children 
+    long utime;		// user time 
+	long stime;		// system time 
+	long cutime;		// user time of children 
+	long cstime;		// system time of children 
 }tms;
+
+uint64 do_times(tms *times);
 
 #endif

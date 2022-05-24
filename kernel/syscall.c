@@ -8,6 +8,7 @@
 #include "include/sbi.h"
 #include "include/systime.h"
 #include "include/console.h"
+#include "include/systime.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -27,10 +28,10 @@ uint64 sys_wait4();
 uint64 sys_getppid();
 uint64 sys_getpid();
 uint64 sys_brk();
+uint64 sys_times();
 uint64 sys_sched_yield();
 
 //将系统调用函数组织为一个函数指针数组
-//效仿xv6的设计
 static uint64 (*syscalls[])() = {
     [SYS_fork] sys_fork,
     [SYS_read] sys_read,
@@ -49,6 +50,7 @@ static uint64 (*syscalls[])() = {
     [SYS_getppid] sys_getppid,
     [SYS_getpid] sys_getpid,
     [SYS_brk] sys_brk,
+    [SYS_times] sys_times,
     [SYS_sched_yield] sys_sched_yield,
 };
 
@@ -263,6 +265,12 @@ uint64 sys_getpid(){
 uint64 sys_brk(){
     uint64 addr=current->trapframe->regs.a0;
     return do_brk(current,addr);
+}
+
+uint64 sys_times(){
+    tms *times=current->trapframe->regs.a0;
+    times=va_to_pa(current->pagetable,times);
+    return do_times(times);
 }
 
 //进程放弃CPU

@@ -54,6 +54,11 @@ void trap_init(){
 
 //当用户态发生trap时，user_trap_vec会跳转进入user_trap处理用户态的trap
 void user_trap(){
+    //更新进程运行时间
+    uint64 tm=read_time();
+    current->enter_ktimes=tm;
+    current->times.utime+=(tm-current->leave_ktimes);
+    
     //printk("user_trap\n");
     //检查是否是来自用户态的trap
     if((r_sstatus() & SSTATUS_SPP) != 0)

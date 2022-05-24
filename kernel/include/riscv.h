@@ -358,7 +358,7 @@ sfence_vma()
 }
 
 #include "pmlayout.h"
-static inline uint64 readtime()
+static inline uint64 read_time()
 {
 	uint64 x;
 	x=*(uint64 *)CLINT_MTIME;

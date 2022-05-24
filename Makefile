@@ -29,7 +29,8 @@ KERN_OBJS := \
 	$K/sysexec.o \
 	$K/plic.o \
 	$K/console.o \
-	$K/device.o
+	$K/device.o \
+	$K/systime.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \

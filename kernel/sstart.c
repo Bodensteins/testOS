@@ -21,6 +21,7 @@
 #endif
 
 
+
 /*
 初始化OS
 entry.S跳转到此
@@ -113,6 +114,66 @@ void test_for_read_entry_form_disk()
     
 }
 
+void test_for_create_entry_to_disk()
+{
+
+    fat32_dirent*p= find_dirent(NULL,"/abcdefghijkl");
+    printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    char longname[] = "abcdefghijkl\0";
+    
+    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
+
+    //char buf[10];
+    //read_by_dirent(p,buf,0,10);
+
+    //printk("%s\n",buf);
+    
+
+    /*
+    if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
+    {
+        printk("创建成功\n");
+    }
+    else{
+        printk("fail\n");
+    }
+    */
+
+    write_by_dirent2(p,longname,2,7);
+    
+    
+    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
+
+    printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    release_dirent(p);
+
+
+
+
+    // fat32_dirent* add_file = find_dirent(NULL,"/bbccd.txt");
+    // char src[] = "test file write and read";
+    // write_by_dirent(add_file,src,0,strlen(src)+1);
+    // printk("%s file_size:%d\n",add_file->name, add_file->file_size);
+    // release_dirent(add_file);
+
+    // char bufff[30];
+    // add_file = find_dirent(NULL,"/bbccd.txt");
+    // int ret = read_by_dirent(add_file,bufff,0,30); 
+    // printk("read len %d\n",ret);
+    // bufff[ret]='\0';
+    // printk("read data \n%s\n",bufff);
+    // release_dirent(add_file);
+
+    // fat32_dirent* child = find_dirent(NULL,"/12345.abc.ef");
+    // if(NULL != child)
+    // {
+    //     printk("name:%s\n",child->name);
+    // }
+}
+
+
 //entry.S跳转到s_start
 void s_start(){
     printk("entering into system...\n");
@@ -135,7 +196,6 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
-    test_sd();
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
