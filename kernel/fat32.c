@@ -1124,6 +1124,10 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
     if(de->start_clusterno == 0)
     {
         de->dirty=1;
+        if(de->parent != de) //不是根目录
+        {
+            de->parent->dirty = 1;
+        } 
         de->start_clusterno=alloc_cluster();
     }
     
@@ -1191,6 +1195,12 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             if(offset+tot_sz>de->file_size){
                 de->dirty=1;
                 de->file_size=offset+tot_sz;
+               
+                if(de->parent != de) //不是根目录
+                {
+                    printk("de->parent dirty %d",de->parent->dirty);
+                    de->parent->dirty = 1;
+                }
                 printk("wirte by dirent dirname: %s, file_size: %d\n",de->name,de->file_size);
             }
         }

@@ -29,6 +29,7 @@
         "string": "c",
         "string_view": "c",
         "random": "c",
-        "thread": "c"
+        "thread": "c",
+        "sstream": "c"
     }
 }
