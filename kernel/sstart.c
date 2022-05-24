@@ -117,10 +117,10 @@ void test_for_read_entry_form_disk()
 void test_for_create_entry_to_disk()
 {
 
-    fat32_dirent*p= find_dirent(NULL,"/abcdefghijkl");
+    fat32_dirent*p= find_dirent(NULL,"/test_for_free_clus_1.txt");
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
-    char longname[] = "abcdefghijkl\0";
+    char src[] = "test_for_free_clus.txt";
     
     //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
@@ -128,7 +128,7 @@ void test_for_create_entry_to_disk()
     //read_by_dirent(p,buf,0,10);
 
     //printk("%s\n",buf);
-    
+
 
     /*
     if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
@@ -140,9 +140,9 @@ void test_for_create_entry_to_disk()
     }
     */
 
-    write_by_dirent2(p,longname,2,7);
-    
-    
+    //write_by_dirent2(p,src,0,0);
+    write_by_dirent2(p,src,p->file_size,0);
+
     //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
