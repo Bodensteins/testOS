@@ -118,11 +118,13 @@ void test_for_create_entry_to_disk()
 
     fat32_dirent*p= find_dirent(NULL,"/abcdefghijklmnopqrstuvwxyz");
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n",p->name,p->start_clusterno,p->file_size);
-    char longname[] = "123456789123456789123456789";
+    char longname[] = "12345.123";
     if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
     {
         printk("创建成功");
     };
+    printk("\n dir name: %s, start_clusterno: %d  file_size: %d\n",p->name,p->start_clusterno,p->file_size);
+    release_dirent(p);
 
 }
 

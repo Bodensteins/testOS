@@ -430,8 +430,7 @@ void fat32_init(){
     dcache.root_dir.parent=&dcache.root_dir;
     dcache.root_dir.start_clusterno=dbr_info.root_dir_clusterno;
     //计算根目录大小
-    //dcache.calc_root_dir_file_size = calc_root_dir_file_size;
-    calc_root_dir_file_size(&(dcache.root_dir));
+    calc_dir_file_size(&(dcache.root_dir));
     
     memcpy(dcache.root_dir.name,"/",1);
     init_sleeplock(&dcache.root_dir.sleeplock,"root fat32_dirent");
@@ -1192,6 +1191,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             if(offset+tot_sz>de->file_size){
                 de->dirty=1;
                 de->file_size=offset+tot_sz;
+                printk("wirte by dirent dirname: %s, file_size: %d\n",de->name,de->file_size);
             }
         }
 
@@ -1217,7 +1217,7 @@ void trunc_by_dirent(fat32_dirent *de){
 
 
 
-uint32 calc_root_dir_file_size(fat32_dirent *root_dir)
+uint32 calc_dir_file_size(fat32_dirent *root_dir)
 {
     int file_size_counter =  0;
     //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
@@ -1265,7 +1265,11 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     }
     
     if(find_dirent(parent,name)!=NULL) // 无同名
+    {
+        printk("exist the same name file\n");
         return -3;
+    }
+        
 
     //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
