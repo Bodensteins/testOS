@@ -21,6 +21,7 @@
 #endif
 
 
+
 /*
 初始化OS
 entry.S跳转到此
@@ -116,19 +117,19 @@ void test_for_read_entry_form_disk()
 void test_for_create_entry_to_disk()
 {
 
-    fat32_dirent*p= find_dirent(NULL,"/");
+    fat32_dirent*p= find_dirent(NULL,"/bbccd.txt");
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
-    char longname[] = "bbccd.txt";
+    char longname[] = "abcdefghijklmnopqrstuvwxyz\0";
     
-    printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
+    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
     //char buf[10];
     //read_by_dirent(p,buf,0,10);
-    //printk(buf);
-    //write_by_dirent(p,longname,p->file_size,10);
+    //printk("%s\n",buf);
+    write_by_dirent(p,longname,0,25);
 
-    
+    /*
     if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
     {
         printk("创建成功\n");
@@ -136,11 +137,13 @@ void test_for_create_entry_to_disk()
     else{
         printk("fail\n");
     }
+    */
     
     
+    printk("p=%p",p);
     
     
-    printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
+    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);

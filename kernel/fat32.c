@@ -11,7 +11,7 @@
 不区分大小写
 */
 
-
+fat32_dirent **watch;
 
 /*
 文件系统相关依赖为：
@@ -355,6 +355,7 @@ int fill_shortname_entry(char longname[],
                         fat32_short_name_dir_entry *short_name_dir_entry,
                         uint8 attribute)
 {
+    //printk("in short parent=%p\n",*watch);
 
     char shortname[12]="  -  -  -  ";
 
@@ -373,6 +374,8 @@ int fill_shortname_entry(char longname[],
     short_name_dir_entry->last_write_date = 0x54A5;
     short_name_dir_entry->start_clusterno_low = 0x0000;//***** 重要
     short_name_dir_entry->file_size = 0x00000000; //***** 重要
+
+    //printk("in short parent=%p\n",*watch);
 
     return 0;
 }
@@ -757,7 +760,6 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
             if(sz>parent->file_size)
                 break;
             buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
-            printk("read!\n");
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
                 {
@@ -1282,7 +1284,7 @@ fat32_dirent * create_by_dirent_parent;
 //实现思路：在父目录文件中，填充长文件名目录项和短文件名目录项
 //返回 -1 父目录不正确
 //返回 -2
-int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
+int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
 {
     create_by_dirent_parent = parent;
     //printk("#2 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
@@ -1334,12 +1336,19 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     //printk("create_by_dirent shortname: %s\n",shortname); 
     //printk("#6 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
     fill_longname_entry(name,long_name_dir_entry);
+    
     printk("#7dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
-
+    watch=&parent;
+    printk("parent:%p\n",parent);
     fill_shortname_entry(name,&short_name_dir_entry,attribute);
-    printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
-    printk("name:%s\n",parent->name);
+    printk("parent:%p\n",parent);
+    if(parent!=create_by_dirent_parent)
+        return -10;
     parent = create_by_dirent_parent;
+    printk("parent:%p\n",parent);
+    printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
+    
+    
     
 
 /*
@@ -1384,7 +1393,7 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
         }
 
     }
-    //printk("############buf shortname copy ############\n");
+    printk("############buf shortname copy ############\n");
     for(int k =0;k<32;k++)
     {
         uint8* start =&short_name_dir_entry;
