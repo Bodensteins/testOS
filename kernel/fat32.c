@@ -747,13 +747,17 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
 
     fat32_dir_entry dentry;
     memset(&dentry,0,sizeof(fat32_dir_entry));
-
+    uint64 sz=0;
     //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
     //clus为起始簇号
-    for(uint32 clus=parent->start_clusterno;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1)){
+    for(uint32 clus=parent->start_clusterno, c=0;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1),c++){
         uint32 start_sec=clusterno_to_sectorno(clus);  //根据簇号确定簇的起始扇区号
         for(int sec_off=0;sec_off<dbr_info.sectors_per_cluster;sec_off++){    //遍历该簇所有扇区
+            sz=c*dbr_info.sectors_per_cluster*dbr_info.bytes_per_sector+sec_off*dbr_info.bytes_per_sector;
+            if(sz>parent->file_size)
+                break;
             buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
+            printk("read!\n");
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
                 {
@@ -822,6 +826,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
             }
             release_buffer(buf);
         }
+        if(sz>parent->file_size)
+            break;
     }
     return -1;
 }
@@ -1294,6 +1300,7 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
         printk("exist the same name file\n");
         return -3;
     }
+    
     
     
     /*

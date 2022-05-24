@@ -116,10 +116,10 @@ void test_for_read_entry_form_disk()
 void test_for_create_entry_to_disk()
 {
 
-    fat32_dirent*p= find_dirent(NULL,"/mnt");
+    fat32_dirent*p= find_dirent(NULL,"/");
     printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
-    char longname[] = "89899.abc";
+    char longname[] = "bbccd.txt";
     
     printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
