@@ -8,6 +8,7 @@
 #include "include/sleeplock.h"
 #include "include/sbi.h"
 #include "include/elf.h"
+#include "include/inode.h"
 
 process proc_list[NPROC];   //进程池
 
@@ -202,7 +203,7 @@ void load_user_proc(){
     proc->segment_num++;
 
 
-    proc->cwd=find_dirent(NULL,"/");
+    proc->cwd=find_dirent_i(NULL,"/");
     proc->state=READY;
     proc->parent=proc;
 
@@ -361,7 +362,7 @@ uint64 do_clone(process *parent, uint64 flag, uint64 stack){
     }
     
     //设置子进程的当前工作目录
-    child->cwd=dirent_dup(parent->cwd);
+    child->cwd=dirent_dup_i(parent->cwd);
 
     child->size=parent->size;
     child->state=READY;
@@ -476,7 +477,7 @@ static void release_process(process *proc){
             release_file(proc->open_files[i]);
     }
 
-    release_dirent(proc->cwd);   //释放当前目录的目录项缓冲
+    release_dirent_i(proc->cwd);   //释放当前目录的目录项缓冲
 
     for(int i=0;i<proc->segment_num;i++){    //根据segment_map_info释放进程占用的内存
         segment_map_info* seg=proc->segment_map_info+i;

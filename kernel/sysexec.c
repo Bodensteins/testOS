@@ -6,6 +6,7 @@
 #include "include/string.h"
 #include "include/printk.h"
 #include "include/pmlayout.h"
+#include "include/inode.h"
 
 /*
 sys_exec调用do_exec
@@ -59,7 +60,7 @@ int do_execve(char *path, char **argv, char **env){
     memset(pagetable,0,PGSIZE);
 
     //根据路径和文件名获取elf文件的目录项
-    de=find_dirent(current->cwd,path);
+    de=find_dirent_i(current->cwd,path);
     if(de==NULL){
         release_memory(pagetable,0,temp_map,de);
         return -1;
@@ -171,7 +172,7 @@ int do_execve(char *path, char **argv, char **env){
     memset(current->name,0,50);
     memcpy(current->name,"/inexec\0",8);
 
-    release_dirent(de); //释放目录项缓冲
+    release_dirent_i(de); //释放目录项缓冲
     free_physical_page(old_map);    //释放旧的segment_map_info
     return argc;
 }
@@ -290,5 +291,5 @@ static void release_memory(pagetable_t pagetable ,int sz, segment_map_info *map,
     if(map!=NULL)
         free_physical_page(map);
     if(de!=NULL)
-        release_dirent(de);
+        release_dirent_i(de);
 }

@@ -12,6 +12,7 @@
 #include "include/plic.h"
 #include "include/console.h"
 #include "include/device.h"
+#include "include/inode.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
@@ -168,7 +169,7 @@ process* load_user_programe(){
     proc->segment_map_info[proc->segment_num].page_num=1;
     proc->segment_map_info[proc->segment_num].seg_type=CODE_SEGMENT;
     proc->segment_num++;
-    release_dirent(de); //释放目录项缓冲区    
+    release_dirent_i(de); //释放目录项缓冲区    
 
     proc->cwd=root;
 

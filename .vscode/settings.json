@@ -30,5 +30,6 @@
         "string_view": "c",
         "random": "c",
         "thread": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

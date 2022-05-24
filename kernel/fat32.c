@@ -871,7 +871,7 @@ void release_dirent(fat32_dirent* de){
         //release_spinlock(&dcache.spinlock);
 
         //同时还需释放其父目录的目录项缓冲区
-        release_dirent(de->parent);
+        release_dirent_i(de->parent);
         return;
     }
     //to do
@@ -932,7 +932,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         }
         else if(!strcmp(temp_name,"..")){
             child=parent->parent;
-            release_dirent(parent);
+            release_dirent_i(parent);
             parent=child;
             if(is_end)
                 return child;
@@ -957,7 +957,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
                     printk("%s : file not found\n",temp_name);
                     
                     if(parent!=NULL && parent!=current_de)
-                        release_dirent(parent);
+                        release_dirent_i(parent);
                         
                     return NULL;
                 }
@@ -967,7 +967,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         //printk("%s, %x\n",child->name,child->start_clusterno);
 
         if(parent!=NULL && parent!=current_de)
-                    release_dirent(parent);
+                    release_dirent_i(parent);
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
     }

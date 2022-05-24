@@ -24,13 +24,15 @@ file.c依赖于fat32.c中的函数
 #define FILE_ATTR_READ 0x1  //可读
 #define FILE_ATTR_WRITE 0x2 //可写
 #define FILE_ATTR_EXEC 0x4  //可执行
+//文件操作
+
+
 
 //文件结构体
 typedef struct file{
     int type;   //文件类型
     fat32_dirent *fat32_dirent; //文件目录项
     //pipe *pipe;
-    
     int attribute; //属性
     int dev;    //设备号
     int ref_count;  //文件被引用数量

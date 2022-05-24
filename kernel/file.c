@@ -3,6 +3,7 @@
 #include "include/sleeplock.h"
 #include "include/string.h"
 #include "include/process.h"
+#include "include/inode.h"
 
 /*
 文件系统相关依赖为：
@@ -46,7 +47,7 @@ void release_file(file *file){
     else{   //目前只有SD卡上的文件
         switch(file->type){
             case FILE_TYPE_SD:
-                release_dirent(file->fat32_dirent);
+                release_dirent_i(file->fat32_dirent);
                 break;
             case FILE_TYPE_DEVICE:
                 //to do

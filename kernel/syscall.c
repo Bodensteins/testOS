@@ -7,6 +7,7 @@
 #include "include/fcntl.h"
 #include "include/sbi.h"
 #include "include/console.h"
+#include "include/inode.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -89,7 +90,7 @@ uint64 sys_open(){
     int mode=current->trapframe->regs.a1;
 
     //在当前工作目录搜索文件目录项
-    fat32_dirent* de=find_dirent(current->cwd, file_name);
+    fat32_dirent* de=find_dirent_i(current->cwd, file_name);
     if(de==NULL)    //没找到，返回-1
         return -1;
     //lock
