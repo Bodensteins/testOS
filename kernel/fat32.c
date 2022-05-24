@@ -1198,7 +1198,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
                
                 if(de->parent != de) //不是根目录
                 {
-                    printk("de->parent dirty %d",de->parent->dirty);
+                    
                     de->parent->dirty = 1;
                 }
                 printk("wirte by dirent dirname: %s, file_size: %d\n",de->name,de->file_size);
@@ -1239,6 +1239,7 @@ uint32 calc_dir_file_size(fat32_dirent *root_dir)
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] == 0x00) //空白
                 {
+                   release_buffer(buf);
                    goto return_label;
                 }
                 else
@@ -1251,6 +1252,7 @@ uint32 calc_dir_file_size(fat32_dirent *root_dir)
     }
 
     return_label:
+    
     root_dir->file_size = file_size_counter*32;
     return file_size_counter*32;
 
@@ -1280,7 +1282,6 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
         return -3;
     }
         
-
     //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
     // 填充buff
