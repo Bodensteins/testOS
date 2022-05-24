@@ -757,7 +757,7 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
             if(sz>parent->file_size)
                 break;
             buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
-            printk("read!\n");
+            //printk("read!\n");
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
                 {
@@ -1127,6 +1127,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
         if((i+1)%16 == 0 )
             printk("\n");
     }
+    printk("\n");
 
     if(offset>de->file_size) // 顺次添加
         offset=de->file_size;
@@ -1211,7 +1212,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             if(offset+tot_sz>de->file_size){
                 de->dirty=1;
                 de->file_size=offset+tot_sz;
-               
+                printk("write_by_dirent filesize: %d\n",de->file_size);
                 if(de->parent != de) //不是根目录
                 {
                     
@@ -1339,9 +1340,13 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     fill_longname_entry(name,long_name_dir_entry);
     printk("#7dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
 
+    printk("%p\n",parent);
     fill_shortname_entry(name,&short_name_dir_entry,attribute);
+    printk("%p\n",parent);
+
     printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
     printk("name:%s\n",parent->name);
+
     parent = create_by_dirent_parent;
     
 
@@ -1408,9 +1413,10 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
 
     printk("############start to write############\n");
     int ret =0;
-    printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
+   
+    //printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
+
     ret = write_by_dirent(parent, buf,parent->file_size,j);
-    //release_dirent(parent);
 
     //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
