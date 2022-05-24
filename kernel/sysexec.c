@@ -68,7 +68,7 @@ int do_execve(char *path, char **argv, char **env){
     
     //根据文件目录项读取elf文件头信息
     if(
-        read_by_dirent(de,&hdr,0,sizeof(elf64_header))!=sizeof(elf64_header) ||
+        read_by_dirent_i(de,&hdr,0,sizeof(elf64_header))!=sizeof(elf64_header) ||
         hdr.magic!=ELF_MAGIC
     ){
         release_memory(pagetable,0,temp_map,de);
@@ -87,7 +87,7 @@ int do_execve(char *path, char **argv, char **env){
         //读取程序头信息(phdr)
 
         if(
-            read_by_dirent(de,&phdr,hdr.ph_off+i*psz,psz)!=psz ||
+            read_by_dirent_i(de,&phdr,hdr.ph_off+i*psz,psz)!=psz ||
             phdr.mem_size<phdr.file_size ||
             phdr.va+phdr.mem_size<phdr.va
         ){
@@ -210,7 +210,7 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
 
         int sz1;
         //读取elf文件中的内容
-        if((sz1=read_by_dirent(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
+        if((sz1=read_by_dirent_i(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
             printk("sz=%d\n, sz1=%d\n",sz,sz1);
             return -1;
         }

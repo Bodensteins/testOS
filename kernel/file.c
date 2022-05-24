@@ -77,7 +77,7 @@ int read_file(file *file, void *buf, uint rsize){
     switch(file->type){ //目前只有SD卡上的文件
         case FILE_TYPE_SD:
             //acquire_sleeplock(&file->fat32_dirent->sleeplock);
-            rsize=read_by_dirent(file->fat32_dirent,buf,file->offset,rsize);
+            rsize=read_by_dirent_i(file->fat32_dirent,buf,file->offset,rsize);
             if(rsize>0)
                 file->offset+=rsize;    //更新offset
             //release_sleeplock(&file->fat32_dirent->sleeplock);

@@ -19,7 +19,7 @@ typedef struct vfs_inode{
     uint8     i_dev;//设备号
     uint32  i_file_size;//文件大小
     uint32  i_mode;
-    sleeplock sleeplock;    //睡眠锁
+    sleeplock i_sleeplock;    //睡眠锁
 }vfs_inode;
 
 #define INODE_LIST_LENGTH 256
@@ -32,5 +32,9 @@ typedef struct  inode_cache{
 fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name);
 void release_dirent_i(fat32_dirent* de);
 fat32_dirent* dirent_dup_i(fat32_dirent *de);
-
+fat32_dirent* acquire_dirent_i(fat32_dirent* parent, char* name);
+int read_by_dirent_i(fat32_dirent *de, void *dst, uint offset, uint rsize);
+int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize);
+void trunc_by_dirent_i(fat32_dirent *de);
+void fat32_init_i();
 #endif

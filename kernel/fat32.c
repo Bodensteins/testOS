@@ -349,7 +349,7 @@ void test_for_fill_longentry()
 }
 
 //fat32文件系统相关初始化，在OS启动时调用
-void fat32_init(){
+fat32_dirent* fat32_init(){
 
     buffer *buf;
     //test_for_fill_longentry();
@@ -412,6 +412,7 @@ void fat32_init(){
         dcache.root_dir.next->prev=(dcache.dirent_list+i);
         dcache.root_dir.next=(dcache.dirent_list+i);
     }
+    return &dcache.root_dir;
 }
 
 //工具函数，作用是将簇号(clusterno)转换为该簇的第一个扇区的扇区号(sectorno)
@@ -941,7 +942,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         }
 
         //获取名字后，直接寻找
-        child=acquire_dirent(parent,temp_name);
+        child=acquire_dirent_i(parent,temp_name);
         
         //如果没有找到，返回NULL
         if(child==NULL){
@@ -952,7 +953,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
                 upper(temp_name);
 
-                child=acquire_dirent(parent,temp_name);
+                child=acquire_dirent_i(parent,temp_name);
                 if(child==NULL)
                 {
                     printk("%s : file not found\n",temp_name);
