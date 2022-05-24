@@ -16,6 +16,7 @@ uint64 sys_kill();
 uint64 sys_open();
 uint64 sys_simple_write();
 uint64 sys_close();
+uint64  sys_pipe();
 
 uint64 sys_simple_read();
 uint64 sys_simple_write();
@@ -38,6 +39,7 @@ static uint64 (*syscalls[])() = {
     [SYS_open] sys_open,
     [SYS_write] sys_simple_write,
     [SYS_close] sys_close,
+    [SYS_pipe]sys_pipe,
 
     [SYS_simple_read] sys_simple_read,
     [SYS_simple_write] sys_simple_write,

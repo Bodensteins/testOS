@@ -21,6 +21,8 @@ fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
             icache.inode[i].i_dev=de->dev;
             icache.inode[i].i_de=de;
             icache.inode[i].i_file_size=de->file_size;
+            icache.inode[i].i_start_blockno=de->start_clusterno;
+            icache.inode[i].i_start_blockno=de->total_clusters;
             return de;
         }
     }

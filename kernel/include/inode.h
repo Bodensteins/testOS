@@ -11,8 +11,14 @@ typedef struct vfs_inode{
     uint32  i_count;//引用数
     uint32  i_nlink;//硬连接数
     fat32_dirent *i_de;//相关联的目录项
+    uint32 i_start_blockno;   //文件起始block号
+    uint32 i_total_blocks;    //文件总共block号
+    uint32  i_atime;//inode最后一次存取时间
+    uint32  i_mtime;//inode最后一次修改时间
+    uint32  i_ctime;//inode产生时间
     uint8     i_dev;//设备号
     uint32  i_file_size;//文件大小
+    uint32  i_mode;
     sleeplock sleeplock;    //睡眠锁
 }vfs_inode;
 
