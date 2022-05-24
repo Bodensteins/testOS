@@ -747,13 +747,17 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
 
     fat32_dir_entry dentry;
     memset(&dentry,0,sizeof(fat32_dir_entry));
-
+    uint64 sz=0;
     //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
     //clus为起始簇号
-    for(uint32 clus=parent->start_clusterno;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1)){
+    for(uint32 clus=parent->start_clusterno, c=0;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1),c++){
         uint32 start_sec=clusterno_to_sectorno(clus);  //根据簇号确定簇的起始扇区号
         for(int sec_off=0;sec_off<dbr_info.sectors_per_cluster;sec_off++){    //遍历该簇所有扇区
+            sz=c*dbr_info.sectors_per_cluster*dbr_info.bytes_per_sector+sec_off*dbr_info.bytes_per_sector;
+            if(sz>parent->file_size)
+                break;
             buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
+            printk("read!\n");
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
                 {
@@ -822,6 +826,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
             }
             release_buffer(buf);
         }
+        if(sz>parent->file_size)
+            break;
     }
     return -1;
 }
@@ -863,11 +869,6 @@ fat32_dirent* acquire_dirent(fat32_dirent* parent, char* name){
     //找到空闲了最长时间的那个目录项缓冲区，将磁盘中的目录项读入该缓冲区并返回其指针
     for(de=dcache.root_dir.prev;de!=&dcache.root_dir;de=de->prev){
         if(de->ref_count==0){
-            de->ref_count++;
-            de->parent=parent;
-            parent->ref_count++;
-            de->dev=parent->dev;
-            de->valid=1;
             //release_spinlock(&de->spinlock);
             //acquire_sleeplock(&de->sleeplock);
             int ret=read_fat32_dirent_from_disk(parent,name,de);
@@ -875,6 +876,11 @@ fat32_dirent* acquire_dirent(fat32_dirent* parent, char* name){
                 //release_sleeplock(&de->sleeplock);
                 return NULL;
             }
+            de->ref_count++;
+            de->parent=parent;
+            parent->ref_count++;
+            de->dev=parent->dev;
+            de->valid=1;
             return de;
         }
     }
@@ -888,13 +894,21 @@ fat32_dirent* acquire_dirent(fat32_dirent* parent, char* name){
 void release_dirent(fat32_dirent* de){
     if(de==NULL)
         return;
+
+    // if(de->dirty!=0){
+    //    fat32_dirent_write_to_disk(de);
+    //    de->dirty=0;
+    //}
+
     //if(!is_holding_sleeplock(&de->sleeplock))
         //panic("release_dirent\n");
     if(de==&dcache.root_dir){
+        /*
         if(de->dirty!=0){
             fat32_dirent_write_to_disk(de);
             de->dirty=0;
         }
+        */
         //release_sleeplock(&de->sleeplock);
         return;
     }
@@ -984,13 +998,13 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
         //获取名字后，直接寻找
         child=acquire_dirent(parent,temp_name);
-        
+
         //如果没有找到，返回NULL
         if(child==NULL){
 
             if(strlen(temp_name) <= 11)
             {   
-                printk("find_dirent temp_name : %s",temp_name);
+                printk("find_dirent temp_name : %s\n",temp_name);
 
                 upper(temp_name);
 
@@ -1074,7 +1088,7 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
             int nsz=dbr_info.bytes_per_sector;
 
             //确定本扇区中需要读取的起始偏移和结束偏移位置
-            if(c==0 && s==0){
+            if(c==0 && s==s_beg){
                 tot_sz=0;
                 beg=off;
                 nsz-=off;
@@ -1154,15 +1168,17 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
 
     uint tot_sz=0;  //实际写入的字节数
     buffer *buf;
-    uint32 next_clus;
+    uint32 next_clus,pre_clus=0;
     for(int c=0;c<=nclus;c++){   //遍历簇
         if(clus==FAT_CLUSTER_END){ //如果遍历到了最后一个簇，或未分配簇，则分配新簇
             //return tot_sz;
             next_clus=alloc_cluster();
             if(next_clus==0)
                 return tot_sz;
-            fat_update_next_clusterno(clus,next_clus,1);
-            fat_update_next_clusterno(clus,next_clus,2);
+            if(pre_clus!=0){
+                fat_update_next_clusterno(clus,next_clus,1);
+                fat_update_next_clusterno(clus,next_clus,2);
+            }
             clus=next_clus;
         }
 
@@ -1180,7 +1196,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             int nsz=dbr_info.bytes_per_sector;
 
             //确定本扇区中需要写入的起始偏移和结束偏移位置
-            if(c==0 && s==0){
+            if(c==0 && s==s_beg){
                 tot_sz=0;
                 beg=off;
                 nsz-=off;
@@ -1205,6 +1221,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             }
         }
 
+        pre_clus=clus;
         clus=fat_find_next_clusterno(clus,1);   //获取下一个簇号
     }
 
@@ -1239,8 +1256,9 @@ uint32 calc_dir_file_size(fat32_dirent *root_dir)
             for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
                 if(((buf->data)+off)[0] == 0x00) //空白
                 {
-                   release_buffer(buf);
-                   goto return_label;
+
+                    release_buffer(buf);
+                    goto return_label;
                 }
                 else
                 {
@@ -1276,12 +1294,31 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
         return -1;// parent 不是目录
     }
     
-    if(find_dirent(parent,name)!=NULL) // 无同名
-    {
+    printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
+
+    
+    fat32_dirent tmpde;
+    if(read_fat32_dirent_from_disk(parent,name,&tmpde)==0){
         printk("exist the same name file\n");
         return -3;
     }
+    
+    
+    
+    /*
+    fat32_dirent *tmpde;
+    tmpde=find_dirent(parent,name);
+    if(tmpde!=NULL) // 无同名
+    {
+        release_dirent(tmpde);
+        printk("exist the same name file\n");
+        return -3;
+    }
+    */
         
+
+    printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
+
     //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
     // 填充buff
@@ -1303,8 +1340,8 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     printk("#7dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
 
     fill_shortname_entry(name,&short_name_dir_entry,attribute);
-
     printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
+    printk("name:%s\n",parent->name);
     parent = create_by_dirent_parent;
     
 
@@ -1374,6 +1411,8 @@ int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
     printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
     ret = write_by_dirent(parent, buf,parent->file_size,j);
     //release_dirent(parent);
+
+    //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
     printk("############end of write############\n");
 
