@@ -371,6 +371,7 @@ fat32_dirent* fat32_init(){
     //读取每扇区的字节数
     memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,sizeof(uint16));
     //检查每扇区字节数是否等于512字节
+    printk("size=%d\n",dbr_info.bytes_per_sector);
     if(dbr_info.bytes_per_sector!=BSIZE)
         panic("bytes_per_sector is not 512\n");
     //以下均是从dbr扇区中读取相应字段来初始化dbr_info，标注几个重要的
@@ -827,6 +828,7 @@ fat32_dirent* acquire_dirent(fat32_dirent* parent, char* name){
             parent->ref_count++;
             de->dev=parent->dev;
             de->valid=1;
+            de->ino=-1;
             //release_spinlock(&de->spinlock);
             //acquire_sleeplock(&de->sleeplock);
             int ret=read_fat32_dirent_from_disk(parent,name,de);
@@ -873,7 +875,7 @@ void release_dirent(fat32_dirent* de){
         //release_spinlock(&dcache.spinlock);
 
         //同时还需释放其父目录的目录项缓冲区
-        release_dirent_i(de->parent);
+        release_dirent(de->parent);
         return;
     }
     //to do
@@ -934,7 +936,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         }
         else if(!strcmp(temp_name,"..")){
             child=parent->parent;
-            release_dirent_i(parent);
+            release_dirent(parent);
             parent=child;
             if(is_end)
                 return child;
@@ -942,7 +944,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         }
 
         //获取名字后，直接寻找
-        child=acquire_dirent_i(parent,temp_name);
+        child=acquire_dirent(parent,temp_name);
         
         //如果没有找到，返回NULL
         if(child==NULL){
@@ -953,13 +955,13 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
                 upper(temp_name);
 
-                child=acquire_dirent_i(parent,temp_name);
+                child=acquire_dirent(parent,temp_name);
                 if(child==NULL)
                 {
                     printk("%s : file not found\n",temp_name);
                     
                     if(parent!=NULL && parent!=current_de)
-                        release_dirent_i(parent);
+                        release_dirent(parent);
                         
                     return NULL;
                 }
@@ -969,7 +971,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         //printk("%s, %x\n",child->name,child->start_clusterno);
 
         if(parent!=NULL && parent!=current_de)
-                    release_dirent_i(parent);
+                    release_dirent(parent);
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
     }
