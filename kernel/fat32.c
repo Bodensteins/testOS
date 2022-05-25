@@ -117,7 +117,7 @@ void test_dot()
                 如 aa.bbb.c.dddd.hhh.gg  "A A . B B B ~ 1 . G G"
 
     如果形成文件名后，存在重名，则N++；若 N > '9'，文件创建失败；
-
+    暂不考虑重名
     正确返回 0
     错误返回 -1
 */
@@ -327,7 +327,7 @@ int fill_longname_entry(char longname[],
 
 void test_for_fill_longentry()
 {
-
+    
     //char longname[] = "aa.bbb.c.dddd.hhh.gg.asvfdsoh.ajhgonfgopcn.shaif";
     char longname[] = "aaaaaaaaaaaaa";
     fat32_long_name_dir_entry long_name_dir_entry[5];
@@ -351,16 +351,26 @@ void test_for_fill_longentry()
 
 //根据长文件名填充短文件名目录项,填充
 //不预先分配
+//错误返回 -1
 int fill_shortname_entry(char longname[],
                         fat32_short_name_dir_entry *short_name_dir_entry,
                         uint8 attribute)
 {
     //printk("in short parent=%p\n",*watch);
+    
+    int name_len = strlen(longname);
+    if(name_len >FILE_NAME_LENGTH ) return -1;
 
     char shortname[12]="  -  -  -  ";
-
+    //printk("#10 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
     longname_to_shorname(longname,shortname);
-    memcpy(short_name_dir_entry->name,shortname,sizeof(char)*11);// 拷贝文件名
+    //printk("#11 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
+    uint size =sizeof(char)*11;
+    printk("copy size: %d\n",size);
+    printk("shortname:%s\n",shortname);
+    memcpy(short_name_dir_entry->name,shortname,size);// 拷贝文件名
+    
+    //printk("#12 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
     short_name_dir_entry->atrribute = attribute;
     short_name_dir_entry->system_reserve = 0x00;
     //uint32 clusternume = alloc_cluster();
@@ -374,7 +384,7 @@ int fill_shortname_entry(char longname[],
     short_name_dir_entry->last_write_date = 0x54A5;
     short_name_dir_entry->start_clusterno_low = 0x0000;//***** 重要
     short_name_dir_entry->file_size = 0x00000000; //***** 重要
-
+    //printk("#13 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
     //printk("in short parent=%p\n",*watch);
 
     return 0;
@@ -1396,8 +1406,8 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
     printk("name:%s\n",parent->name);
 
     parent = create_by_dirent_parent;
-    printk("parent:%p\n",parent);
-    printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
+    printk("%p\n",parent);
+    printk("#9 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
 
 /*
     printk("############longname dir entry############\n");
@@ -1439,7 +1449,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
             buf[j] = start[k];
             j++;
         }
-
+        printk("%dbuf len: %d\n",i,j);
     }
     printk("############buf shortname copy ############\n");
     for(int k =0;k<32;k++)
@@ -1465,7 +1475,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
    
     //printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
-    ret = write_by_dirent(parent, buf,parent->file_size,j);
+    //ret = write_by_dirent(parent, buf,parent->file_size,j);
 
     //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
