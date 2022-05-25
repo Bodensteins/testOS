@@ -14,7 +14,12 @@ void fat32_init_i(){
         icache.inode[i].i_de=NULL;
         icache.inode[i].i_dev=0;
         icache.inode[i].i_nlink=0;
+        icache.inode[i].i_start_blockno=0;
+        icache.inode[i].i_total_blocks=0;
     }
+    icache.inode[0].i_start_blockno=de->start_clusterno;
+    icache.inode[0].i_total_blocks=1;
+    icache.inode[0].i_blocks[0]=icache.inode[0].i_start_blockno;
     icache.inode[0].i_de=de;
     icache.inode[0].i_dev=de->dev;
     icache.inode[0].i_file_size=de->file_size;
@@ -39,7 +44,11 @@ fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
             icache.inode[i].i_de=de;
             icache.inode[i].i_file_size=de->file_size;
             icache.inode[i].i_start_blockno=de->start_clusterno;
-            icache.inode[i].i_start_blockno=de->total_clusters;
+            icache.inode[i].i_total_blocks=de->total_clusters;
+            icache.inode[i].i_blocks[0]=icache.inode[i].i_start_blockno;
+            for(int j=1;i<icache.inode[j].i_total_blocks;j++){
+                icache.inode[i].i_blocks[j]=fat_find_next_clusterno(icache.inode[i].i_blocks[j-1],1);
+            }
             return de;
         }
     }
@@ -87,7 +96,11 @@ fat32_dirent* acquire_dirent_i(fat32_dirent* parent, char* name){
             icache.inode[i].i_de=de;
             icache.inode[i].i_file_size=de->file_size;
             icache.inode[i].i_start_blockno=de->start_clusterno;
-            icache.inode[i].i_start_blockno=de->total_clusters;
+            icache.inode[i].i_total_blocks=de->total_clusters;
+            icache.inode[i].i_blocks[0]=icache.inode[i].i_start_blockno;
+            for(int j=1;i<icache.inode[j].i_total_blocks;j++){
+                icache.inode[i].i_blocks[j]=fat_find_next_clusterno(icache.inode[i].i_blocks[j-1],1);
+            }
             return de;
         }
     }
@@ -104,6 +117,12 @@ int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
     for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             icache.inode[i].i_file_size=de->file_size;
+            icache.inode[i].i_start_blockno=de->start_clusterno;
+            icache.inode[i].i_total_blocks=de->total_clusters;
+            icache.inode[i].i_blocks[0]=icache.inode[i].i_start_blockno;
+            for(int j=1;i<icache.inode[j].i_total_blocks;j++){
+                icache.inode[i].i_blocks[j]=fat_find_next_clusterno(icache.inode[i].i_blocks[j-1],1);
+            }
         }
     }
     return  result;
@@ -115,6 +134,7 @@ void trunc_by_dirent_i(fat32_dirent *de){
         if(de==icache.inode[i].i_de){
             icache.inode[i].i_file_size=0;
             icache.inode[i].i_start_blockno=0;
+            icache.inode[i].i_total_blocks=0;
         }
     }
 }

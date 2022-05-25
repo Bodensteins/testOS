@@ -6,6 +6,8 @@
 
 typedef unsigned int mode_t;
 
+#define BLOCKS_MAX_NUMBER   256
+
 typedef struct vfs_inode{
     uint32 i_ino;//inode号
     uint32  i_count;//引用数
@@ -13,6 +15,7 @@ typedef struct vfs_inode{
     fat32_dirent *i_de;//相关联的目录项
     uint32 i_start_blockno;   //文件起始block号
     uint32 i_total_blocks;    //文件总共block号
+    uint32  i_blocks[BLOCKS_MAX_NUMBER];//簇列表
     uint32  i_atime;//inode最后一次存取时间
     uint32  i_mtime;//inode最后一次修改时间
     uint32  i_ctime;//inode产生时间
