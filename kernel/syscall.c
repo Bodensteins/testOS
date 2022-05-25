@@ -9,6 +9,7 @@
 #include "include/systime.h"
 #include "include/console.h"
 #include "include/systime.h"
+#include "include/string.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -29,7 +30,10 @@ uint64 sys_getppid();
 uint64 sys_getpid();
 uint64 sys_brk();
 uint64 sys_times();
+uint64 sys_uname();
 uint64 sys_sched_yield();
+uint64 sys_gettimeofday();
+uint64 sys_nanosleep();
 
 //将系统调用函数组织为一个函数指针数组
 static uint64 (*syscalls[])() = {
@@ -51,7 +55,10 @@ static uint64 (*syscalls[])() = {
     [SYS_getpid] sys_getpid,
     [SYS_brk] sys_brk,
     [SYS_times] sys_times,
+    [SYS_uname] sys_uname,
     [SYS_sched_yield] sys_sched_yield,
+    [SYS_gettimeofday] sys_gettimeofday,
+    [SYS_nanosleep] sys_nanosleep,
 };
 
 //syscall，由trap调用至此
@@ -267,14 +274,54 @@ uint64 sys_brk(){
     return do_brk(current,addr);
 }
 
+//获取进程运行时间
 uint64 sys_times(){
-    tms *times=current->trapframe->regs.a0;
+    tms *times=(tms*)current->trapframe->regs.a0;
     times=va_to_pa(current->pagetable,times);
     return do_times(times);
+}
+
+typedef struct utsname {    //系统信息
+	char sysname[65];
+	char nodename[65];
+	char release[65];
+	char version[65];
+	char machine[65];
+	char domainname[65];
+}utsname;
+//获取系统信息
+uint64 sys_uname(){
+    utsname *info=(utsname*)current->trapframe->regs.a0;
+    info=va_to_pa(current->pagetable,info);
+    if(info==NULL)
+        return (uint64)(-1);
+    memcpy(info->sysname,"testOS\0",7);
+    memcpy(info->nodename,"none\0",5);
+    memcpy(info->release,"debug\0",6);
+    memcpy(info->version,"v1.0\0",5);
+    memcpy(info->machine,"K210\0",5);
+    memcpy(info->domainname,"none\0",5);
+    return 0;
 }
 
 //进程放弃CPU
 uint64 sys_sched_yield(){
     do_yield();
     return 0;
+}
+
+//获取时间
+uint64 sys_gettimeofday(){
+    timespec *ts=(timespec*)current->trapframe->regs.a0;
+    ts=va_to_pa(current->pagetable,ts);
+    return do_gettimeofday(ts);
+}
+
+//进程睡眠
+uint64 sys_nanosleep(){
+    timespec *req=(timespec*)current->trapframe->regs.a0;
+    req=va_to_pa(current->pagetable,req);
+    timespec *rem=(timespec*)current->trapframe->regs.a1;
+    rem=va_to_pa(current->pagetable,rem);
+    return do_nanosleep(req,rem);
 }

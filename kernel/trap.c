@@ -10,6 +10,7 @@
 #include "include/schedule.h"
 #include "include/plic.h"
 #include "include/console.h"
+#include "include/systime.h"
 
 static int ticks=0; //计时器
 
@@ -27,6 +28,7 @@ void handle_timer_trap(){
     ticks++;    //计时器递增
     sbi_set_timer(r_time()+TIMER_INTERVAL); //设置下一次时钟中断的时间间隔
     w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
+    check_nanosleep_per_clk();
     if(ticks==TIME_SLICE && current!=NULL){  //如果时间片到了
         ticks=0;    //计时器归零
         if(current->state==RUNNING){    //将当前进程插入就绪队列

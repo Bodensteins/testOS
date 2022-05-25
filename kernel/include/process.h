@@ -20,7 +20,6 @@ typedef enum proc_state { //进程状态
   READY,  //就绪态
   RUNNING,  //运行态
   ZOMBIE,    //僵尸态
-  TEMP
 }proc_state;
 
 //进程段信息
@@ -115,6 +114,8 @@ typedef struct process{
   uint64 leave_ktimes;  //上一次离开内核的时间
 
   //context context;
+
+  uint64 sleep_expire;  //睡眠预期唤醒时间
 
   char name[50];
 

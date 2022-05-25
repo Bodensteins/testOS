@@ -166,9 +166,7 @@ all: $T/kernel $(SBI)
 k210: build
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
 	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
-	dd if=$(kernel-image) of=$openat(AT_FDCWD, cons, O_RDWR, 0666);
-	dup(0);  // stdout
-	dup(0);  // stderr(k210-bootloader) bs=128k seek=1
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
 	sudo chmod 777 $(k210-port)
 	python3 tools/kflash.py -p $(k210-port) -b 1500000 -t $(k210-bootloader)
 
@@ -190,6 +188,6 @@ endif
 
 #清理中间文件的标签
 clean:
-	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/.out *.bin
+	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/*.out *.bin
 
 .PHONY: clean qemu run build all test userinit user

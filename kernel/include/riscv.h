@@ -291,7 +291,9 @@ static inline uint64
 r_time()
 {
   uint64 x;
-  asm volatile("csrr %0, time" : "=r" (x) );
+  // asm volatile("csrr %0, time" : "=r" (x) );
+	// this instruction will trap in SBI
+	asm volatile("rdtime %0" : "=r" (x) );
   return x;
 }
 

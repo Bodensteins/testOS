@@ -15,7 +15,7 @@ char *test_files[] = {
 	//"getdents", 
 	"getpid", 
 	"getppid", 
-	//"gettimeofday",
+	"gettimeofday",
 	//"mkdir_", 
 	//"mmap",
 	//"mount", 
@@ -24,15 +24,15 @@ char *test_files[] = {
 	//"open", 
 	//"pipe", 
 	//"read", 
-	//"times",
+	"times",
 	//"umount", 
-	//"uname", 
+	"uname", 
 	//"unlink", 
 	"wait", 
 	"waitpid", 
 	//"write", 
 	"yield", 
-	//"sleep", 
+	"sleep", 
 };
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
 

@@ -1235,12 +1235,13 @@ int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize){
     int tot_sz=write_by_dirent(de,src,offset,wsize);
     if(tot_sz>0 && tot_sz+offset<de->file_size){
         //release cluster
-        int pre_clus=de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster)+1;
-        int new_clus=(tot_sz+offset)/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster)+1;
+        int bytes=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
+        int pre_clus=(de->file_size+bytes-1)/bytes;
+        int new_clus=(tot_sz+offset+bytes-1)/bytes;
         int clus=de->start_clusterno,next_clus;
         for(int c=0;c<pre_clus && clus!=FAT_CLUSTER_END;c++){
             next_clus=fat_find_next_clusterno(clus,1);
-            if(clus==new_clus-1){
+            if(c==new_clus-1){
                 fat_update_next_clusterno(clus,FAT_CLUSTER_END,1);
                 fat_update_next_clusterno(clus,FAT_CLUSTER_END,2);
             }
@@ -1251,6 +1252,7 @@ int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize){
             clus=new_clus;
         }
         //update filesize
+        de->dirty=1;
         de->file_size=tot_sz+offset;
     }
     return tot_sz;

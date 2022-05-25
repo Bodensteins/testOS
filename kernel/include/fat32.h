@@ -232,9 +232,9 @@ typedef struct fat32_dirent{
     char name[FILE_NAME_LENGTH+1];  //文件名(包括扩展名)
     uint8 attribute;    //文件属性
     uint32 file_size;   //文件大小
-    uint32 start_clusterno;   //文件起始扇区号
+    uint32 start_clusterno;   //文件起始簇号
     //uint32 current_clusterno;  
-    uint32 total_clusters;    //文件总共扇区号
+    uint32 total_clusters;    //文件总共簇数
     uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
     uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移
     uint8 dev;  //设备号(一般是0，表示sd卡)
