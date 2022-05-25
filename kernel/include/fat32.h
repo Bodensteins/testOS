@@ -223,6 +223,8 @@ typedef struct fat32_dir_entry{
     fat32_short_name_dir_entry short_name_dentry;
     fat32_long_name_dir_entry long_name_dentry[5];
     int long_dir_entry_num;
+    uint32 longname_dirent_clusterno_in_parent;
+    uint32 longname_dirent_offset_in_parent;
 }fat32_dir_entry;
 
 #define FILE_NAME_LENGTH 64
@@ -237,6 +239,9 @@ typedef struct fat32_dirent{
     uint32 total_clusters;    //文件总共扇区号
     uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
     uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移
+    uint32 longname_dirent_clusterno_in_parent;   //长文件目录项在父目录中的簇位置
+    uint32 longname_dirent_offset_in_parent; //长文件目录项在父目录簇中的偏移
+    uint8  longname_entry_num;
     uint8 dev;  //设备号(一般是0，表示sd卡)
     struct fat32_dirent* parent;    //父目录的目录项
     uint32 ref_count;   //该目录项的引用数量
