@@ -969,7 +969,7 @@ void release_dirent(fat32_dirent* de){
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     if(file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
         return NULL;
-    
+     
     //upper(file_name);   //文件名字母全部转为大写
     
     if(!strcmp(file_name,"/"))  //若为根目录，则直接返回根目录项
@@ -980,6 +980,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     }
     if(current_de==NULL)  
         return NULL;
+   
 
     //接下来就是以'/'为分隔，循环获取目录名并在父目录中寻找，
     //若找到则将该目录设置为父目录，迭代继续寻找下一个目录
@@ -1054,6 +1055,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
     }
+    
     return child;
 }
 
@@ -1369,7 +1371,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
         return -1;// parent 不是目录
     }
     
-    printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
+    //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
     
     fat32_dirent tmpde;
@@ -1389,7 +1391,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
     }
     */
 
-    printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
+    //printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
 
     //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
@@ -1473,8 +1475,8 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
         j++;
         
     }
-    printk("buf len: %d\n",j);
-
+    printk("create by dirent buf len: %d\n",j);
+    /*
     printk("----------display buf-----------\n");
     for(int i = 0;i<j; i++)
     {
@@ -1483,7 +1485,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
         if((i+1)%16 == 0 )
             printk("\n");
     }
-
+    */
     printk("############start to write############\n");
     int ret =0;
    
@@ -1491,7 +1493,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
 
     //ret = write_by_dirent(parent, buf,parent->file_size,j);
 
-    //ret = write_by_dirent2(parent, buf,parent->file_size,j); // 未测试
+    ret = write_by_dirent(parent, buf,parent->file_size,j);
 
     //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 

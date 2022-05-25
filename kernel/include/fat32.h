@@ -279,5 +279,6 @@ int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文件占用的所有簇
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
 int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
+int delete_by_dirent(fat32_dirent *file_to_delete);
 uint32 calc_dir_file_size(fat32_dirent *root_dir);
 #endif
