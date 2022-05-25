@@ -4,12 +4,12 @@
 #include "include/syscall.h"
 #include "include/vm.h"
 #include "include/file.h"
-#include "include/fcntl.h"
 #include "include/sbi.h"
 #include "include/systime.h"
 #include "include/console.h"
 #include "include/systime.h"
 #include "include/string.h"
+#include "include/inode.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -97,52 +97,7 @@ uint64 sys_open(){
     char* file_name=(char*)current->trapframe->regs.a0; //a0存储文件名指针(包含路径)
     file_name=(char*)va_to_pa(current->pagetable, file_name);   //虚拟地址转为物理地址
     int mode=current->trapframe->regs.a1;
-
-    //在当前工作目录搜索文件目录项
-    fat32_dirent* de=find_dirent(current->cwd, file_name);
-    //create_inode
-
-    if(de==NULL)    //没找到，返回-1
-        return -1;
-    //lock
-    if((de->attribute & ATTR_DIRECTORY) && !(mode & O_RDONLY)){ //文件是目录，或不能读，返回-1
-        //unlock
-        return -1;
-    }
-    
-    //获取OS维护的打开文件列表中的一个空闲列表项
-    file* file=acquire_file();  
-    if(file==NULL){
-        //unlock
-        return -1;
-    }
-
-    //获取一个新的文件描述符
-    int fd=acquire_fd(current, file);
-    if(fd<0){   //如果获取失败
-        release_file(file); //关闭file，返回-1
-        //unlock
-        return -1;
-    }
-    
-    //为file赋予打开文件的各种信息
-    file->fat32_dirent=de;  
-    file->dev=de->dev;
-    file->offset=(mode & O_APPEND)?de->file_size:0;
-    file->type=FILE_TYPE_SD;
-
-    //文件属性
-    if(mode & O_RDWR)
-        file->attribute |= (FILE_ATTR_READ | FILE_ATTR_WRITE);
-    else {
-        if(mode & O_RDONLY)
-            file->attribute |= FILE_ATTR_READ;
-        if(mode & O_WRONLY)
-            file->attribute |= FILE_ATTR_WRITE;
-    }
-
-    //unlock
-    return fd;  //返回文件描述符
+    return do_open(file_name,mode);  //返回文件描述符
 
 }
 

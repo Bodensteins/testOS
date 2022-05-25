@@ -6,6 +6,7 @@
 #include "include/string.h"
 #include "include/printk.h"
 #include "include/pmlayout.h"
+#include "include/inode.h"
 
 /*
 sys_exec调用do_exec
@@ -59,7 +60,7 @@ int do_execve(char *path, char **argv, char **env){
     memset(pagetable,0,PGSIZE);
 
     //根据路径和文件名获取elf文件的目录项
-    de=find_dirent(current->cwd,path);
+    de=find_dirent_i(current->cwd,path);
     if(de==NULL){
         release_memory(pagetable,0,temp_map,de);
         return -1;
@@ -67,7 +68,7 @@ int do_execve(char *path, char **argv, char **env){
     
     //根据文件目录项读取elf文件头信息
     if(
-        read_by_dirent(de,&hdr,0,sizeof(elf64_header))!=sizeof(elf64_header) ||
+        read_by_dirent_i(de,&hdr,0,sizeof(elf64_header))!=sizeof(elf64_header) ||
         hdr.magic!=ELF_MAGIC
     ){
         release_memory(pagetable,0,temp_map,de);
@@ -86,7 +87,7 @@ int do_execve(char *path, char **argv, char **env){
         //读取程序头信息(phdr)
 
         if(
-            read_by_dirent(de,&phdr,hdr.ph_off+i*psz,psz)!=psz ||
+            read_by_dirent_i(de,&phdr,hdr.ph_off+i*psz,psz)!=psz ||
             phdr.mem_size<phdr.file_size ||
             phdr.va+phdr.mem_size<phdr.va
         ){
@@ -171,7 +172,7 @@ int do_execve(char *path, char **argv, char **env){
     memset(current->name,0,50);
     memcpy(current->name,"/inexec\0",8);
 
-    release_dirent(de); //释放目录项缓冲
+    release_dirent_i(de); //释放目录项缓冲
     free_physical_page(old_map);    //释放旧的segment_map_info
     return argc;
 }
@@ -209,7 +210,7 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
 
         int sz1;
         //读取elf文件中的内容
-        if((sz1=read_by_dirent(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
+        if((sz1=read_by_dirent_i(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
             printk("sz=%d\n, sz1=%d\n",sz,sz1);
             return -1;
         }
@@ -290,5 +291,5 @@ static void release_memory(pagetable_t pagetable ,int sz, segment_map_info *map,
     if(map!=NULL)
         free_physical_page(map);
     if(de!=NULL)
-        release_dirent(de);
+        release_dirent_i(de);
 }

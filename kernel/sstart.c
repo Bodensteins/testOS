@@ -12,6 +12,7 @@
 #include "include/plic.h"
 #include "include/console.h"
 #include "include/device.h"
+#include "include/inode.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
@@ -195,7 +196,7 @@ void s_start(){
     sdcard_init();  //sd卡驱动初始化
 #endif
     buffer_init();  //磁盘缓冲区初始化
-    fat32_init();   //fat32初始化
+    fat32_init_i();   //fat32初始化
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
@@ -214,12 +215,12 @@ process* load_user_programe(){
     elf64_header hdr;
     elf64_prog_header phdr;
 
-    read_by_dirent(de,&hdr,0,sizeof(elf64_header));     //读取elf_header
+    read_by_dirent_i(de,&hdr,0,sizeof(elf64_header));     //读取elf_header
 
     proc->trapframe->epc=hdr.entry;     //确定进程入口地址
 
-    read_by_dirent(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));  //读取elf_prog_header
-    read_by_dirent(de,code,phdr.offset,phdr.file_size); //将程序段读入内存
+    read_by_dirent_i(de,&phdr,hdr.ph_off,sizeof(elf64_prog_header));  //读取elf_prog_header
+    read_by_dirent_i(de,code,phdr.offset,phdr.file_size); //将程序段读入内存
 
     proc->size=phdr.file_size;  //设置程序大小
     user_vm_map(proc->pagetable,phdr.va,PGSIZE,(uint64)code,
@@ -229,7 +230,7 @@ process* load_user_programe(){
     proc->segment_map_info[proc->segment_num].page_num=1;
     proc->segment_map_info[proc->segment_num].seg_type=CODE_SEGMENT;
     proc->segment_num++;
-    release_dirent(de); //释放目录项缓冲区    
+    release_dirent_i(de); //释放目录项缓冲区    
 
     proc->cwd=root;
 

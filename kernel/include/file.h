@@ -24,13 +24,15 @@ file.c依赖于fat32.c中的函数
 #define FILE_ATTR_READ 0x1  //可读
 #define FILE_ATTR_WRITE 0x2 //可写
 #define FILE_ATTR_EXEC 0x4  //可执行
+//文件操作
+
+
 
 //文件结构体
 typedef struct file{
     int type;   //文件类型
     fat32_dirent *fat32_dirent; //文件目录项
     //pipe *pipe;
-    
     int attribute; //属性
     int dev;    //设备号
     int ref_count;  //文件被引用数量
@@ -54,5 +56,6 @@ void release_file(file *file);  //释放一个文件结构体
 int read_file(file *file, void *buf, uint rsize);   //根据文件结构体，读取rsize个字节到buf
 int write_file(file *file, void *buf, uint wsize);  //根据文件结构体，写wsize个字节到buf
 file* file_dup(file* file); //将file中的ref_count自加
+int do_open(char *file_name, int mode);
 
 #endif

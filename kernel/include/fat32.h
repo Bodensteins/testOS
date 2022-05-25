@@ -264,7 +264,7 @@ typedef struct fat32_dirent_cache{
 extern fat32_mbr_dpt mbr_info;
 extern fat32_dbr dbr_info;
 
-void fat32_init();  //fat32初始化，OS启动时调用
+fat32_dirent*  fat32_init();  //fat32初始化，OS启动时调用
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据当前目录的目录项和文件路径名寻找文件目录项
 void release_dirent(fat32_dirent* de); //释放一个目录项
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);   //根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
@@ -274,4 +274,5 @@ void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文�
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
 int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
 uint32 calc_dir_file_size(fat32_dirent *root_dir);
+//uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);//寻找簇列表中下一个簇
 #endif

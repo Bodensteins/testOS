@@ -389,7 +389,7 @@ void test_for_create_dirent()
 
 
 //fat32文件系统相关初始化，在OS启动时调用
-void fat32_init(){
+fat32_dirent* fat32_init(){
 
     buffer *buf;
     //test_for_fill_longentry();
@@ -455,6 +455,7 @@ void fat32_init(){
         dcache.root_dir.next->prev=(dcache.dirent_list+i);
         dcache.root_dir.next=(dcache.dirent_list+i);
     }
+    return &dcache.root_dir;
 }
 
 //工具函数，作用是将簇号(clusterno)转换为该簇的第一个扇区的扇区号(sectorno)
@@ -793,7 +794,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
                                 des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
                                 //des_de->current_clusterno=des_de->start_clusterno;
                                 des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
-                                des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                                int bytes=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
+                                des_de->total_clusters=(des_de->file_size+bytes-1)/bytes;    //文件总簇数
                                 //if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
                                     //des_de->start_clusterno=dbr_info.root_dir_clusterno;
                                 return 0;
@@ -815,7 +817,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
                                     des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
                                     des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
                                     des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
-                                    des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                                    int bytes=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
+                                    des_de->total_clusters=(des_de->file_size+bytes-1)/bytes;    //文件总簇数
                                     //if(des_de->start_clusterno==0x0)
                                         //des_de->start_clusterno=dbr_info.root_dir_clusterno;
                                     return 0;
@@ -1000,7 +1003,6 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
         //获取名字后，直接寻找
         child=acquire_dirent(parent,temp_name);
-
         //如果没有找到，返回NULL
         if(child==NULL){
 
@@ -1075,7 +1077,6 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
         if(clus==FAT_CLUSTER_END){ //如果读完了最后一个簇，则直接返回
             return tot_sz;
         }
-
         //确定本簇中需要读取的起始扇区和结束扇区位置
         int s_beg=0;
         int s_end=dbr_info.sectors_per_cluster-1;

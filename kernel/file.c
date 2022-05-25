@@ -3,6 +3,8 @@
 #include "include/sleeplock.h"
 #include "include/string.h"
 #include "include/process.h"
+#include "include/inode.h"
+#include "include/fcntl.h"
 
 /*
 文件系统相关依赖为：
@@ -46,7 +48,7 @@ void release_file(file *file){
     else{   //目前只有SD卡上的文件
         switch(file->type){
             case FILE_TYPE_SD:
-                release_dirent(file->fat32_dirent);
+                release_dirent_i(file->fat32_dirent);
                 break;
             case FILE_TYPE_DEVICE:
                 //to do
@@ -76,7 +78,7 @@ int read_file(file *file, void *buf, uint rsize){
     switch(file->type){ //目前只有SD卡上的文件
         case FILE_TYPE_SD:
             //acquire_sleeplock(&file->fat32_dirent->sleeplock);
-            rsize=read_by_dirent(file->fat32_dirent,buf,file->offset,rsize);
+            rsize=read_by_dirent_i(file->fat32_dirent,buf,file->offset,rsize);
             if(rsize>0)
                 file->offset+=rsize;    //更新offset
             //release_sleeplock(&file->fat32_dirent->sleeplock);
@@ -108,4 +110,49 @@ file* file_dup(file* file){
     file->ref_count++;
     //release_spinlock(&ftable.spinlock);
     return file;
+}
+
+int do_open(char *file_name, int mode){
+    //在当前工作目录搜索文件目录项
+    fat32_dirent* de=find_dirent_i(current->cwd, file_name);
+    if(de==NULL)    //没找到，返回-1
+        return -1;
+    //lock
+    if((de->attribute & ATTR_DIRECTORY) && !(mode & O_RDONLY)){ //文件是目录，或不能读，返回-1
+        //unlock
+        return -1;
+    }
+    
+    //获取OS维护的打开文件列表中的一个空闲列表项
+    file* file=acquire_file();  
+    if(file==NULL){
+        //unlock
+        return -1;
+    }
+
+    //获取一个新的文件描述符
+    int fd=acquire_fd(current, file);
+    if(fd<0){   //如果获取失败
+        release_file(file); //关闭file，返回-1
+        //unlock
+        return -1;
+    }
+    
+    //为file赋予打开文件的各种信息
+    file->fat32_dirent=de;  
+    file->dev=de->dev;
+    file->offset=(mode & O_APPEND)?de->file_size:0;
+    file->type=FILE_TYPE_SD;
+
+    //文件属性
+    if(mode & O_RDWR)
+        file->attribute |= (FILE_ATTR_READ | FILE_ATTR_WRITE);
+    else {
+        if(mode & O_RDONLY)
+            file->attribute |= FILE_ATTR_READ;
+        if(mode & O_WRONLY)
+            file->attribute |= FILE_ATTR_WRITE;
+    }
+    //unlock
+    return fd;
 }
