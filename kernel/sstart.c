@@ -117,31 +117,32 @@ void test_for_read_entry_form_disk()
 void test_for_create_entry_to_disk()
 {
 
-    fat32_dirent*p= find_dirent(NULL,"/");
+    fat32_dirent*p= find_dirent(NULL,"/test_for_overflow_11111");
     printk("test start dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
     char longname[FILE_NAME_LENGTH] = "test_for_overflow_11111";
-    char src[] = "01234567890123456789012345678901";
+    char src[] = "0123456789012345678901234567890123456";
     //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 
-    //char buf[10];
-    //read_by_dirent(p,buf,0,10);
+    char buf[11];
+    read_by_dirent(p,buf,0,10);
+    buf[10]=0;
+    printk("%s\n",buf);
 
-    //printk("%s\n",buf);
 
-
-    
-    if(0 == create_by_dirent(p,src,ATTR_ARCHIVE))
+    /*
+    if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
     {
         printk("创建成功\n");
     }
     else{
         printk("fail\n");
     }
+    */
    
 
-    //write_by_dirent2(p,src,0,0);
-    //write_by_dirent2(p,src,p->file_size,0);
+    //write_by_dirent2(p,src,0,30);
+    //write_by_dirent2(p,src,p->file_size,10);
 
     //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
 

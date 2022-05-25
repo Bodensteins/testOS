@@ -734,17 +734,14 @@ static void fat32_dirent_to_short_name_dir_entry(fat32_short_name_dir_entry *sde
 static void fat32_dirent_write_to_disk(fat32_dirent* de){
     fat32_dir_entry dentry;
     fat32_dirent_to_short_name_dir_entry(&dentry.short_name_dentry,de);
-    buffer *buf=acquire_buffer(DEVICE_DISK_NUM,
-        clusterno_to_sectorno(de->clusterno_in_parent)+de->offset_in_parent/dbr_info.bytes_per_sector);
+    int sec=clusterno_to_sectorno(de->clusterno_in_parent)+de->offset_in_parent/dbr_info.bytes_per_sector;
+    buffer *buf=acquire_buffer(DEVICE_DISK_NUM, sec);
     //write_to_buffer(buf, &dentry, de->offset_in_parent%dbr_info.bytes_per_sector, DIR_ENTRY_BYTES);
-    write_to_buffer(buf, &dentry.short_name_dentry.atrribute, 
-        de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_ATRRIBUTE_OFFSET, 1);
-    write_to_buffer(buf, &dentry.short_name_dentry.start_clusterno_high, 
-        de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_START_CLUSTERNO_HIGH_OFFSET, 2);
-    write_to_buffer(buf, &dentry.short_name_dentry.start_clusterno_low, 
-        de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_START_CLUSTERNO_LOW_OFFSET, 2);
-    write_to_buffer(buf, &dentry.short_name_dentry.file_size, 
-        de->offset_in_parent%dbr_info.bytes_per_sector+SHORT_DENTRY_FILE_SIZE_OFFSET, 4);
+    int off_in_sec=de->offset_in_parent%dbr_info.bytes_per_sector;
+    write_to_buffer(buf, &dentry.short_name_dentry.atrribute, off_in_sec+SHORT_DENTRY_ATRRIBUTE_OFFSET, 1);
+    write_to_buffer(buf, &dentry.short_name_dentry.start_clusterno_high, off_in_sec+SHORT_DENTRY_START_CLUSTERNO_HIGH_OFFSET, 2);
+    write_to_buffer(buf, &dentry.short_name_dentry.start_clusterno_low, off_in_sec+SHORT_DENTRY_START_CLUSTERNO_LOW_OFFSET, 2);
+    write_to_buffer(buf, &dentry.short_name_dentry.file_size, off_in_sec+SHORT_DENTRY_FILE_SIZE_OFFSET, 4);
     release_buffer(buf);
 }
 
@@ -1370,7 +1367,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         return -1;// parent 不是目录
     }
     
-    printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
+    //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
     
     fat32_dirent tmpde;
@@ -1393,7 +1390,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
     */
         
 
-    printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
+    //printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
 
     //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
@@ -1407,25 +1404,25 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
     int len = strlen(name);
     int num = (len+ 13 -1)/13; //向上取整
     if(num <= 0 ) return -2;
-    printk("create_by_dirent argument name : %s\n",name);
+    //printk("create_by_dirent argument name : %s\n",name);
     char shortname[12]="  -  -  -  ";
     longname_to_shorname(name,shortname);
     //printk("create_by_dirent shortname: %s\n",shortname); 
     //printk("#6 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
     fill_longname_entry(name,long_name_dir_entry);
     
-    printk("#7dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
-
-    printk("%p\n",parent);
+    //printk("#7dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
+    //watch=&parent;
+    //printk("%p\n",parent);
     fill_shortname_entry(name,&short_name_dir_entry,attribute);
-    printk("%p\n",parent);
+    //printk("%p\n",parent);
 
-    printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
-    printk("name:%s\n",parent->name);
+    //printk("#8 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
+    //printk("name:%s\n",parent->name);
 
     parent = create_by_dirent_parent;
-    printk("%p\n",parent);
-    printk("#9 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
+    //printk("%p\n",parent);
+    //printk("#9 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
 
 /*
     printk("############longname dir entry############\n");
@@ -1469,7 +1466,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         }
         //printk("%dbuf len: %d\n",i,j);
     }
-    printk("############buf shortname copy ############\n");
+    //printk("############buf shortname copy ############\n");
     for(int k =0;k<32;k++)
     {
         uint8* start =&short_name_dir_entry;
@@ -1477,9 +1474,10 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         j++;
         
     }
-    printk("buf len: %d\n",j);
+    //printk("buf len: %d\n",j);
 
-    printk("----------display buf-----------\n");
+    //printk("----------display buf-----------\n");
+    /*
     for(int i = 0;i<j; i++)
     {
         
@@ -1487,19 +1485,18 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         if((i+1)%16 == 0 )
             printk("\n");
     }
+    */
 
-    printk("############start to write############\n");
+    //printk("############start to write############\n");
     int ret =0;
    
     //printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
 
-    //ret = write_by_dirent2(parent, buf,parent->file_size,j);
-
-    //ret = write_by_dirent2(parent, buf,parent->file_size,j); // 未测试
+    ret = write_by_dirent2(parent, buf,parent->file_size,j);
 
     //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
 
-    printk("############end of write############\n");
+    //printk("############end of write############\n");
 
     printk("写入的字节数%d\n",ret);
     
