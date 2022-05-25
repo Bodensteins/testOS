@@ -63,8 +63,7 @@ void release_dirent_i(fat32_dirent* de){
 
 fat32_dirent * dirent_dup_i(fat32_dirent *de){
     dirent_dup(de);
-    int i=1;
-    for(;i<INODE_LIST_LENGTH;i++){
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             icache.inode[i].i_count++;
         }
@@ -73,7 +72,7 @@ fat32_dirent * dirent_dup_i(fat32_dirent *de){
 }
 
 fat32_dirent* acquire_dirent_i(fat32_dirent* parent, char* name){
-    fat32_dirent* de=acquire_dirent(fat32_dirent* parent, char* name);
+    fat32_dirent* de=acquire_dirent( parent, name);
     for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             return de;
@@ -102,7 +101,7 @@ int read_by_dirent_i(fat32_dirent *de, void *dst, uint offset, uint rsize){
 
 int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
     int result=write_by_dirent(de, src, offset, wsize);
-    for(;i<INODE_LIST_LENGTH;i++){
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             icache.inode[i].i_file_size=de->file_size;
         }
@@ -111,8 +110,8 @@ int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
 }
 
 void trunc_by_dirent_i(fat32_dirent *de){
-    trunc_by_dirent(fat32_dirent *de);
-    for(;i<INODE_LIST_LENGTH;i++){
+    trunc_by_dirent(de);
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
         if(de==icache.inode[i].i_de){
             icache.inode[i].i_file_size=0;
             icache.inode[i].i_start_blockno=0;
