@@ -38,8 +38,8 @@ uint64 fork(){
 }
 
 //打开文件
-uint64 open(char *file_name, int mode){
-    return user_syscall((uint64)file_name,mode,0,0,0,0,0,SYS_open);
+int openat(int fd, char *file_name, int flag){
+    return user_syscall(fd,(uint64)file_name,flag,0,0,0,0,SYS_openat);
 }
 
 //根据文件描述符fd，读取文件中rsize个字节到buf中

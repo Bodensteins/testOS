@@ -12,5 +12,6 @@
 #define O_APPEND  0x8   //追加写
 #define O_CREATE  0x200     //创建文件
 #define O_TRUNC   0x400     //截断文件
+#define O_DIRECTORY 0x010000    //目录
 
 #endif

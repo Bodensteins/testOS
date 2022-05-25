@@ -5,6 +5,7 @@
 #include "include/process.h"
 #include "include/inode.h"
 #include "include/fcntl.h"
+#include "include/device.h"
 
 /*
 文件系统相关依赖为：
@@ -51,7 +52,6 @@ void release_file(file *file){
                 release_dirent_i(file->fat32_dirent);
                 break;
             case FILE_TYPE_DEVICE:
-                //to do
                 break;
             case FILE_TYPE_PIPE:
                 //to do
@@ -72,7 +72,7 @@ void release_file(file *file){
 //其读取的数据在文件中的位置还取决于file中的offset字段
 //读取后将file->offset更新至读完之后的位置
 int read_file(file *file, void *buf, uint rsize){
-    if(file==NULL || buf==NULL)
+    if(file==NULL || buf==NULL || !(file->attribute & FILE_ATTR_READ))
         return -1;
 
     switch(file->type){ //目前只有SD卡上的文件
@@ -84,13 +84,15 @@ int read_file(file *file, void *buf, uint rsize){
             //release_sleeplock(&file->fat32_dirent->sleeplock);
             break;
         case FILE_TYPE_DEVICE:
-            //to do
+            if(dev_list[file->dev].read==NULL)
+                return -1;
+            dev_list[file->dev].read(buf,rsize);
             break;
         case FILE_TYPE_PIPE:
             //to do
             break;
         default:
-            panic("read_file");
+            return -1;
             break;
     }
 
@@ -99,7 +101,29 @@ int read_file(file *file, void *buf, uint rsize){
 
 //根据文件结构体，写wsize个字节到buf
 int write_file(file *file, void *buf, uint wsize){
-    //to do
+    if(file==NULL || buf==NULL || !(file->attribute & FILE_ATTR_WRITE))
+        return -1;
+
+    switch(file->type){ //目前只有SD卡上的文件
+        case FILE_TYPE_SD:
+            //acquire_sleeplock(&file->fat32_dirent->sleeplock);
+            wsize=write_by_dirent_i(file->fat32_dirent,buf,file->offset,wsize);
+            if(wsize>0)
+                file->offset=file->fat32_dirent->file_size;    //更新offset
+            //release_sleeplock(&file->fat32_dirent->sleeplock);
+            break;
+        case FILE_TYPE_DEVICE:
+            if(dev_list[file->dev].write==NULL)
+                return -1;
+            dev_list[file->dev].write(buf,wsize);
+            break;
+        case FILE_TYPE_PIPE:
+            //to do
+            break;
+        default:
+            return -1;
+            break;
+    }
     return wsize;
 }
 
@@ -112,21 +136,62 @@ file* file_dup(file* file){
     return file;
 }
 
-int do_open(char *file_name, int mode){
-    //在当前工作目录搜索文件目录项
-    fat32_dirent* de=find_dirent_i(current->cwd, file_name);
-    if(de==NULL)    //没找到，返回-1
-        return -1;
-    //lock
-    if((de->attribute & ATTR_DIRECTORY) && !(mode & O_RDONLY)){ //文件是目录，或不能读，返回-1
-        //unlock
-        return -1;
+//工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
+//一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
+static int acquire_fd(process* proc, file *file){
+    int fd;
+    for(fd=0;fd<N_OPEN_FILE;fd++){
+        if(proc->open_files[fd]==NULL){
+            proc->open_files[fd]=file;
+            return fd;
+        }
     }
+    return -1;
+}
+
+int do_openat(int fd, char *file_name, int flag){
+    if(file_name==NULL)
+        return -1;
+
+    if(strncmp(file_name,"/dev",4)==0){
+        file *f=open_device(file_name);
+        if(f==NULL)
+            return -1;
+        int fd=acquire_fd(current, f);
+        if(fd==-1){
+            release_file(f);
+            return -1;
+        }
+        return fd;
+    }
+
+    fat32_dirent* dir;
+    if(fd>0 && fd<N_OPEN_FILE)
+        dir=current->open_files[fd]->fat32_dirent;
+    else if(fd==AT_FDCWD || *file_name=='/')
+        dir=current->cwd;
+    else 
+        return -1;
+
+    //在指定目录搜索文件目录项
+    fat32_dirent* de=find_dirent_i(dir, file_name);
+    if(de==NULL){   //没找到
+        if(flag & O_CREATE){
+            //to do
+            //int ret=create_by_dirent(dir,file_name,);
+            //
+        }
+        else
+            return -1;
+    }   
+
     
+    //lock
     //获取OS维护的打开文件列表中的一个空闲列表项
     file* file=acquire_file();  
     if(file==NULL){
         //unlock
+        release_dirent_i(de);
         return -1;
     }
 
@@ -134,6 +199,7 @@ int do_open(char *file_name, int mode){
     int fd=acquire_fd(current, file);
     if(fd<0){   //如果获取失败
         release_file(file); //关闭file，返回-1
+        release_dirent_i(de);
         //unlock
         return -1;
     }
@@ -141,18 +207,26 @@ int do_open(char *file_name, int mode){
     //为file赋予打开文件的各种信息
     file->fat32_dirent=de;  
     file->dev=de->dev;
-    file->offset=(mode & O_APPEND)?de->file_size:0;
+    file->offset=(flag & O_APPEND)?de->file_size:0;
     file->type=FILE_TYPE_SD;
 
     //文件属性
-    if(mode & O_RDWR)
+    if(flag & O_RDWR)
         file->attribute |= (FILE_ATTR_READ | FILE_ATTR_WRITE);
     else {
-        if(mode & O_RDONLY)
+        if(flag & O_RDONLY)
             file->attribute |= FILE_ATTR_READ;
-        if(mode & O_WRONLY)
+        if(flag & O_WRONLY)
             file->attribute |= FILE_ATTR_WRITE;
     }
+    if(flag & O_DIRECTORY){
+        file->attribute |= FILE_ATTR_DIR;
+        file->attribute &= ~(FILE_ATTR_WRITE);
+    }
+
+    file->attribute |= FILE_ATTR_READ;
+
     //unlock
     return fd;
 }
+

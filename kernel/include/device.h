@@ -23,6 +23,7 @@ typedef struct device{
 
 extern device dev_list[NDEV];
 
+file* open_device(char *dev_name);
 void device_init();
 
 #endif

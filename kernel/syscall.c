@@ -13,15 +13,20 @@
 
 //系统调用函数声明
 uint64 sys_fork();
-uint64 sys_read();
+
 uint64 sys_kill();
-uint64 sys_open();
+
 uint64 sys_simple_write();
-uint64 sys_close();
 
 uint64 sys_simple_read();
 uint64 sys_simple_write();
 
+uint64 sys_openat();
+uint64 sys_read();
+uint64 sys_write();
+uint64 sys_close();
+uint64 sys_dup();
+uint64 sys_dup3();
 uint64 sys_exit();
 uint64 sys_clone();
 uint64 sys_execve();
@@ -38,14 +43,18 @@ uint64 sys_nanosleep();
 //将系统调用函数组织为一个函数指针数组
 static uint64 (*syscalls[])() = {
     [SYS_fork] sys_fork,
-    [SYS_read] sys_read,
     [SYS_kill] sys_kill,
-    [SYS_open] sys_open,
-    [SYS_write] sys_simple_write,
-    [SYS_close] sys_close,
+    [SYS_open] sys_openat,
 
     [SYS_simple_read] sys_simple_read,
     [SYS_simple_write] sys_simple_write,
+
+    [SYS_openat] sys_openat,
+    [SYS_read] sys_read,
+    [SYS_write] sys_write,
+    [SYS_close] sys_close,
+    [SYS_dup] sys_dup,
+    [SYS_dup3] sys_dup3,
 
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
@@ -76,37 +85,25 @@ uint64 sys_fork(){
     return do_fork(current);
 }
 
-//工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
-//一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
-static int acquire_fd(process* proc, file *file){
-    int fd;
-    for(fd=0;fd<N_OPEN_FILE;fd++){
-        if(proc->open_files[fd]==NULL){
-            proc->open_files[fd]=file;
-            return fd;
-        }
-    }
-    return -1;
-}
 
 //打开一个文件(没有同步控制)
 //a0存储文件名的指针,a1存储打开方式(参见fcntl.h)
 //返回该文件的文件描述符
-uint64 sys_open(){
+uint64 sys_openat(){
     //获取参数
-    char* file_name=(char*)current->trapframe->regs.a0; //a0存储文件名指针(包含路径)
+    int fd=(int)current->trapframe->regs.a0;
+    char* file_name=(char*)current->trapframe->regs.a1; //a0存储文件名指针(包含路径)
     file_name=(char*)va_to_pa(current->pagetable, file_name);   //虚拟地址转为物理地址
-    int mode=current->trapframe->regs.a1;
-    return do_open(file_name,mode);  //返回文件描述符
+    int flag=current->trapframe->regs.a2;
+    return do_openat(fd, file_name, flag);  //返回文件描述符
 
 }
 
 //读取文件中的数据
 uint64 sys_read(){
     //获取参数
-    int fd=current->trapframe->regs.a0; //a0存储文件描述符
-    if(current->open_files[fd]==NULL || 
-        !(current->open_files[fd]->attribute & FILE_ATTR_READ)){
+    int fd=(int)current->trapframe->regs.a0; //a0存储文件描述符
+    if(current->open_files[fd]==NULL){
         return -1;
     }
     char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
@@ -115,6 +112,20 @@ uint64 sys_read(){
     
     rsize=read_file(current->open_files[fd],buf,rsize);     //调用read_file读取
     return rsize;   //返回实际读取的数据
+}
+
+uint64 sys_write(){
+    //获取参数
+    int fd=(int)current->trapframe->regs.a0; //a0存储文件描述符
+    if(current->open_files[fd]==NULL){
+        return -1;
+    }
+    char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
+    buf=(char*)va_to_pa(current->pagetable,buf);    //虚拟地址转物理地址
+    int wsize=current->trapframe->regs.a2;  //a2为希望读取多少字节
+    
+    wsize=write_file(current->open_files[fd],buf,wsize);     //调用read_file读取
+    return wsize;   //返回实际读取的数据
 }
 
 //根据pid杀死进程
@@ -148,6 +159,14 @@ uint64 sys_close(){
         return -1;
     release_file(current->open_files[fd]);  //释放file
     current->open_files[fd]=NULL;
+    return 0;
+}
+
+uint64 sys_dup(){
+    return 0;
+}
+
+uint64 sys_dup3(){
     return 0;
 }
 

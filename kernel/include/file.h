@@ -24,9 +24,9 @@ file.c依赖于fat32.c中的函数
 #define FILE_ATTR_READ 0x1  //可读
 #define FILE_ATTR_WRITE 0x2 //可写
 #define FILE_ATTR_EXEC 0x4  //可执行
-//文件操作
+#define FILE_ATTR_DIR 0x8 //目录
 
-
+#define AT_FDCWD -100
 
 //文件结构体
 typedef struct file{
@@ -48,6 +48,14 @@ typedef struct file_table{
     file file[NFILE];   //打开的文件列表
 }file_table;
 
+typedef struct dirent{
+    uint64 d_ino;	// 索引结点号
+    uint64 d_off;	// 到下一个dirent的偏移
+    unsigned short d_reclen;	// 当前dirent的长度
+    unsigned char d_type;	// 文件类型
+    char d_name[FILE_NAME_LENGTH];	//文件名
+}dirent;
+
 extern file_table ftable;
 
 void file_init();   //文件结构体和文件列表初始化
@@ -56,6 +64,6 @@ void release_file(file *file);  //释放一个文件结构体
 int read_file(file *file, void *buf, uint rsize);   //根据文件结构体，读取rsize个字节到buf
 int write_file(file *file, void *buf, uint wsize);  //根据文件结构体，写wsize个字节到buf
 file* file_dup(file* file); //将file中的ref_count自加
-int do_open(char *file_name, int mode);
+int do_openat(int fd, char *file_name, int mode);
 
 #endif

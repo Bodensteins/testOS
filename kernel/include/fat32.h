@@ -234,6 +234,7 @@ typedef struct fat32_dirent{
     uint32 file_size;   //文件大小
     uint32 start_clusterno;   //文件起始簇号
     //uint32 current_clusterno;  
+    uint32 i_ino;
     uint32 total_clusters;    //文件总共簇数
     uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
     uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移

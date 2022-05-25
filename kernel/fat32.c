@@ -444,6 +444,7 @@ fat32_dirent* fat32_init(){
     dcache.root_dir.prev=&dcache.root_dir;
     dcache.root_dir.next=&dcache.root_dir;
     for(int i=0;i<DIRENT_LIST_LENGTH;i++){
+        (dcache.dirent_list+i)->i_ino=0;
         (dcache.dirent_list+i)->valid=0;
         (dcache.dirent_list+i)->dirty=0;
         (dcache.dirent_list+i)->dev=0;
@@ -1008,14 +1009,14 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
             if(strlen(temp_name) <= 11)
             {   
-                printk("find_dirent temp_name : %s\n",temp_name);
+                //printk("find_dirent temp_name : %s\n",temp_name);
 
                 upper(temp_name);
 
                 child=acquire_dirent(parent,temp_name);
                 if(child==NULL)
                 {
-                    printk("%s : file not found\n",temp_name);
+                    //printk("%s : file not found\n",temp_name);
                     
                     if(parent!=NULL && parent!=current_de)
                         release_dirent(parent);
@@ -1117,6 +1118,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
     if(de==NULL || src==NULL || wsize<=0)
         return 0;
     
+    /*
     printk("write_by_dirent offset: %d\n",offset);
     printk("write_by_dirent wsize: %d\n",wsize);
     printk("write_by_dirent de name %s\n",de->name);
@@ -1131,6 +1133,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             printk("\n");
     }
     printk("\n");
+    */
 
     if(offset>de->file_size) // 顺次添加
         offset=de->file_size;
@@ -1215,13 +1218,12 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
             if(offset+tot_sz>de->file_size){
                 de->dirty=1;
                 de->file_size=offset+tot_sz;
-                printk("write_by_dirent filesize: %d\n",de->file_size);
+                //printk("write_by_dirent filesize: %d\n",de->file_size);
                 if(de->parent != de) //不是根目录
-                {
-                    
+                {    
                     de->parent->dirty = 1;
                 }
-                printk("wirte by dirent dirname: %s, file_size: %d\n",de->name,de->file_size);
+                //printk("wirte by dirent dirname: %s, file_size: %d\n",de->name,de->file_size);
             }
         }
 
