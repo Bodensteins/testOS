@@ -1517,11 +1517,11 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
 //未测试
 int delete_fat32_dirent_in_disk(fat32_dirent *de)
 {
-
+    printk("delete dirent start\n");
     //删除长文件目录项
     int bytes_per_cluster = dbr_info.bytes_per_sector * dbr_info.sectors_per_cluster; // 每簇的字节数
-    uint8 flag = '0xE5';//删除标记
-    
+    uint8 flag = 0xE5;//删除标记
+    printk("flag: %x\n",flag);
     
     uint32 longname_dirent_clusterno_in_parent = de->longname_dirent_clusterno_in_parent; //起始的簇号
     uint32 bytes_per_sector = dbr_info.bytes_per_sector; // 每扇区字节数
@@ -1534,11 +1534,20 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
         uint32  sec_offset_in_cluster = start_bytes_offset_in_cluster /dbr_info.bytes_per_sector;// 簇中的扇区偏移
         uint32 sector_num = clusterno_to_sectorno(start_cluster_num) + sec_offset_in_cluster;//该目录项所在的扇区号
         uint32 offset_in_sector = start_bytes_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移，单位字节
-
+        printk("delete long_dirent %d sec num:%d  offset_in_sec:%d\n",counter+1,sector_num,offset_in_sector);
+       
         buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
         write_to_buffer(buf,&flag,offset_in_sector,1);
+        
+        printk("----------display buf-----------\n");
+        for(int i = 0;i<BSIZE; i++)
+        {
+        
+            printk("%x ",buf->data[i]);
+            if((i+1)%16 == 0 )
+                printk("\n");
+        }
         release_buffer(buf);
-
         start_bytes_offset_in_cluster += DIR_ENTRY_BYTES; // 下一个目录项在簇中的偏移 单位字节
 
         if(start_bytes_offset_in_cluster >=bytes_per_cluster ) // 偏移超出 簇的最大字节数
@@ -1554,18 +1563,28 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
 
     uint32 shortname_dirent_cluster_in_parent = de->clusterno_in_parent; //短文件名在父目录的簇号
     uint32 shortname_dirent_offset_in_cluster = de->offset_in_parent; // 短文件名在 簇中的偏移 单位字节
+    
     uint32  sec_offset_in_cluster =  shortname_dirent_offset_in_cluster /dbr_info.bytes_per_sector; // 短文件名在 簇中的偏移 单位扇区
     uint32 sector_num = clusterno_to_sectorno(shortname_dirent_cluster_in_parent) + sec_offset_in_cluster;//文件名目录项所在的扇区号
     uint32 offset_in_sector = shortname_dirent_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移短
 
+    printk("delete short_dirent sec num:%d  offset_in_sec:%d\n",sector_num,offset_in_sector);
+
     buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
     write_to_buffer(buf,&flag,offset_in_sector,1);
+    for(int i = 0;i<BSIZE; i++)
+    {
+        printk("%x ",buf->data[i]);
+        if((i+1)%16 == 0 )
+            printk("\n");
+    }
     release_buffer(buf);
-
-
-
     de->del = 1;
 
+
+
+    
+    printk("delete dirent ret\n");
     return 0;
 }
 
