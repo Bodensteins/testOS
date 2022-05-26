@@ -145,6 +145,7 @@ void test_for_create_entry()
     p = find_dirent(NULL,"/test_create.txt");
     printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
+    release_dirent(p);
     //pass
 }
 
@@ -153,7 +154,7 @@ void test_for_wirte_dirent()
 
     //写入测试
     printk("[ 3 ]   wirte by dirent start to test\n");
-    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
      printk("[ 5] %s file_size:%d\n",add_file->name, add_file->file_size);
     char src[] = "test file write and read";
     write_by_dirent2(add_file,src,add_file->file_size,strlen(src)+1);
@@ -173,7 +174,7 @@ void test_for_read_dirent()
     
  //读取测试
     printk("[  ]   wirte by dirent start to test\n");
-    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
     char buf[100];
     int ret =  read_by_dirent(add_file,buf,0,100);
     printk("##### read len %d\n",ret);
@@ -194,14 +195,14 @@ void test_for_del_dirent()
 {
     
     //删除测试
-    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
     int ret = delete_by_dirent(add_file);
     release_dirent(add_file);
 
     if(NULL == find_dirent(NULL,"/test_for_create"))
         printk("##### delete success!\n");
 
-
+    //pass
 }
 
 
@@ -233,6 +234,7 @@ void s_start(){
     //test_for_create_entry();
     //test_for_wirte_dirent();
     //test_for_read_dirent();
+
     //test_for_del_dirent();
     //while(1) {};
 
