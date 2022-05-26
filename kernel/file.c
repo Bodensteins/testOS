@@ -174,18 +174,18 @@ int do_openat(int fd, char *file_name, int flag){
         return -1;
 
     //在指定目录搜索文件目录项
-    fat32_dirent* de=find_dirent_i(dir, file_name);
-    if(de==NULL){   //没找到
-        if(flag & O_CREATE){
-            //to do
-            //int ret=create_by_dirent(dir,file_name,);
-            //
-        }
-        else
-            return -1;
+    fat32_dirent *de;
+    if(flag & O_CREATE){
+        int attr = flag&O_DIRECTORY ? ATTR_DIRECTORY : ATTR_ARCHIVE;
+        de=find_dirent_with_create_i(dir,file_name,1,attr);
     }
-
+    else{
+        de=find_dirent_with_create_i(dir,file_name,0,0);
+    }
     
+    if(de==NULL)
+        return -1;
+
     //lock
     //获取OS维护的打开文件列表中的一个空闲列表项
     file* file=acquire_file();  
@@ -228,6 +228,23 @@ int do_openat(int fd, char *file_name, int flag){
 
     //unlock
     return fd;
+}
+
+int do_close(int fd){
+    if(current->open_files[fd]==NULL)
+        return -1;
+    release_file(current->open_files[fd]);  //释放file
+    current->open_files[fd]=NULL;
+    return 0;
+}
+
+int do_mkdirat(int fd, char *path){
+    int new=do_openat(fd,path,O_CREATE | O_DIRECTORY | O_RDONLY);
+    if(new==-1)
+        return -1;
+    if(do_close(new)!=0)
+        return -1;
+    return 0;
 }
 
 int do_dup(process *proc, int fd){

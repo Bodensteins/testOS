@@ -23,7 +23,9 @@ typedef struct device{
 
 extern device dev_list[NDEV];
 
-file* open_device(char *dev_name);
 void device_init();
+file* open_device(char *dev_name);
+int do_mount(char *dev, char *mnt, char *fs);
+int do_umount(char *mnt);
 
 #endif

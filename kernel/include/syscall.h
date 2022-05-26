@@ -29,7 +29,7 @@
 #define SYS_linkat 37
 #define SYS_unlinkat 35
 #define SYS_mkdirat 34
-#define SYS_umount2 39
+#define SYS_umount 39
 #define SYS_mount 40
 #define SYS_fstat 80
 #define SYS_munmap 215

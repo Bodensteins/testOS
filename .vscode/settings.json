@@ -32,6 +32,8 @@
         "thread": "c",
         "sstream": "c",
         "systime.h": "c",
-        "device.h": "c"
+        "device.h": "c",
+        "inode.h": "c",
+        "console.h": "c"
     }
 }

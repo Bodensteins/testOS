@@ -4,9 +4,9 @@ char *test_files[] = {
 	"brk", 
 	//"chdir", 
 	"clone", 
-	//"close", 
-	//"dup2", 
-	//"dup", 
+	"close", 
+	"dup2", 
+	"dup", 
 	"execve", 
 	"exit", 
 	"fork", 
@@ -16,21 +16,21 @@ char *test_files[] = {
 	"getpid", 
 	"getppid", 
 	"gettimeofday",
-	//"mkdir_", 
+	"mkdir_", 
 	//"mmap",
-	//"mount", 
+	"mount", 
 	//"munmap",
-	//"openat", 
-	//"open", 
+	"openat", 
+	"open", 
 	//"pipe", 
-	//"read", 
+	"read", 
 	"times",
-	//"umount", 
+	"umount", 
 	"uname", 
 	//"unlink", 
 	"wait", 
 	"waitpid", 
-	//"write", 
+	"write", 
 	"yield", 
 	"sleep", 
 };
@@ -39,6 +39,8 @@ int const test_file_num = sizeof(test_files) / sizeof(char const*);
 void main(void) __attribute__((naked));
 void main(void) {
 	int fd=openat(-100,"/dev/console",0x4);
+	dup(fd);
+	dup(fd);
 
 	for (int i = 0; i < test_file_num; i ++) {
 		if (fork() == 0) {

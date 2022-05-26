@@ -10,6 +10,7 @@
 #include "include/systime.h"
 #include "include/string.h"
 #include "include/inode.h"
+#include "include/device.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -25,9 +26,12 @@ uint64 sys_openat();
 uint64 sys_read();
 uint64 sys_write();
 uint64 sys_close();
+uint64 sys_mkdirat();
 uint64 sys_dup();
 uint64 sys_dup3();
 uint64 sys_exit();
+uint64 sys_mount();
+uint64 sys_umount();
 uint64 sys_clone();
 uint64 sys_execve();
 uint64 sys_wait4();
@@ -55,6 +59,9 @@ static uint64 (*syscalls[])() = {
     [SYS_close] sys_close,
     [SYS_dup] sys_dup,
     [SYS_dup3] sys_dup3,
+    [SYS_mkdirat] sys_mkdirat,
+    [SYS_mount] sys_mount,
+    [SYS_umount] sys_umount,
 
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
@@ -144,8 +151,6 @@ uint64 sys_simple_read(){
 
 //一个简单的print系统调用，临时写在这里
 uint64 sys_simple_write(){
-    if(current->trapframe->regs.a0==8)
-        printk("here\n");
     char* str=(char*)current->trapframe->regs.a1;
     str=(char*)va_to_pa(current->pagetable,str);
     int sz=current->trapframe->regs.a2;
@@ -155,11 +160,15 @@ uint64 sys_simple_write(){
 //关闭文件
 uint64 sys_close(){
     int fd=current->trapframe->regs.a0; //a0存储文件描述符
-    if(current->open_files[fd]==NULL)
-        return -1;
-    release_file(current->open_files[fd]);  //释放file
-    current->open_files[fd]=NULL;
-    return 0;
+    return do_close(fd);
+}
+
+//创建目录
+uint64 sys_mkdirat(){
+    int fd=current->trapframe->regs.a0;
+    char* path=(char*)current->trapframe->regs.a1;
+    path=(char*)va_to_pa(current->pagetable,path);
+    return do_mkdirat(fd,path);
 }
 
 uint64 sys_dup(){
@@ -173,6 +182,23 @@ uint64 sys_dup3(){
     return do_dup3(current,old,new);
 }
 
+uint64 sys_mount(){
+    char *dev_name=current->trapframe->regs.a0;
+    dev_name=va_to_pa(current->pagetable,dev_name);
+    char *mnt_point=current->trapframe->regs.a1;
+    mnt_point=va_to_pa(current->pagetable,mnt_point);
+    char *fs_type=current->trapframe->regs.a2;
+    fs_typeva_to_pa(current->pagetable,fs_type);
+    return do_mount(dev_name,mnt_point,fs_type);
+}
+
+uint64 sys_umount(){
+    char *mnt_point=current->trapframe->regs.a0;
+    mnt_point=va_to_pa(current->pagetable,mnt_point);
+    return do_umount(mnt_point);
+}
+
+//进程复制，可自行指定用户栈
 uint64 sys_clone(){
     uint64 flag=current->trapframe->regs.a0;
     uint64 stack=current->trapframe->regs.a1;

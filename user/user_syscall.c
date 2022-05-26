@@ -47,6 +47,18 @@ uint64 read(int fd, void* buf, size_t rsize){
     return user_syscall(fd,(uint64)buf,rsize,0,0,0,0,SYS_read);
 }
 
+uint64 write(int fd, void* buf, size_t wsize){
+    return user_syscall(fd,(uint64)buf,wsize,0,0,0,0,SYS_write);
+}
+
+int dup(int fd){
+    return user_syscall(fd,0,0,0,0,0,0,SYS_dup);
+}
+
+int dup3(int old, int new, int flags){
+    return user_syscall(old,new,flags,0,0,0,0,SYS_dup3);
+}
+
 //根据pid杀死进程
 uint64 kill(uint64 pid){
     return user_syscall(pid,0,0,0,0,0,0,SYS_kill);

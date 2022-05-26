@@ -27,7 +27,7 @@ void fat32_init_i(){
 }
 
 fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
-    fat32_dirent *de= find_dirent( current_de, file_name);
+    fat32_dirent *de=find_dirent( current_de, file_name);
     if(de==NULL)    
         return  NULL;
     for(int i=0;i<INODE_LIST_LENGTH;i++){
@@ -40,7 +40,7 @@ fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
         if(icache.inode[i].i_de==NULL){
             icache.inode[i].i_ino=i;
             icache.inode[i].i_count=de->ref_count;
-            icache.inode[i].i_nlink=0;
+            icache.inode[i].i_nlink=1;
             icache.inode[i].i_dev=de->dev;
             icache.inode[i].i_de=de;
             icache.inode[i].i_file_size=de->file_size;
@@ -54,7 +54,39 @@ fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name){
             return de;
         }
     }
-    panic("inode is full\n");
+    printk("inode is full\n");
+    return NULL;
+}
+
+fat32_dirent* find_dirent_with_create_i(fat32_dirent* current_de, char *file_name,int is_create, int attribute){
+    fat32_dirent *de=find_dirent_with_create( current_de, file_name, is_create, attribute);
+    if(de==NULL)    
+        return  NULL;
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
+        if(de==icache.inode[i].i_de){
+            return de;
+        }
+    }
+
+    for(int i=0;i<INODE_LIST_LENGTH;i++){
+        if(icache.inode[i].i_de==NULL){
+            icache.inode[i].i_ino=i;
+            icache.inode[i].i_count=de->ref_count;
+            icache.inode[i].i_nlink=1;
+            icache.inode[i].i_dev=de->dev;
+            icache.inode[i].i_de=de;
+            icache.inode[i].i_file_size=de->file_size;
+            icache.inode[i].i_start_blockno=de->start_clusterno;
+            icache.inode[i].i_total_blocks=de->total_clusters;
+            de->i_ino=i;
+            //icache.inode[i].i_blocks[0]=icache.inode[i].i_start_blockno;
+            //for(int j=1;i<icache.inode[j].i_total_blocks;j++){
+            //    icache.inode[i].i_blocks[j]=fat_find_next_clusterno(icache.inode[i].i_blocks[j-1],1);
+            //}
+            return de;
+        }
+    }
+    printk("inode is full\n");
     return NULL;
 }
 

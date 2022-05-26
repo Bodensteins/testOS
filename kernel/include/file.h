@@ -65,6 +65,8 @@ int read_file(file *file, void *buf, uint rsize);   //根据文件结构体，�
 int write_file(file *file, void *buf, uint wsize);  //根据文件结构体，写wsize个字节到buf
 file* file_dup(file* file); //将file中的ref_count自加
 int do_openat(int fd, char *file_name, int mode);
+int do_close(int fd);
+int do_mkdirat(int fd, char *path);
 int do_dup(process *proc, int fd);
 int do_dup3(process *proc, int old, int new);
 

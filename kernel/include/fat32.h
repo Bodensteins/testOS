@@ -273,6 +273,7 @@ extern fat32_dbr dbr_info;
 
 fat32_dirent*  fat32_init();  //fat32初始化，OS启动时调用
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据当前目录的目录项和文件路径名寻找文件目录项
+fat32_dirent* find_dirent_with_create(fat32_dirent* current_de, char *file_name, int is_create, int attribute);
 void release_dirent(fat32_dirent* de); //释放一个目录项
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);   //根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize);  //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件

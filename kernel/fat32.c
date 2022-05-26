@@ -969,7 +969,7 @@ void release_dirent(fat32_dirent* de){
 //其中file_name为文件本身的全名加上其所在路径
 //可以是绝对路径，如/a/b/t.txt，此时则忽略current_de
 //也可以是相对路径，如b/t.txt，则此时就在current_de指向的目录中寻找b/t.txt
-fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
+fat32_dirent* find_dirent_with_create(fat32_dirent* current_de, char *file_name, int is_create, int attribute){
     if(file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
         return NULL;
      
@@ -1028,13 +1028,43 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 
         //获取名字后，直接寻找
         child=acquire_dirent(parent,temp_name);
-        //如果没有找到，返回NULL
+        //如果没有找到
         if(child==NULL){
+            if(is_create){  //需要创建
+                int ret;
 
+                if(is_end)  //是否已经到最后一个文件名
+                    ret=create_by_dirent(parent,temp_name,attribute);   //是则根据指定属性创建文件
+                else
+                    ret=create_by_dirent(parent,temp_name,ATTR_DIRECTORY);  //否则为创建目录
+                
+                if(ret!=0){ //创建未成功，则返回NULL
+                    printk("create in find_dirent error\n");
+                    if(parent!=NULL && parent!=current_de)
+                        release_dirent(parent);  
+                    return NULL;
+                }
+                else{   //创建成功，则再次搜索新创建的文件
+                    child=acquire_dirent(parent,temp_name);
+                    if(child==NULL){    //如果没找到，则存在bug，返回NULL
+                        printk("didn't find the file that was created just before\n");
+                        if(parent!=NULL && parent!=current_de)
+                            release_dirent(parent);  
+                        return NULL;
+                    }
+                }
+
+            }
+            else{   //不需要创建，直接返回NULL
+                if(parent!=NULL && parent!=current_de)
+                    release_dirent(parent);    
+                return NULL;
+            }
+            /*
             if(strlen(temp_name) <= 11)
             {   
                 //printk("find_dirent temp_name : %s\n",temp_name);
-
+                
                 upper(temp_name);
 
                 child=acquire_dirent(parent,temp_name);
@@ -1048,6 +1078,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
                     return NULL;
                 }
             }
+            */
             
         }
         //printk("%s, %x\n",child->name,child->start_clusterno);
@@ -1061,8 +1092,12 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     return child;
 }
 
- //根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
- //返回实际读取的字节数
+fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
+    return find_dirent_with_create(current_de,file_name,0,0);
+}
+
+//根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
+//返回实际读取的字节数
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
     //指针不能为NULL
     if(de==NULL || dst==NULL)
@@ -1270,11 +1305,11 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
 int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize){
     int tot_sz=write_by_dirent(de,src,offset,wsize); // 写入的字节数
 
-    printk("\nwrite_by_dirent ret: %d\n",tot_sz);
+    //printk("\nwrite_by_dirent ret: %d\n",tot_sz);
 
     if(tot_sz>=0 && tot_sz+offset<de->file_size){ 
         //release cluster 释放簇
-        printk("free cluster\n");
+        //printk("free cluster\n");
         //int pre_clus=de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster)+1; 
         //int new_clus=(tot_sz+offset)/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster)+1;
 
@@ -1475,11 +1510,9 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         j++;
         
     }
-
+    /*
     printk("create by dirent buf len: %d\n",j);
-    
     printk("----------display buf-----------\n");
-
     for(int i = 0;i<j; i++)
     {
         
@@ -1487,8 +1520,8 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         if((i+1)%16 == 0 )
             printk("\n");
     }
-    
     printk("############start to write############\n");
+    */
     int ret =0;
    
     //printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
@@ -1498,12 +1531,12 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
 
     //printk("############end of write############\n");
 
-    printk("写入的字节数%d\n",ret);
+    //printk("写入的字节数%d\n",ret);
     
     
     if(ret == j)
     {
-        printk("写入正确");
+        //printk("写入正确");
         return 0;
     }
     
