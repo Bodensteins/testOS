@@ -92,6 +92,8 @@ fat32_dirent* find_dirent_with_create_i(fat32_dirent* current_de, char *file_nam
 }
 
 void release_dirent_i(fat32_dirent* de){
+    if(de==NULL)
+        return;
     release_dirent(de);
     if(de==icache.inode[0].i_de)    
         return;

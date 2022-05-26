@@ -26,24 +26,24 @@ void file_init(){
 //获取文件列表中的一个空闲的文件列表项
 //一般是由系统调用函数使用
 file *acquire_file(){
-    acquire_spinlock(&ftable.spinlock);
+    //acquire_spinlock(&ftable.spinlock);
     for(int i=0;i<NFILE;i++){
         if(ftable.file[i].ref_count==0){
             ftable.file[i].ref_count++;
-            release_spinlock(&ftable.spinlock);
+            //release_spinlock(&ftable.spinlock);
             return ftable.file+i;
         }
     }
-    release_spinlock(&ftable.spinlock);
+    //release_spinlock(&ftable.spinlock);
     return NULL;
 }
 
 //释放一个文件列表的表项
 void release_file(file *file){
-    acquire_spinlock(&ftable.spinlock);
+    //acquire_spinlock(&ftable.spinlock);
     if(file->ref_count>1){
         file->ref_count--;
-        release_spinlock(&ftable.spinlock);
+        //release_spinlock(&ftable.spinlock);
         return;
     }
     else{   //目前只有SD卡上的文件
@@ -63,7 +63,7 @@ void release_file(file *file){
         file->ref_count--;
         file->type=FILE_TYPE_NONE;
     }
-    release_spinlock(&ftable.spinlock);
+    //release_spinlock(&ftable.spinlock);
 }
 
 //根据一个文件表项(file结构体)读取数据
