@@ -37,11 +37,11 @@ process* load_user_programe();      //加载第一个进程，现已不用
 //void test_sd(void);     //sd卡测试函数，临时编写在此
 
 
-
+/*
 void test_for_read_entry_form_disk()
 {
     
-    /*
+    
     a= find_dirent(NULL,"/123456789ABCDC.txt");
     printk("\n%s\n",a->name);
     printk("%x\n",a->file_size);
@@ -96,7 +96,7 @@ void test_for_read_entry_form_disk()
     fat32_dirent *a = find_dirent(NULL,"/amd");
     printk("\n%s\n",a->name);
 
-*/
+
     fat32_dirent * a = find_dirent(NULL,"/111111111.4444444444.667788/qwerty");
     printk("\n%s\n",a->name);
     printk("%x\n",a->file_size);
@@ -114,6 +114,8 @@ void test_for_read_entry_form_disk()
 
     
 }
+*/
+/*
 char longname[FILE_NAME_LENGTH] = "";
 
 void test_for_create_entry()
@@ -148,6 +150,7 @@ void test_for_create_entry()
     release_dirent(p);
     //pass
 }
+
 
 void test_for_wirte_dirent()
 {
@@ -204,7 +207,7 @@ void test_for_del_dirent()
 
     //pass
 }
-
+*/
 
 
 
@@ -245,7 +248,7 @@ void s_start(){
 
 
  //加载第一个用户进程进入内存，测试用
-
+/*
 process* load_user_programe(){
     process* proc=alloc_process();  //从内存池获取一个新进程
     
@@ -321,3 +324,4 @@ void test_sd(void) {
 
     while (1) ;
 }
+*/

@@ -65,11 +65,11 @@ OBJCOPY = $(TOOLPREFIX)objcopy		#目标文件格式转换器
 OBJDUMP = $(TOOLPREFIX)objdump		#反汇编器
 
 #编译参数
-CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -O2 -fno-omit-frame-pointer -march=rv64imafdc
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
+CFLAGS += -Iinclude/
 #CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 #链接参数

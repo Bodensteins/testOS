@@ -17,11 +17,11 @@ void device_init(){
 
 file* open_device(char *dev_name){
     file* f=acquire_file();
+    f->fat32_dirent=NULL;
+    f->type=FILE_TYPE_DEVICE;
     if(strncmp(dev_name,"/dev/console",12)==0){
         printk("open /dev/console success!\n");
         f->dev=DEVICE_CONSOLE_NUM;
-        f->fat32_dirent=NULL;
-        f->type=FILE_TYPE_DEVICE;
         f->attribute |= (FILE_ATTR_READ|FILE_ATTR_WRITE);
         return f;
     }

@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include "user_syscall.h"
-#include "kernel/include/types.h"
+#include "../kernel/include/types.h"
 
 int vsnprintf(char* out, size_t n, const char* s, va_list vl);
 

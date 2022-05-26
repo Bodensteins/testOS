@@ -1,7 +1,7 @@
 #ifndef _USER_SYSCALL_H_
 #define _USER_SYSCALL_H_
 
-#include "kernel/include/types.h"
+#include "../kernel/include/types.h"
 
 uint64 fork();  //复制一个新进程
 

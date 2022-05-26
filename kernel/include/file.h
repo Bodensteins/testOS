@@ -56,6 +56,36 @@ typedef struct dirent{
     char d_name[FILE_NAME_LENGTH];	//文件名
 }dirent;
 
+typedef struct kstat{
+    uint64    dev;
+	uint64    ino;
+	uint32    mode;
+	uint32    nlink;
+	uint32    uid;
+	uint32    gid;
+	uint64    rdev;
+	uint64    __pad;
+	uint64    size;
+	uint32    blksize;
+	int       __pad2;
+	uint64    blocks;
+	long      atime_sec;
+	long      atime_nsec;
+	long      mtime_sec;
+	long      mtime_nsec;
+	long      ctime_sec;
+	long      ctime_nsec;
+	uint32    __unused[2];
+}kstat;
+
+typedef struct dent{
+    uint64 d_ino;	// 索引结点号
+    uint64 d_off;	// 到下一个dirent的偏移
+    unsigned short d_reclen;	// 当前dirent的长度
+    unsigned char d_type;	// 文件类型
+    char d_name[FILE_NAME_LENGTH];	//文件名
+}dent;
+
 extern file_table ftable;
 
 void file_init();   //文件结构体和文件列表初始化
@@ -67,7 +97,11 @@ file* file_dup(file* file); //将file中的ref_count自加
 int do_openat(int fd, char *file_name, int mode);
 int do_close(int fd);
 int do_mkdirat(int fd, char *path);
+int do_chdir(char *path);
+char* do_getcwd(char *buf, int sz);
 int do_dup(process *proc, int fd);
 int do_dup3(process *proc, int old, int new);
+int do_fstat(int fd, kstat *kstat);
+int do_getdents(int fd, char *buf, int len);
 
 #endif

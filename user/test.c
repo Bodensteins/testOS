@@ -2,7 +2,7 @@
 
 char *test_files[] = {
 	"brk", 
-	//"chdir", 
+	"chdir", 
 	"clone", 
 	"close", 
 	"dup2", 
@@ -10,9 +10,9 @@ char *test_files[] = {
 	"execve", 
 	"exit", 
 	"fork", 
-	//"fstat", 
-	//"getcwd", 
-	//"getdents", 
+	"fstat", 
+	"getcwd", 
+	"getdents", 
 	"getpid", 
 	"getppid", 
 	"gettimeofday",
@@ -34,6 +34,7 @@ char *test_files[] = {
 	"yield", 
 	"sleep", 
 };
+
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
 
 void main(void) __attribute__((naked));

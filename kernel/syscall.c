@@ -25,11 +25,15 @@ uint64 sys_read();
 uint64 sys_write();
 uint64 sys_close();
 uint64 sys_mkdirat();
+uint64 sys_chdir();
 uint64 sys_dup();
 uint64 sys_dup3();
 uint64 sys_exit();
 uint64 sys_mount();
 uint64 sys_umount();
+uint64 sys_getcwd();
+uint64 sys_getdents();
+uint64 sys_fstat();
 uint64 sys_clone();
 uint64 sys_execve();
 uint64 sys_wait4();
@@ -55,11 +59,15 @@ static uint64 (*syscalls[])() = {
     [SYS_read] sys_read,
     [SYS_write] sys_write,
     [SYS_close] sys_close,
+    [SYS_chdir] sys_chdir,
     [SYS_dup] sys_dup,
     [SYS_dup3] sys_dup3,
     [SYS_mkdirat] sys_mkdirat,
     [SYS_mount] sys_mount,
     [SYS_umount] sys_umount,
+    [SYS_getcwd] sys_getcwd,
+    [SYS_getdents64] sys_getdents,
+    [SYS_fstat] sys_fstat,
 
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
@@ -108,7 +116,7 @@ uint64 sys_openat(){
 uint64 sys_read(){
     //获取参数
     int fd=(int)current->trapframe->regs.a0; //a0存储文件描述符
-    if(current->open_files[fd]==NULL){
+    if(fd<0 || fd>N_OPEN_FILE || current->open_files[fd]==NULL){
         return -1;
     }
     char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
@@ -122,13 +130,14 @@ uint64 sys_read(){
 uint64 sys_write(){
     //获取参数
     int fd=(int)current->trapframe->regs.a0; //a0存储文件描述符
-    
-    
+    if(fd<0 || fd>N_OPEN_FILE || current->open_files[fd]==NULL){
+        return -1;
+    }
     char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
     buf=(char*)va_to_pa(current->pagetable,buf);    //虚拟地址转物理地址
     int wsize=current->trapframe->regs.a2;  //a2为希望读取多少字节
-    if(fd==1)
-        return write_to_console(buf,wsize);
+    //if(fd==1)
+    //    return write_to_console(buf,wsize);
     
     if(current->open_files[fd]==NULL){
         return -1;
@@ -170,8 +179,29 @@ uint64 sys_close(){
 uint64 sys_mkdirat(){
     int fd=current->trapframe->regs.a0;
     char* path=(char*)current->trapframe->regs.a1;
-    path=(char*)va_to_pa(current->pagetable,path);
+    path=va_to_pa(current->pagetable,path);
     return do_mkdirat(fd,path);
+}
+
+uint64 sys_getcwd(){
+    char *buf=(char*)current->trapframe->regs.a0;
+    buf=va_to_pa(current->pagetable,buf);
+    int sz=current->trapframe->regs.a1;
+    return (uint64)do_getcwd(buf,sz);
+}
+
+uint64 sys_getdents(){
+    int fd=current->trapframe->regs.a0;
+    char *buf=(char*)current->trapframe->regs.a1;
+    buf=va_to_pa(current->pagetable,buf);
+    int sz=current->trapframe->regs.a2;
+    return do_getdents(fd,buf,sz);
+}
+
+uint64 sys_chdir(){
+    char *path=(char*)current->trapframe->regs.a0;
+    path=va_to_pa(current->pagetable,path);
+    return do_chdir(path);
 }
 
 uint64 sys_dup(){
@@ -199,6 +229,13 @@ uint64 sys_umount(){
     char *mnt_point=(char*)current->trapframe->regs.a0;
     mnt_point=va_to_pa(current->pagetable,mnt_point);
     return do_umount(mnt_point);
+}
+
+uint64 sys_fstat(){
+    int fd=current->trapframe->regs.a0;
+    kstat *stat=(kstat*)current->trapframe->regs.a1;
+    stat=va_to_pa(current->pagetable,stat);
+    return do_fstat(fd,stat);
 }
 
 //进程复制，可自行指定用户栈

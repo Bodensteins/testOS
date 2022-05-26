@@ -74,6 +74,10 @@ fat32_dirent* find_dirent_with_create_i(fat32_dirent* current_de, char *file_nam
             icache.inode[i].i_ino=i;
             icache.inode[i].i_count=de->ref_count;
             icache.inode[i].i_nlink=1;
+            icache.inode[i].i_mode=1;
+            icache.inode[i].i_atime=0xB906;
+            icache.inode[i].i_mtime=0x54A5;
+            icache.inode[i].i_ctime=0xB905;
             icache.inode[i].i_dev=de->dev;
             icache.inode[i].i_de=de;
             icache.inode[i].i_file_size=de->file_size;
@@ -92,7 +96,7 @@ fat32_dirent* find_dirent_with_create_i(fat32_dirent* current_de, char *file_nam
 }
 
 void release_dirent_i(fat32_dirent* de){
-    if(de==NULL)
+    if(de==NULL || de->i_ino==0)
         return;
     release_dirent(de);
     if(de==icache.inode[0].i_de)    

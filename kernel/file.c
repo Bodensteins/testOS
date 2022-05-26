@@ -57,7 +57,8 @@ void release_file(file *file){
                 //to do
                 break;
             default:
-                panic("release_file");
+                //printk("release_file: type error\n");
+                return;
                 break;
         }
         file->ref_count--;
@@ -188,7 +189,7 @@ int do_openat(int dir_fd, char *file_name, int flag){
 
     //lock
     //获取OS维护的打开文件列表中的一个空闲列表项
-    file* file=acquire_file();  
+    file* file=acquire_file();
     if(file==NULL){
         //unlock
         release_dirent_i(de);
@@ -197,13 +198,15 @@ int do_openat(int dir_fd, char *file_name, int flag){
 
     //获取一个新的文件描述符
     int fd=acquire_fd(current, file);
+    //printk("fd:%d\n",fd);
     if(fd<0){   //如果获取失败
         release_file(file); //关闭file，返回-1
         release_dirent_i(de);
+        current->open_files[fd]=NULL;
         //unlock
         return -1;
     }
-    
+
     //为file赋予打开文件的各种信息
     file->fat32_dirent=de;  
     file->dev=de->dev;
@@ -213,13 +216,15 @@ int do_openat(int dir_fd, char *file_name, int flag){
     //文件属性
     if(flag & O_RDWR)
         file->attribute |= (FILE_ATTR_READ | FILE_ATTR_WRITE);
-    else {
-        if(flag & O_RDONLY)
-            file->attribute |= FILE_ATTR_READ;
-        if(flag & O_WRONLY)
-            file->attribute |= FILE_ATTR_WRITE;
-    }
+    else if(flag & O_WRONLY)
+        file->attribute |= FILE_ATTR_WRITE;
+    
     if(flag & O_DIRECTORY){
+        if(!(de->attribute & ATTR_DIRECTORY)){
+            release_file(file);
+            current->open_files[fd]=NULL;
+            return -1;
+        }
         file->attribute |= FILE_ATTR_DIR;
         file->attribute &= ~(FILE_ATTR_WRITE);
     }
@@ -231,10 +236,9 @@ int do_openat(int dir_fd, char *file_name, int flag){
 }
 
 int do_close(int fd){
-    printk("close fd: %d",fd);
-    if(current->open_files[fd]==NULL)
+    if( fd<0 || fd>N_OPEN_FILE || current->open_files[fd]==NULL)
         return -1;
-    printk("type :%d\n",current->open_files[fd]->type);
+
     release_file(current->open_files[fd]);  //释放file
     current->open_files[fd]=NULL;
     return 0;
@@ -269,4 +273,73 @@ int do_dup3(process *proc, int old, int new){
     proc->open_files[new]=proc->open_files[old];
     file_dup(f);
     return new;
+}
+
+int do_fstat(int fd, kstat *kstat){
+    if(fd<0 || fd>N_OPEN_FILE)
+        return -1;
+    
+    file *f=current->open_files[fd];
+    if(f==NULL)
+        return -1;
+    
+    vfs_inode *inode=get_inode_by_ino(f->fat32_dirent->i_ino);
+    if(inode==NULL)
+        return -1;
+    
+    kstat->dev=inode->i_dev;
+    kstat->ino=inode->i_ino;
+    kstat->mode=inode->i_mode;
+    kstat->nlink=inode->i_nlink;
+    kstat->size=inode->i_file_size;
+    kstat->atime_sec=inode->i_atime;
+    kstat->mtime_sec=inode->i_mtime;
+    kstat->ctime_sec=inode->i_ctime;
+    kstat->blocks=inode->i_total_blocks;
+    kstat->blksize=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
+    
+    return 0;
+}
+
+int do_chdir(char *path){
+    fat32_dirent *new=find_dirent_i(current->cwd, path);
+    
+    if(new==NULL)
+        return -1;
+    if(!(new->attribute & ATTR_DIRECTORY)){
+        release_dirent_i(new);
+        return -1;
+    }
+
+    fat32_dirent *old=current->cwd;
+    current->cwd=new;
+    release_dirent_i(old);
+
+    return 0;
+}
+
+char* do_getcwd(char *buf, int sz){
+    if(buf==NULL)
+        return NULL;
+    int len=strlen(current->cwd->name);
+    sz = sz<len ? sz:len;
+    memcpy(buf,current->cwd->name,sz);
+    return buf;
+}
+
+int do_getdents(int fd, char *buf, int len){
+    if(fd<0 || fd>N_OPEN_FILE)
+        return -1;
+    file *f=current->open_files[fd];
+    if(f==NULL || !(f->attribute & FILE_ATTR_DIR))
+        return -1;
+    if(len<sizeof(dent))
+        return 0;
+    dent dt;
+    fat32_dirent *de=f->fat32_dirent;
+    dt.d_ino=de->i_ino;
+    dt.d_type=f->type;
+    memcpy(dt.d_name,de->name,strlen(de->name)+1);
+    memcpy(buf,&dt,sizeof(dent));
+    return sizeof(dent);
 }

@@ -1,5 +1,4 @@
-#include "kernel/include/syscall.h"
-#include "kernel/include/printk.h"
+#include "../kernel/include/syscall.h"
 
 /*
 用户态使用系统调用
