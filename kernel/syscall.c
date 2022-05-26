@@ -163,11 +163,14 @@ uint64 sys_close(){
 }
 
 uint64 sys_dup(){
-    return 0;
+    int fd=current->trapframe->regs.a0;
+    return do_dup(current,fd);
 }
 
 uint64 sys_dup3(){
-    return 0;
+    int old=current->trapframe->regs.a0;
+    int new=current->trapframe->regs.a1;
+    return do_dup3(current,old,new);
 }
 
 uint64 sys_clone(){

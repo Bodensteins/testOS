@@ -183,7 +183,7 @@ int do_openat(int fd, char *file_name, int flag){
         }
         else
             return -1;
-    }   
+    }
 
     
     //lock
@@ -230,3 +230,24 @@ int do_openat(int fd, char *file_name, int flag){
     return fd;
 }
 
+int do_dup(process *proc, int fd){
+    if(fd<0 || fd>N_OPEN_FILE)
+        return -1;
+    file *f=proc->open_files[fd];
+    if(f==NULL)
+        return -1;
+    int new_fd=acquire_fd(proc,f);
+    file_dup(f);
+    return new_fd;
+}
+
+int do_dup3(process *proc, int old, int new){
+    if(old<0 || old>N_OPEN_FILE || new<0 || new>N_OPEN_FILE)
+        return -1;
+    file *f=proc->open_files[old];
+    if(f==NULL)
+        return -1;
+    proc->open_files[new]=proc->open_files[old];
+    file_dup(f);
+    return new;
+}
