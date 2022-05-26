@@ -247,6 +247,7 @@ typedef struct fat32_dirent{
     uint32 ref_count;   //该目录项的引用数量
     uint8 valid;    //是否有效
     uint8 dirty;    //脏位，表示缓冲区中目录项的内容和磁盘中的是否一致，即目录项更新是否有写入磁盘(0为一致，否则不一致)
+    uint8 del;   //删除标志
     struct fat32_dirent* prev;  //在LRU双向循环链表中，指向该目录项的上一个链表节点
     struct fat32_dirent* next;  //在LRU双向循环链表中，指向该目录项的下一个链表节点
     sleeplock sleeplock;    //睡眠锁
@@ -278,5 +279,6 @@ int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文件占用的所有簇
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
 int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
+int delete_by_dirent(fat32_dirent *file_to_delete);
 uint32 calc_dir_file_size(fat32_dirent *root_dir);
 #endif

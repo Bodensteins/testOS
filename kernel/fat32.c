@@ -260,7 +260,7 @@ int fill_longname_entry(char longname[],
                         fat32_long_name_dir_entry *long_name_dir_entry)
 {
     //fat32_short_name_dir_entry fat32_short_name_dir_entry;
-    int name_len = strlen(longname);
+    int name_len = strlen(longname)+1; // 需要填充最后的 \x00
     if(name_len >FILE_NAME_LENGTH ) return -1;
 
     int splite_num = (name_len / 13) +1; // 分成几个长目录项
@@ -446,6 +446,7 @@ void fat32_init(){
     dcache.root_dir.start_clusterno=dbr_info.root_dir_clusterno;
     //计算根目录大小
     calc_dir_file_size(&(dcache.root_dir));
+    dcache.root_dir.longname_entry_num = 0;
     
     memcpy(dcache.root_dir.name,"/",1);
     init_sleeplock(&dcache.root_dir.sleeplock,"root fat32_dirent");
@@ -781,7 +782,7 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
                         {
                             dentry.long_dir_entry_num =id_num; //记录 长文件名目录项 总数
                             dentry.longname_dirent_clusterno_in_parent = clus; // 记录长文件名目录项在父目录的簇号
-                            dentry.longname_dirent_offset_in_parent = sec_off*dbr_info.bytes_per_sector+off;//记录在长文件名目录项在该簇中的偏移
+                            dentry.longname_dirent_offset_in_parent = sec_off*dbr_info.bytes_per_sector+off;//记录在长文件名目录项在该簇中的偏移，单位字节
                         }
                         
                         memcpy(&dentry.long_name_dentry[id_num-1], &dentry.short_name_dentry,DIR_ENTRY_BYTES); // 存入对应的缓冲区
@@ -967,7 +968,7 @@ void release_dirent(fat32_dirent* de){
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     if(file_name==NULL || strlen(file_name)>FILE_NAME_LENGTH)
         return NULL;
-    
+     
     //upper(file_name);   //文件名字母全部转为大写
     
     if(!strcmp(file_name,"/"))  //若为根目录，则直接返回根目录项
@@ -978,6 +979,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
     }
     if(current_de==NULL)  
         return NULL;
+   
 
     //接下来就是以'/'为分隔，循环获取目录名并在父目录中寻找，
     //若找到则将该目录设置为父目录，迭代继续寻找下一个目录
@@ -1052,6 +1054,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
         //如果找到了，则将父目录设置为当前找到的这个目录，继续下一轮迭代
         parent=child;
     }
+    
     return child;
 }
 
@@ -1376,8 +1379,6 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         return -3;
     }
     
-    
-    
     /*
     fat32_dirent *tmpde;
     tmpde=find_dirent(parent,name);
@@ -1388,7 +1389,6 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         return -3;
     }
     */
-        
 
     //printk("dirty:%d ,ref_count:%d\n",parent->dirty,parent->ref_count);
 
@@ -1474,10 +1474,11 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         j++;
         
     }
-    //printk("buf len: %d\n",j);
 
-    //printk("----------display buf-----------\n");
-    /*
+    printk("create by dirent buf len: %d\n",j);
+    
+    printk("----------display buf-----------\n");
+
     for(int i = 0;i<j; i++)
     {
         
@@ -1485,13 +1486,11 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
         if((i+1)%16 == 0 )
             printk("\n");
     }
-    */
-
-    //printk("############start to write############\n");
+    
+    printk("############start to write############\n");
     int ret =0;
    
     //printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
-
     ret = write_by_dirent2(parent, buf,parent->file_size,j);
 
     //printk("dirty:%d ,refcnt:%d\n",parent->dirty,parent->ref_count);
@@ -1514,8 +1513,58 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
 
 
 //工具函数，目录项首字符修改为E5
-int delete_fat32_dirent_in_disk(fat32_dirent *file_to_delete)
+//逻辑捋清楚了
+//未测试
+int delete_fat32_dirent_in_disk(fat32_dirent *de)
 {
+
+    //删除长文件目录项
+    int bytes_per_cluster = dbr_info.bytes_per_sector * dbr_info.sectors_per_cluster; // 每簇的字节数
+    uint8 flag = '0xE5';//删除标记
+    
+    
+    uint32 longname_dirent_clusterno_in_parent = de->longname_dirent_clusterno_in_parent; //起始的簇号
+    uint32 bytes_per_sector = dbr_info.bytes_per_sector; // 每扇区字节数
+    uint32 longname_entry_num = de->longname_entry_num; // 长文件名目录项数量
+
+    uint32 start_cluster_num =  longname_dirent_clusterno_in_parent;// 循环参数 起始的簇号
+    uint32 start_bytes_offset_in_cluster = de->longname_dirent_offset_in_parent;//循环参数 簇中偏移 单位字节
+    for(int counter = 0; counter < longname_entry_num  && start_cluster_num!=FAT_CLUSTER_END ; counter++) //循环 长文件名目录项的个数 次
+    {
+        uint32  sec_offset_in_cluster = start_bytes_offset_in_cluster /dbr_info.bytes_per_sector;// 簇中的扇区偏移
+        uint32 sector_num = clusterno_to_sectorno(start_cluster_num) + sec_offset_in_cluster;//该目录项所在的扇区号
+        uint32 offset_in_sector = start_bytes_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移，单位字节
+
+        buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
+        write_to_buffer(buf,&flag,offset_in_sector,1);
+        release_buffer(buf);
+
+        start_bytes_offset_in_cluster += DIR_ENTRY_BYTES; // 下一个目录项在簇中的偏移 单位字节
+
+        if(start_bytes_offset_in_cluster >=bytes_per_cluster ) // 偏移超出 簇的最大字节数
+        {
+            //跨簇
+            start_bytes_offset_in_cluster %=bytes_per_cluster; // 簇中偏移更新， 为在下一个簇中的偏移
+            start_cluster_num = fat_find_next_clusterno(start_cluster_num,1); //簇号更新为下一个
+        }
+
+    }
+
+    //删除短文件目录项
+
+    uint32 shortname_dirent_cluster_in_parent = de->clusterno_in_parent; //短文件名在父目录的簇号
+    uint32 shortname_dirent_offset_in_cluster = de->offset_in_parent; // 短文件名在 簇中的偏移 单位字节
+    uint32  sec_offset_in_cluster =  shortname_dirent_offset_in_cluster /dbr_info.bytes_per_sector; // 短文件名在 簇中的偏移 单位扇区
+    uint32 sector_num = clusterno_to_sectorno(shortname_dirent_cluster_in_parent) + sec_offset_in_cluster;//文件名目录项所在的扇区号
+    uint32 offset_in_sector = shortname_dirent_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移短
+
+    buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
+    write_to_buffer(buf,&flag,offset_in_sector,1);
+    release_buffer(buf);
+
+
+
+    de->del = 1;
 
     return 0;
 }
@@ -1534,8 +1583,11 @@ int delete_by_dirent(fat32_dirent *file_to_delete)
     //缩减文件长度为0，并收回除起始簇外的所有簇
     write_by_dirent2(file_to_delete,NULL,0,0);
     trunc_by_dirent(file_to_delete);// 收回起始簇
-    //目录项首字符修改为E5
-    //delete_fat32_dirent_in_disk
+    //目录项首字符修改为E5,未测试！
+    delete_fat32_dirent_in_disk(file_to_delete);
+    
+
+
     return 0;
 }
 
