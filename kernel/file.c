@@ -149,7 +149,7 @@ static int acquire_fd(process* proc, file *file){
     return -1;
 }
 
-int do_openat(int fd, char *file_name, int flag){
+int do_openat(int dir_fd, char *file_name, int flag){
     if(file_name==NULL)
         return -1;
 
@@ -166,9 +166,9 @@ int do_openat(int fd, char *file_name, int flag){
     }
 
     fat32_dirent* dir;
-    if(fd>0 && fd<N_OPEN_FILE)
-        dir=current->open_files[fd]->fat32_dirent;
-    else if(fd==AT_FDCWD || *file_name=='/')
+    if(dir_fd>0 && dir_fd<N_OPEN_FILE)
+        dir=current->open_files[dir_fd]->fat32_dirent;
+    else if(dir_fd==AT_FDCWD || *file_name=='/')
         dir=current->cwd;
     else 
         return -1;
@@ -231,8 +231,10 @@ int do_openat(int fd, char *file_name, int flag){
 }
 
 int do_close(int fd){
+    printk("close fd: %d",fd);
     if(current->open_files[fd]==NULL)
         return -1;
+    printk("type :%d\n",current->open_files[fd]->type);
     release_file(current->open_files[fd]);  //释放file
     current->open_files[fd]=NULL;
     return 0;

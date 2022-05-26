@@ -108,6 +108,12 @@ $T/userinit: $U/userinit.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $T/userinit.out $U/userinit.o
 	$(OBJCOPY) -S -O binary $T/userinit.out $T/userinit
 
+$T/test: $U/test.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/test.out $^
+	$(OBJCOPY) -S -O binary $T/test.out $T/test
+	$(OBJDUMP) -S $T/test.out > $T/test.asm
+	od -t xC $T/test > $T/test.txt
+
 #CPU个数为1个
 ifndef CPUS
 CPUS = 1
@@ -124,6 +130,8 @@ k210-bootloader = $T/rustsbi.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
 init: $T/userinit
+
+test: $T/test
 
 #编译所有目标文件的标签
 build: $T/kernel $T/main $T/init
@@ -162,4 +170,4 @@ endif
 clean:
 	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/*.asm $T/.out *.bin
 
-.PHONY: clean qemu run build all init
+.PHONY: clean qemu run build all init test

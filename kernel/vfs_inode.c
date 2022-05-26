@@ -2,13 +2,14 @@
 #include "include/fat32.h"
 #include "include/printk.h"
 
+
 static vfs_inode_cache icache;
 
 void fat32_init_i(){
     fat32_dirent* de=fat32_init();
     init_spinlock(&icache.spinlock,"dcache");
     for(int i=0;i<INODE_LIST_LENGTH;i++){
-        init_spinlock(&(icache.inode[i].i_sleeplock),"vfs_inode");
+        init_sleeplock(&(icache.inode[i].i_sleeplock),"vfs_inode");
         icache.inode[i].i_ino=i;
         icache.inode[i].i_count=0;
         icache.inode[i].i_de=NULL;

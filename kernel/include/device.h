@@ -8,6 +8,8 @@
 设备管理相关
 */
 
+typedef struct file file;
+
 #define DEVICE_DISK_NUM 0
 #define DEVICE_CONSOLE_NUM 1
 

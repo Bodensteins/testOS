@@ -14,10 +14,8 @@
 
 //系统调用函数声明
 uint64 sys_fork();
-
 uint64 sys_kill();
 
-uint64 sys_simple_write();
 
 uint64 sys_simple_read();
 uint64 sys_simple_write();
@@ -124,13 +122,18 @@ uint64 sys_read(){
 uint64 sys_write(){
     //获取参数
     int fd=(int)current->trapframe->regs.a0; //a0存储文件描述符
-    if(current->open_files[fd]==NULL){
-        return -1;
-    }
+    
+    
     char* buf=(char*)current->trapframe->regs.a1;   //a1为读取的内存位置
     buf=(char*)va_to_pa(current->pagetable,buf);    //虚拟地址转物理地址
     int wsize=current->trapframe->regs.a2;  //a2为希望读取多少字节
+    if(fd==1)
+        return write_to_console(buf,wsize);
     
+    if(current->open_files[fd]==NULL){
+        return -1;
+    }
+
     wsize=write_file(current->open_files[fd],buf,wsize);     //调用read_file读取
     return wsize;   //返回实际读取的数据
 }
@@ -183,17 +186,17 @@ uint64 sys_dup3(){
 }
 
 uint64 sys_mount(){
-    char *dev_name=current->trapframe->regs.a0;
+    char *dev_name=(char*)current->trapframe->regs.a0;
     dev_name=va_to_pa(current->pagetable,dev_name);
-    char *mnt_point=current->trapframe->regs.a1;
+    char *mnt_point=(char*)current->trapframe->regs.a1;
     mnt_point=va_to_pa(current->pagetable,mnt_point);
-    char *fs_type=current->trapframe->regs.a2;
-    fs_typeva_to_pa(current->pagetable,fs_type);
+    char *fs_type=(char*)current->trapframe->regs.a2;
+    fs_type=va_to_pa(current->pagetable,fs_type);
     return do_mount(dev_name,mnt_point,fs_type);
 }
 
 uint64 sys_umount(){
-    char *mnt_point=current->trapframe->regs.a0;
+    char *mnt_point=(char*)current->trapframe->regs.a0;
     mnt_point=va_to_pa(current->pagetable,mnt_point);
     return do_umount(mnt_point);
 }
