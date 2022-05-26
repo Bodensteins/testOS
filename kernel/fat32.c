@@ -810,8 +810,8 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
                                 //des_de->current_clusterno=des_de->start_clusterno;
                                 des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
                                 des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
-                                if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
-                                    des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                                //if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
+                                   // des_de->start_clusterno=dbr_info.root_dir_clusterno;
                                 return 0;
                             }
                         }
@@ -857,6 +857,114 @@ static int read_fat32_dirent_from_disk(fat32_dirent* parent, char *name, fat32_d
     }
     return -1;
 }
+
+// 遍历函数,需要修改
+
+int ls_fat32_dirent_from_disk(fat32_dirent* parent, fat32_dirent* des_de){
+    char full_name[FILE_NAME_LENGTH+1];
+
+    uint8 buffer_for_entry[32];
+    memset(buffer_for_entry,0,sizeof(uint8)*32);
+
+    fat32_dir_entry dentry;
+    memset(&dentry,0,sizeof(fat32_dir_entry));
+    uint64 sz=0;
+    //三层循环，分别代表簇号，簇中扇区号偏移，扇区中的偏移
+    //clus为起始簇号
+    for(uint32 clus=parent->start_clusterno, c=0;clus!=FAT_CLUSTER_END;clus=fat_find_next_clusterno(clus,1),c++){
+        uint32 start_sec=clusterno_to_sectorno(clus);  //根据簇号确定簇的起始扇区号
+        for(int sec_off=0;sec_off<dbr_info.sectors_per_cluster;sec_off++){    //遍历该簇所有扇区
+            sz=c*dbr_info.sectors_per_cluster*dbr_info.bytes_per_sector+sec_off*dbr_info.bytes_per_sector;
+            if(sz>parent->file_size)
+                break;
+            buffer *buf=acquire_buffer(DEVICE_DISK_NUM,start_sec+sec_off);  //读取扇区
+            for(uint32 off=0;off<dbr_info.bytes_per_sector;off+=DIR_ENTRY_BYTES){   //遍历该扇区中每一个目录项
+                if(((buf->data)+off)[0] != 0xE5) // 目录项未被删除
+                {
+                    memcpy(&dentry,buf->data+off,DIR_ENTRY_BYTES); // 复制目录项数据
+                    if(dentry.short_name_dentry.atrribute==ATTR_LONG_NAME){ //是长文件名目录项
+
+                        int id_num = dentry.short_name_dentry.name[0] & 0x1f; //  取出序号
+                        
+                        if( (dentry.short_name_dentry.name[0]&LAST_LONG_ENTRY) == LAST_LONG_ENTRY ) // 是否为 长文件名目录项 最后一项
+                        {
+                            dentry.long_dir_entry_num =id_num; //记录 长文件名目录项 总数
+                            dentry.longname_dirent_clusterno_in_parent = clus; // 记录长文件名目录项在父目录的簇号
+                            dentry.longname_dirent_offset_in_parent = sec_off*dbr_info.bytes_per_sector+off;//记录在长文件名目录项在该簇中的偏移，单位字节
+                        }
+                        
+                        memcpy(&dentry.long_name_dentry[id_num-1], &dentry.short_name_dentry,DIR_ENTRY_BYTES); // 存入对应的缓冲区
+                        memset(&dentry.short_name_dentry,0,DIR_ENTRY_BYTES);// 清空短文件名目录项不知道为什么。。
+                        continue;
+                    }
+                    else{
+                        
+                        if(dentry.long_dir_entry_num == 0 || check_chksum(&dentry) == 0) //缓冲区中无长文件名目录项，或者 校验失败
+                        {
+                            get_full_short_name(&dentry.short_name_dentry,full_name);   //获取该目录项指向的文件的文件全名
+                           
+                            //如果名字一致，那么就算找到了
+                            release_buffer(buf);    //释放缓冲区
+                            //将dentry中的信息转到des_de中
+                            memcpy(des_de->name, full_name,12);    //文件名
+                            des_de->attribute=dentry.short_name_dentry.atrribute;  //属性
+                            des_de->clusterno_in_parent=clus;  //偏移簇號
+                            des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
+                            des_de->longname_dirent_clusterno_in_parent =0;
+                            des_de->longname_dirent_offset_in_parent =0;
+                            des_de->longname_entry_num = 0;
+                            des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
+                            //des_de->current_clusterno=des_de->start_clusterno;
+                            des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
+                            des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                            //if(des_de->start_clusterno==0x0) //不知道为什么，sd卡中记录的根目录簇号一律是0，因此得修改
+                                // des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                            return 0;
+ 
+                        }
+                        else
+                        {
+                            //缓冲区中有长文件名目录且校验成功
+                            int len = get_full_long_name(&dentry,full_name);// 注意需要传入整个dentry,如果没有错误，那么长目录项缓冲区会被清空
+                            if(len>0)
+                            {
+ 
+
+                                //如果名字一致，那么就算找到了
+                                release_buffer(buf);
+                                memcpy(des_de->name, full_name,len+1);    //文件名
+                                des_de->attribute=dentry.short_name_dentry.atrribute;  //属性
+                                des_de->clusterno_in_parent=clus;  //偏移簇號
+                                des_de->offset_in_parent=sec_off*dbr_info.bytes_per_sector+off;    //在父目录中的位置偏移
+                                
+                                des_de->longname_dirent_clusterno_in_parent =dentry.longname_dirent_clusterno_in_parent;
+                                des_de->longname_dirent_offset_in_parent =dentry.longname_dirent_offset_in_parent;
+                                des_de->longname_entry_num = dentry.long_dir_entry_num; //记录长文件名目录 数目
+                                dentry.longname_dirent_clusterno_in_parent=0; //清空缓冲区
+                                dentry.longname_dirent_offset_in_parent=0;
+                                dentry.long_dir_entry_num =0;
+                                
+                                des_de->start_clusterno=get_start_clusterno_in_short_entry(&dentry.short_name_dentry);     //起始簇号
+                                des_de->file_size=dentry.short_name_dentry.file_size;  //文件大小
+                                des_de->total_clusters=des_de->file_size/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);    //文件总簇数
+                                //if(des_de->start_clusterno==0x0)
+                                    //des_de->start_clusterno=dbr_info.root_dir_clusterno;
+                                return 0;
+  
+
+                            }
+                        }
+                    }
+                }
+            }
+            release_buffer(buf);
+        }
+        if(sz>parent->file_size)
+            break;
+    }
+    return -1;
+}
+
 
 
 
@@ -1540,7 +1648,7 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
        
         buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
         write_to_buffer(buf,&flag,offset_in_sector,1);
-        
+        /*
         printk("----------display buf-----------\n");
         for(int i = 0;i<BSIZE; i++)
         {
@@ -1549,6 +1657,7 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
             if((i+1)%16 == 0 )
                 printk("\n");
         }
+        */
         release_buffer(buf);
         start_bytes_offset_in_cluster += DIR_ENTRY_BYTES; // 下一个目录项在簇中的偏移 单位字节
 
@@ -1574,18 +1683,16 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
 
     buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
     write_to_buffer(buf,&flag,offset_in_sector,1);
+    /*
     for(int i = 0;i<BSIZE; i++)
     {
         printk("%x ",buf->data[i]);
         if((i+1)%16 == 0 )
             printk("\n");
     }
+    */
     release_buffer(buf);
     de->del = 1;
-
-
-
-    
     printk("delete dirent ret\n");
     return 0;
 }

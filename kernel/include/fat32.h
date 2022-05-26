@@ -281,4 +281,5 @@ fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
 int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
 int delete_by_dirent(fat32_dirent *file_to_delete);
 uint32 calc_dir_file_size(fat32_dirent *root_dir);
+int ls_fat32_dirent_from_disk(fat32_dirent* parent,fat32_dirent* des_de);
 #endif
