@@ -142,7 +142,7 @@ void test_for_create_entry()
     p = find_dirent(NULL,"/test_create.txt");
     printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
-
+    //pass
 }
 
 void test_for_wirte_dirent()
