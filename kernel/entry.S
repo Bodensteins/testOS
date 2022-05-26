@@ -3,7 +3,7 @@
     .globl entry
 entry:
     la sp,boot_stack    
-    li a0,4096*4    
+    li a0,4096*4
     add sp, sp, a0  
     # 跳转进入s_start函数,定义于sstart.c    
     call s_start  

@@ -114,24 +114,20 @@ void test_for_read_entry_form_disk()
 
     
 }
+char longname[FILE_NAME_LENGTH] = "";
 
-void test_for_create_entry_to_disk()
+void test_for_create_entry()
 {
 
-    fat32_dirent*p= find_dirent(NULL,"/abcdefghijkl");
-    printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+
+
+    char longname[FILE_NAME_LENGTH] = "test_create.txt";
+    // 创建测试
+    fat32_dirent*p= find_dirent(NULL,"/");
+    printk("[ 1 ] before create dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
-    char longname[] = "abcdefghijkl\0";
     
-    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
-
-    //char buf[10];
-    //read_by_dirent(p,buf,0,10);
-
-    //printk("%s\n",buf);
     
-
-    /*
     if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
     {
         printk("创建成功\n");
@@ -139,40 +135,76 @@ void test_for_create_entry_to_disk()
     else{
         printk("fail\n");
     }
-    */
+   
 
-    write_by_dirent2(p,longname,2,7);
-    
-    
-    //printk("dirty:%d ,refcnt:%d\n",p->dirty,p->ref_count);
-
-    printk("dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+    printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
     release_dirent(p);
 
-
-
-
-    // fat32_dirent* add_file = find_dirent(NULL,"/bbccd.txt");
-    // char src[] = "test file write and read";
-    // write_by_dirent(add_file,src,0,strlen(src)+1);
-    // printk("%s file_size:%d\n",add_file->name, add_file->file_size);
-    // release_dirent(add_file);
-
-    // char bufff[30];
-    // add_file = find_dirent(NULL,"/bbccd.txt");
-    // int ret = read_by_dirent(add_file,bufff,0,30); 
-    // printk("read len %d\n",ret);
-    // bufff[ret]='\0';
-    // printk("read data \n%s\n",bufff);
-    // release_dirent(add_file);
-
-    // fat32_dirent* child = find_dirent(NULL,"/12345.abc.ef");
-    // if(NULL != child)
-    // {
-    //     printk("name:%s\n",child->name);
-    // }
+    //error 创建的文件，find_dirent 发生报错
+    p = find_dirent(NULL,"/test_create.txt");
+    printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    //pass
 }
+
+void test_for_wirte_dirent()
+{
+
+    //写入测试
+    printk("[ 3 ]   wirte by dirent start to test\n");
+    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+     printk("[ 5] %s file_size:%d\n",add_file->name, add_file->file_size);
+    char src[] = "test file write and read";
+    write_by_dirent2(add_file,src,add_file->file_size,strlen(src)+1);
+    printk("[ 6 ] %s file_size:%d\n",add_file->name, add_file->file_size);
+    release_dirent(add_file);
+
+    printk("[ 7 ] wirte by dirent end\n");
+
+    //pass
+
+
+}
+
+
+void test_for_read_dirent()
+{
+    
+ //读取测试
+    printk("[  ]   wirte by dirent start to test\n");
+    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+    char buf[100];
+    int ret =  read_by_dirent(add_file,buf,0,100);
+    printk("##### read len %d\n",ret);
+    printk("##### read by dirent ##### \n");
+    for(int i = 0;i<ret;i++)
+    {
+        printk("%x ",buf[i]);
+        if((i+1)%16==0)
+             printk("\n");
+    }
+    release_dirent(add_file);
+    printk("\n");
+    //pass
+}
+
+
+void test_for_del_dirent()
+{
+    
+    //删除测试
+    fat32_dirent* add_file = find_dirent(NULL,"/123456789ABCDC.txt");
+    int ret = delete_by_dirent(add_file);
+    release_dirent(add_file);
+
+    if(NULL == find_dirent(NULL,"/test_for_create"))
+        printk("##### delete success!\n");
+
+
+}
+
+
 
 
 //entry.S跳转到s_start
@@ -197,6 +229,13 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init_i();   //fat32初始化
+
+    //test_for_create_entry();
+    //test_for_wirte_dirent();
+    //test_for_read_dirent();
+    //test_for_del_dirent();
+    //while(1) {};
+
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
