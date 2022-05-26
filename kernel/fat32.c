@@ -260,7 +260,7 @@ int fill_longname_entry(char longname[],
                         fat32_long_name_dir_entry *long_name_dir_entry)
 {
     //fat32_short_name_dir_entry fat32_short_name_dir_entry;
-    int name_len = strlen(longname);
+    int name_len = strlen(longname)+1; // 需要填充最后的 \x00
     if(name_len >FILE_NAME_LENGTH ) return -1;
 
     int splite_num = (name_len / 13) +1; // 分成几个长目录项
@@ -1476,7 +1476,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
         
     }
     printk("create by dirent buf len: %d\n",j);
-    /*
+    
     printk("----------display buf-----------\n");
     for(int i = 0;i<j; i++)
     {
@@ -1485,7 +1485,7 @@ int create_by_dirent(fat32_dirent *parent,char  name[], uint8 attribute)
         if((i+1)%16 == 0 )
             printk("\n");
     }
-    */
+    
     printk("############start to write############\n");
     int ret =0;
    

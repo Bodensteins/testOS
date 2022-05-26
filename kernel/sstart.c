@@ -119,7 +119,7 @@ void test_for_create_entry()
 {
 
    
-    char longname[FILE_NAME_LENGTH] = "hellowold";
+    char longname[FILE_NAME_LENGTH] = "test_create.txt";
     // 创建测试
     fat32_dirent*p= find_dirent(NULL,"/");
     printk("[ 1 ] before create dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
@@ -139,7 +139,7 @@ void test_for_create_entry()
     release_dirent(p);
 
     //error 创建的文件，find_dirent 发生报错
-    p = find_dirent(NULL,"/hellowold");
+    p = find_dirent(NULL,"/test_create.txt");
     printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
                                                 p->clusterno_in_parent,p->offset_in_parent);
 
@@ -227,10 +227,10 @@ void s_start(){
     buffer_init();  //磁盘缓冲区初始化
     fat32_init();   //fat32初始化
 
-    //test_for_create_entry();
+    test_for_create_entry();
     //test_for_wirte_dirent();
     //test_for_read_dirent();
-    test_for_del_dirent();
+    //test_for_del_dirent();
 
 
     while(1) {};
