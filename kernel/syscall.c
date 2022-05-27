@@ -393,8 +393,7 @@ uint64 sys_brk(){
 }
 
 uint64 sys_mmap(){
-    char *start=current->trapframe->regs.a0;
-    start=va_to_pa(current->pagetable,start);
+    char *start=(char*)current->trapframe->regs.a0;
     int len=current->trapframe->regs.a1;
     int prot=current->trapframe->regs.a2;
     int flags=current->trapframe->regs.a3;
@@ -405,8 +404,7 @@ uint64 sys_mmap(){
 }
 
 uint64 sys_munmap(){
-    char *start=current->trapframe->regs.a0;
-    start=va_to_pa(current->pagetable,start);
+    char *start=(char*)current->trapframe->regs.a0;
     int len=current->trapframe->regs.a1;
 
     return do_munmap(start, len);

@@ -115,6 +115,9 @@ $T/test: $U/test.o $(ULIB)
 	$(OBJCOPY) -S -O binary $T/test.out $T/test
 	$(OBJDUMP) -S $T/test.out > $T/test.asm
 	od -t xC $T/test > $T/test.txt
+	sed -i 's/^.\{7\}//g' $T/test.txt
+	sed -i "s/ /,0x/g"  $T/test.txt
+	sed -i '1s/.//1' $T/test.txt
 
 #CPU个数为1个
 ifndef CPUS
