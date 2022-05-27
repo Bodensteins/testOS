@@ -389,9 +389,23 @@ uint64 sys_brk(){
 }
 
 uint64 sys_mmap(){
-    return 0;
+    void * start = (void*)current->trapframe->regs.a0;
+    size_t len = current->trapframe->regs.a1;
+    int port = current->trapframe->regs.a2;
+    int flags = current->trapframe->regs.a3;
+    int fd = current->trapframe->regs.a4;
+    off_t offset  = current->trapframe->regs.a5;
+
+
+
+
+    return do_mmap(start,len,port,flags,fd,offset);
 }
 
 uint64 sys_munmap(){
-    return 0;
+
+    void * start = (void*)current->trapframe->regs.a0;
+    size_t len = current->trapframe->regs.a1;
+
+    return do_munmap(start,len);
 }

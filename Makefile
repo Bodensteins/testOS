@@ -32,7 +32,8 @@ KERN_OBJS := \
 	$K/systime.o \
 	$K/device.o\
 	$K/vfs_inode.o \
-	$K/pipe.o
+	$K/pipe.o\
+	$K/sysmmap.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -114,7 +115,9 @@ $T/test: $U/test.o $(ULIB)
 	$(OBJCOPY) -S -O binary $T/test.out $T/test
 	$(OBJDUMP) -S $T/test.out > $T/test.asm
 	od -t xC $T/test > $T/test.txt
-
+	sed -i 's/^.\{7\}//g' $T/test.txt
+	sed -i "s/ /,0x/g"  $T/test.txt
+	sed -i '1s/.//1' $T/test.txt
 #CPU个数为1个
 ifndef CPUS
 CPUS = 1
