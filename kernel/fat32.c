@@ -1068,7 +1068,7 @@ fat32_dirent* find_dirent_with_create(fat32_dirent* current_de, char *file_name,
 
             }
             else{   //不需要创建，直接返回NULL
-                printk("not found\n");
+                //printk("not found\n");
                 if(parent!=NULL && parent!=current_de)
                     release_dirent(parent);    
                 return NULL;

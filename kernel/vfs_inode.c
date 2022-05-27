@@ -124,7 +124,7 @@ void release_dirent_i(fat32_dirent* de){
 
 fat32_dirent * dirent_dup_i(fat32_dirent *de){
     if(de==NULL)
-        return -1;
+        return NULL;
     dirent_dup(de);
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         icache.inode[de->i_ino].i_count++;
@@ -203,7 +203,7 @@ int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
 
 void trunc_by_dirent_i(fat32_dirent *de){
     if(de==NULL)
-        return -1;
+        return;
     trunc_by_dirent(de);
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         icache.inode[de->i_ino].i_file_size=0;
@@ -233,9 +233,7 @@ int delete_by_dirent_i(fat32_dirent *de){
         icache.inode[de->i_ino].i_de=NULL;
     }
     
-    int ret=delete_by_dirent(de);
-    if(ret!=0)
-        return ret;
+    return delete_by_dirent(de);
 }
 
 vfs_inode* get_inode_by_ino(uint32 ino){
