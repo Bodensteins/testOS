@@ -11,6 +11,7 @@
 #include "include/string.h"
 #include "include/inode.h"
 #include "include/device.h"
+#include "include/pipe.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -191,7 +192,9 @@ uint64 sys_mkdirat(){
 }
 
 uint64 sys_pipe2(){
-    return 0;
+    int *fd=(int*)current->trapframe->regs.a0;
+    fd=va_to_pa(current->pagetable,fd);
+    return do_pipe(fd);
 }
 
 uint64 sys_getcwd(){
@@ -397,7 +400,7 @@ uint64 sys_mmap(){
     int fd=current->trapframe->regs.a4;
     int off=current->trapframe->regs.a5;
 
-    //do_mmap(start, len prot flags, fd, off);
+    //do_mmap(start, len, prot, flags, fd, off);
 
     return 0;
 }

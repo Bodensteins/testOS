@@ -52,12 +52,14 @@ void release_file(file *file){
                 release_dirent_i(file->fat32_dirent);
                 break;
             case FILE_TYPE_DEVICE:
+                //do nothing
                 break;
             case FILE_TYPE_PIPE:
-                //to do
+                
+                close_pipe(file->pipe, (file->attribute & FILE_ATTR_WRITE) ? 1:0);
                 break;
             default:
-                //printk("release_file: type error\n");
+                //do nothing
                 return;
                 break;
         }
@@ -90,7 +92,9 @@ int read_file(file *file, void *buf, uint rsize){
             dev_list[file->dev].read(buf,rsize);
             break;
         case FILE_TYPE_PIPE:
-            //to do
+            if(file->pipe==NULL)
+                return -1;
+            rsize=read_from_pipe(file->pipe,buf,rsize);
             break;
         default:
             return -1;
@@ -119,7 +123,9 @@ int write_file(file *file, void *buf, uint wsize){
             dev_list[file->dev].write(buf,wsize);
             break;
         case FILE_TYPE_PIPE:
-            //to do
+            if(file->pipe==NULL)
+                return -1;
+            wsize=write_to_pipe(file->pipe,buf,wsize);
             break;
         default:
             return -1;
@@ -138,7 +144,7 @@ file* file_dup(file* file){
 
 //工具函数，获取proc进程中一个空闲的文件描述符(文件句柄)
 //一般来说，0对应标准输入(stdin)，1对应标准输出(stdout)，2对应标准错误输出(stderr)
-static int acquire_fd(process* proc, file *file){
+int acquire_fd(process* proc, file *file){
     int fd;
     for(fd=0;fd<N_OPEN_FILE;fd++){
         if(proc->open_files[fd]==NULL){

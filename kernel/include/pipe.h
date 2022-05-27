@@ -16,4 +16,9 @@ typedef struct pipe {
   char data[PIPE_SIZE];
 }pipe;
 
+int do_pipe(int fd[2]);
+void close_pipe(pipe *pi, int is_write);
+int write_to_pipe(pipe *pi, char *buf, int sz);
+int read_from_pipe(pipe *pi, char *buf, int sz);
+
 #endif

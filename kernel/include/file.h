@@ -96,6 +96,7 @@ void release_file(file *file);  //释放一个文件结构体
 int read_file(file *file, void *buf, uint rsize);   //根据文件结构体，读取rsize个字节到buf
 int write_file(file *file, void *buf, uint wsize);  //根据文件结构体，写wsize个字节到buf
 file* file_dup(file* file); //将file中的ref_count自加
+int acquire_fd(process* proc, file *file);
 int do_openat(int fd, char *file_name, int mode);
 int do_close(int fd);
 int do_mkdirat(int fd, char *path);

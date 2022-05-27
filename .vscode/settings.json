@@ -34,6 +34,7 @@
         "systime.h": "c",
         "device.h": "c",
         "inode.h": "c",
-        "console.h": "c"
+        "console.h": "c",
+        "pipe.h": "c"
     }
 }

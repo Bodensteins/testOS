@@ -10,7 +10,7 @@
 比如PTE2PA、PA2PTE改为PTE_TO_PA、PA_TO_PTE增加可读性
 */
 
-#define TIMER_INTERVAL 3000000
+#define TIMER_INTERVAL 3500000
 
 // which hart (core) is this?
 static inline uint64
