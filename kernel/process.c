@@ -364,6 +364,9 @@ process *alloc_process(){
 
     p->sleep_expire=0;
 
+    p->mmap_va_available=MMAP_START_VA;
+    memset(&p->mmap_areas, 0, sizeof(p->mmap_areas)); // 清空映射区域
+
     return p;
 }
 

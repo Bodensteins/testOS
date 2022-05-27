@@ -32,7 +32,8 @@ KERN_OBJS := \
 	$K/systime.o \
 	$K/device.o\
 	$K/vfs_inode.o \
-	$K/pipe.o
+	$K/pipe.o \
+	$K/sysmmap.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \

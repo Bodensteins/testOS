@@ -22,6 +22,8 @@ typedef uint64 pde_t;
 typedef unsigned long size_t;
 typedef unsigned long uintptr_t;
 
+typedef unsigned int off_t;
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif

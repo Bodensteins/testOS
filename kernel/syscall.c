@@ -12,6 +12,7 @@
 #include "include/inode.h"
 #include "include/device.h"
 #include "include/pipe.h"
+#include "include/sysmmap.h"
 
 //系统调用函数声明
 uint64 sys_fork();
@@ -400,9 +401,7 @@ uint64 sys_mmap(){
     int fd=current->trapframe->regs.a4;
     int off=current->trapframe->regs.a5;
 
-    //do_mmap(start, len, prot, flags, fd, off);
-
-    return 0;
+    return do_mmap(start, len, prot, flags, fd, off);
 }
 
 uint64 sys_munmap(){
@@ -410,7 +409,5 @@ uint64 sys_munmap(){
     start=va_to_pa(current->pagetable,start);
     int len=current->trapframe->regs.a1;
 
-    //do_munmap(start, len);
-
-    return 0;
+    return do_munmap(start, len);
 }
