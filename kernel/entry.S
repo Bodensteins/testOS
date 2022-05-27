@@ -15,5 +15,5 @@ junk:
     .globl boot_stack
     .globl boot_stack_top
 boot_stack:
-    .space 4096*4*2
+    .space 4096*4
 boot_stack_top:

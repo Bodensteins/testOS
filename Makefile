@@ -29,7 +29,11 @@ KERN_OBJS := \
 	$K/sysexec.o \
 	$K/plic.o \
 	$K/console.o \
-	$K/device.o
+	$K/systime.o \
+	$K/device.o\
+	$K/vfs_inode.o \
+	$K/pipe.o\
+	$K/sysmmap.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -63,11 +67,11 @@ OBJCOPY = $(TOOLPREFIX)objcopy		#目标文件格式转换器
 OBJDUMP = $(TOOLPREFIX)objdump		#反汇编器
 
 #编译参数
-CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -O2 -fno-omit-frame-pointer -march=rv64imafdc
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
+CFLAGS += -Iinclude/
 #CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 #链接参数
@@ -90,47 +94,30 @@ ULIB = $U/user_syscall.o $U/stdio.o
 
 #main程序和test程序都是两个用来测试的小程序
 
-#$T/init: $U/init.o $(ULIB)
-#	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/init.out $^
-#	$(OBJCOPY) -S -O binary $T/init.out $T/init
-#	$(OBJDUMP) -S $T/init.out > $T/init.asm
-#	od -t xC $T/init
-
-$T/init: $U/init.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
-	@$(OBJDUMP) -S $T/init > $T/init.asm
-
 #编译main程序
 $T/main: $U/main.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	@$(OBJDUMP) -S $T/main > $T/main.asm
 
 #编译init程序
-#$T/testinit: $U/testinit.o $(ULIB)
-#	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
-#	@$(OBJDUMP) -S $@ > $@.asm
+$T/init: $U/init.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	@$(OBJDUMP) -S $@ > $@.asm
 
 #编译userinit程序
 $T/userinit: $U/userinit.o $(ULIB)
 	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/userinit.S -o $U/userinit.o
-	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/userinit.out $U/userinit.o
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $T/userinit.out $U/userinit.o
 	$(OBJCOPY) -S -O binary $T/userinit.out $T/userinit
-	$(OBJDUMP) -S $T/userinit.out > $T/userinit.asm
-	od -t xC $T/userinit > $T/userinit.txt
 
 $T/test: $U/test.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/test.out $^
 	$(OBJCOPY) -S -O binary $T/test.out $T/test
 	$(OBJDUMP) -S $T/test.out > $T/test.asm
 	od -t xC $T/test > $T/test.txt
-
-#$T/testinit: $U/testinit.o $(ULIB)
-#	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/testinit.out $^
-#	$(OBJCOPY) -S -O binary $T/testinit.out $T/testinit
-#	$(OBJDUMP) -S $T/testinit.out > $T/testinit.asm
-#	od -t xC $T/testinit > $U/testinit.S
-
-
+	sed -i 's/^.\{7\}//g' $T/test.txt
+	sed -i "s/ /,0x/g"  $T/test.txt
+	sed -i '1s/.//1' $T/test.txt
 #CPU个数为1个
 ifndef CPUS
 CPUS = 1
@@ -143,31 +130,27 @@ QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 128M -smp $(CPUS) -no
 
 
 kernel-image = $T/kernel.bin	#烧写到k210的kernel二进制目标文件
-k210-bootloader = $T/rustsbi.bin	#烧写到k210的rustsbi二进制目标文件
+k210-bootloader = $T/k210.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
-userinit: $T/userinit
+init: $T/userinit
 
 test: $T/test
 
-user: $T/init $T/main
-
 #编译所有目标文件的标签
-build: $T/kernel $T/main $T/init
+build: $T/kernel
 
 all: $T/kernel $(SBI)
-	$(OBJCOPY) $T/kernel --strip-all -O binary $T/kernel.bin
-	$(OBJCOPY) $(SBI) --strip-all -O binary $T/os.bin
-	dd if=$T/kernel.bin of=$T/os.bin bs=128k seek=1
-	cp $T/os.bin os.bin
+	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
+	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
+	cp $(k210-bootloader) os.bin
 
 #运行k210的标签
 k210: build
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
 	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
-	dd if=$(kernel-image) of=$openat(AT_FDCWD, cons, O_RDWR, 0666);
-	dup(0);  // stdout
-	dup(0);  // stderr(k210-bootloader) bs=128k seek=1
+	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
 	sudo chmod 777 $(k210-port)
 	python3 tools/kflash.py -p $(k210-port) -b 1500000 -t $(k210-bootloader)
 
@@ -189,6 +172,6 @@ endif
 
 #清理中间文件的标签
 clean:
-	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/.out *.bin
+	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/*.asm $T/.out *.bin
 
-.PHONY: clean qemu run build all test userinit user
+.PHONY: clean qemu run build all init test

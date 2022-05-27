@@ -7,9 +7,9 @@
 #define TIME_SLICE 2
 
 #include "spinlock.h"
-
+#include "systime.h"
 #include "file.h"
-
+#include "sysmmap.h"
 /*
 进程管理相关
 */
@@ -20,7 +20,6 @@ typedef enum proc_state { //进程状态
   READY,  //就绪态
   RUNNING,  //运行态
   ZOMBIE,    //僵尸态
-  TEMP
 }proc_state;
 
 //进程段信息
@@ -30,6 +29,7 @@ typedef enum segment_type{
   STACK_SEGMENT,   // runtime segment
   TRAPFRAME_SEGMENT, // trapframe segment
   SYSTEM_SEGMENT,  // system segment
+  MMAP_SEGMENT, // user mmap segment 
 }segment_type;
 
 //管理进程各个段的结构
@@ -77,7 +77,7 @@ typedef struct context {
 
 #define NPROC 64  //最大进程数量
 #define N_OPEN_FILE 128  //每个进程最大可打开的文件数量
-
+#define MMAP_NUM 8
 //进程的pcb，保存进程的各种信息
 typedef struct process{
   struct spinlock spinlock; //自旋锁
@@ -109,7 +109,14 @@ typedef struct process{
   //trapframe，在进入内核态的时候保存进程上下文信息
   trapframe *trapframe;
 
+  //进程时间相关
+  tms times;  //进程运行时间
+  uint64 enter_ktimes;  //上一次进入内核的时间
+  uint64 leave_ktimes;  //上一次离开内核的时间
+
   //context context;
+
+  uint64 sleep_expire;  //睡眠预期唤醒时间
 
   char name[50];
 
@@ -120,6 +127,8 @@ typedef struct process{
     uint64 woptions;
   }wait4_args; 
 
+  mmap_infos mmap_areas[MMAP_NUM];
+  uint64 mmap_va_availbale; //从此地址往后都可以映射
 }process;
 
 

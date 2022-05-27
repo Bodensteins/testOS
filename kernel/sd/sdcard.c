@@ -420,7 +420,7 @@ void sdcard_write_sector(uint8 *buf, int sectorno) {
 	}
 	if (0 == timeout) {
 		//release(&sdcard_lock);
-		//panic("sdcard: timeout waiting for response");
+		panic("sdcard: timeout waiting for response");
 	}
 	sd_end_cmd();
 
