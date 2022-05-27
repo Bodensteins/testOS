@@ -238,7 +238,7 @@ void free_pagetable(pagetable_t pagetable){
       free_pagetable((pagetable_t)child);   //通过递归的方式逐层释放内存
       pagetable[i] = 0;
     } else if(pte & PTE_V){     //如果还有pte对应了有效的物理地址，则出错
-      panic("freewalk: leaf");
+      //panic("freewalk: leaf");
     }
   }
   free_physical_page((void*)pagetable); //最后释放根页表
