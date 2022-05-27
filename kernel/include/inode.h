@@ -40,6 +40,7 @@ fat32_dirent* acquire_dirent_i(fat32_dirent* parent, char* name);
 int read_by_dirent_i(fat32_dirent *de, void *dst, uint offset, uint rsize);
 int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent_i(fat32_dirent *de);
+int delete_by_dirent_i(fat32_dirent *de);
 void fat32_init_i();
 vfs_inode* get_inode_by_ino(uint32 ino);
 vfs_inode* get_inode_by_dirent(fat32_dirent*    de);

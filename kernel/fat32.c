@@ -452,6 +452,7 @@ fat32_dirent* fat32_init(){
     dcache.root_dir.dev=DEVICE_DISK_NUM;
     dcache.root_dir.parent=&dcache.root_dir;
     dcache.root_dir.start_clusterno=dbr_info.root_dir_clusterno;
+    dcache.root_dir.valid=1;
     //计算根目录大小
     calc_dir_file_size(&(dcache.root_dir));
     dcache.root_dir.longname_entry_num = 0;
@@ -991,9 +992,10 @@ fat32_dirent* find_dirent_with_create(fat32_dirent* current_de, char *file_name,
         current_de=&dcache.root_dir;    //则设置current_de为根目录项
         file_name++;    //并将路径改为相对根目录的相对路径
     }
-    if(current_de==NULL)  
+    if(current_de==NULL || current_de->valid==0 || !(current_de->attribute&ATTR_DIRECTORY)){
+        printk("current_de error\n");
         return NULL;
-   
+    }
 
     //接下来就是以'/'为分隔，循环获取目录名并在父目录中寻找，
     //若找到则将该目录设置为父目录，迭代继续寻找下一个目录
@@ -1111,7 +1113,7 @@ fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name){
 //返回实际读取的字节数
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
     //指针不能为NULL
-    if(de==NULL || dst==NULL)
+    if(de==NULL || dst==NULL || de->valid==0)
         return 0;
 
     //offset不能超过文件大小，rsize不能小于等于0
@@ -1314,6 +1316,9 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
 }
 
 int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize){
+    if(de==NULL || de->valid==0)
+        return -1;
+
     int tot_sz=write_by_dirent(de,src,offset,wsize); // 写入的字节数
 
     //printk("\nwrite_by_dirent ret: %d\n",tot_sz);
@@ -1558,15 +1563,13 @@ int create_by_dirent(fat32_dirent *parent,char  name[FILE_NAME_LENGTH], uint8 at
 
 
 //工具函数，目录项首字符修改为E5
-//逻辑捋清楚了
-//未测试
 int delete_fat32_dirent_in_disk(fat32_dirent *de)
 {
-    printk("delete dirent start\n");
+    //printk("delete dirent start\n");
     //删除长文件目录项
     int bytes_per_cluster = dbr_info.bytes_per_sector * dbr_info.sectors_per_cluster; // 每簇的字节数
     uint8 flag = 0xE5;//删除标记
-    printk("flag: %x\n",flag);
+    //printk("flag: %x\n",flag);
     
     uint32 longname_dirent_clusterno_in_parent = de->longname_dirent_clusterno_in_parent; //起始的簇号
     uint32 bytes_per_sector = dbr_info.bytes_per_sector; // 每扇区字节数
@@ -1579,11 +1582,11 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
         uint32  sec_offset_in_cluster = start_bytes_offset_in_cluster /dbr_info.bytes_per_sector;// 簇中的扇区偏移
         uint32 sector_num = clusterno_to_sectorno(start_cluster_num) + sec_offset_in_cluster;//该目录项所在的扇区号
         uint32 offset_in_sector = start_bytes_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移，单位字节
-        printk("delete long_dirent %d sec num:%d  offset_in_sec:%d\n",counter+1,sector_num,offset_in_sector);
+        //printk("delete long_dirent %d sec num:%d  offset_in_sec:%d\n",counter+1,sector_num,offset_in_sector);
        
         buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
         write_to_buffer(buf,&flag,offset_in_sector,1);
-        
+        /*
         printk("----------display buf-----------\n");
         for(int i = 0;i<BSIZE; i++)
         {
@@ -1592,6 +1595,7 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
             if((i+1)%16 == 0 )
                 printk("\n");
         }
+        */
         release_buffer(buf);
         start_bytes_offset_in_cluster += DIR_ENTRY_BYTES; // 下一个目录项在簇中的偏移 单位字节
 
@@ -1613,23 +1617,23 @@ int delete_fat32_dirent_in_disk(fat32_dirent *de)
     uint32 sector_num = clusterno_to_sectorno(shortname_dirent_cluster_in_parent) + sec_offset_in_cluster;//文件名目录项所在的扇区号
     uint32 offset_in_sector = shortname_dirent_offset_in_cluster %  bytes_per_sector; // 该目录项在扇区中的偏移短
 
-    printk("delete short_dirent sec num:%d  offset_in_sec:%d\n",sector_num,offset_in_sector);
+    //printk("delete short_dirent sec num:%d  offset_in_sec:%d\n",sector_num,offset_in_sector);
 
     buffer *buf = acquire_buffer(DEVICE_DISK_NUM, sector_num);
     write_to_buffer(buf,&flag,offset_in_sector,1);
+    /*
     for(int i = 0;i<BSIZE; i++)
     {
         printk("%x ",buf->data[i]);
         if((i+1)%16 == 0 )
             printk("\n");
     }
+    */
     release_buffer(buf);
     de->del = 1;
 
-
-
     
-    printk("delete dirent ret\n");
+    //printk("delete dirent ret\n");
     return 0;
 }
 
@@ -1644,14 +1648,14 @@ int delete_by_dirent(fat32_dirent *file_to_delete)
 {
     if(file_to_delete == NULL || file_to_delete->parent == NULL)
         return -1;
+    if(file_to_delete->ref_count>1)
+        return -2;
     //缩减文件长度为0，并收回除起始簇外的所有簇
     write_by_dirent2(file_to_delete,NULL,0,0);
     trunc_by_dirent(file_to_delete);// 收回起始簇
     //目录项首字符修改为E5,未测试！
     delete_fat32_dirent_in_disk(file_to_delete);
-    
-
-
+    file_to_delete->valid=0;
     return 0;
 }
 
@@ -1663,133 +1667,3 @@ fat32_dirent* dirent_dup(fat32_dirent *de){
     //release_spinlock(&dcache.spinlock);
     return de;
 }
-
-/*
-//fat32_dirent * create_by_dirent_parent;
-
-//创建新文件（目录和文本）
-//实现思路：在父目录文件中，填充长文件名目录项和短文件名目录项
-//返回 -1 父目录不正确
-//返回 -2
-int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute)
-{
-    //create_by_dirent_parent = parent;
-    //printk("#2 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
-
-    if(parent->attribute != 0x10) 
-    {
-        return -1;// parent 不是目录
-    }
-    
-    if(find_dirent(parent,name)!=NULL) // 无同名
-        return -3;
-
-    //printk("#4 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
-
-    // 填充buff
-    char buf[256];
-    memset(buf,0,256);
-    fat32_long_name_dir_entry long_name_dir_entry[5];
-    fat32_short_name_dir_entry short_name_dir_entry;
-    //printk("#5 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
-
-    int len = strlen(name);
-    int num = (len+ 13 -1)/13; //向上取整
-    if(num <= 0 ) return -2;
-    printk("create_by_dirent argument name : %s\n",name);
-    char shortname[12]="  -  -  -  ";
-    longname_to_shorname(name,shortname);
-    //printk("create_by_dirent shortname: %s\n",shortname); 
-
-    //printk("#6 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之后存在溢出点
-    //char longname[] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
-    fill_longname_entry(name,long_name_dir_entry);
-    fill_shortname_entry(name,&short_name_dir_entry,attribute);
-
-    
-    //parent = create_by_dirent_parent;
-    //printk("#7 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);//之前存在溢出点
-
-
-    printk("############longname dir entry############\n");
-    for(int i = 4;i>= 0; i--)
-    {
-        printk("----------%d-----------\n",i);
-        uint8 * dir_entry = &long_name_dir_entry[i].atrribute;
-        
-        for(int j =0;j<16;j++)
-            printk("%x  ",dir_entry[j]);
-        printk("\n");
-
-        dir_entry = (uint8*)&long_name_dir_entry[i].name2[2];
-        for(int j =0;j<16;j++)
-            printk("%x  ",dir_entry[j]);
-        printk("\n");
-    }
-
-    
-
-    printk("############shortname dir entry############\n");
-    for(int i=0;i<32;i++)
-    {
-        uint8 * start = &short_name_dir_entry;
-        printk("%x  ",start[i]);
-        if((i+1)%16 == 0)
-            printk("\n");
-    }
-  
-
-    int i = 0;
-    int j =0;
-    for (i= num-1; i >=0 ; i--)
-    {
-        //printk("############buf longname copy %d############\n",i);
-        uint8* start =&long_name_dir_entry[i];
-        for(int k =0;k<32;k++)
-        {
-            buf[j] = start[k];
-            j++;
-        }
-
-    }
-    //printk("############buf shortname copy ############\n");
-    for(int k =0;k<32;k++)
-    {
-        uint8* start =&short_name_dir_entry;
-        buf[j] = start[k];
-        j++;
-        
-    }
-    printk("buf len: %d\n",j);
-
-    printk("----------display buf-----------\n");
-    for(int i = 0;i<j; i++)
-    {
-        
-        printk("%x ",buf[i]);
-        if((i+1)%16 == 0 )
-            printk("\n");
-    }
-
-    printk("############start to write############\n");
-    int ret =0;
-    printk("#3 dir name: %s, start_clusterno: %d  file_size: %d\n",parent->name,parent->start_clusterno,parent->file_size);
-    //ret = write_by_dirent(parent, buf,parent->file_size,j);
-    //release_dirent(parent);
-
-    printk("############end of write############\n");
-
-    printk("写入的字节数%d\n",ret);
-    
-    
-    if(ret == j)
-    {
-        printk("写入正确");
-        return 0;
-    }
-    
-    
-    return -4; //写入数量错误
-}
-*/

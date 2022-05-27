@@ -123,6 +123,8 @@ void release_dirent_i(fat32_dirent* de){
 }
 
 fat32_dirent * dirent_dup_i(fat32_dirent *de){
+    if(de==NULL)
+        return -1;
     dirent_dup(de);
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         icache.inode[de->i_ino].i_count++;
@@ -174,6 +176,9 @@ int read_by_dirent_i(fat32_dirent *de, void *dst, uint offset, uint rsize){
 
 int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
     int result=write_by_dirent2(de, src, offset, wsize);
+    if(result<0)
+        return result;
+
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         icache.inode[de->i_ino].i_file_size=de->file_size;
         icache.inode[de->i_ino].i_start_blockno=de->start_clusterno;
@@ -197,6 +202,8 @@ int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize){
 }
 
 void trunc_by_dirent_i(fat32_dirent *de){
+    if(de==NULL)
+        return -1;
     trunc_by_dirent(de);
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         icache.inode[de->i_ino].i_file_size=0;
@@ -214,13 +221,34 @@ void trunc_by_dirent_i(fat32_dirent *de){
     */
 }
 
+int delete_by_dirent_i(fat32_dirent *de){
+    if(de==NULL || de->ref_count>1)
+        return -1;
+
+    if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
+        icache.inode[de->i_ino].i_nlink=0;
+        icache.inode[de->i_ino].i_file_size=0;
+        icache.inode[de->i_ino].i_start_blockno=0;
+        icache.inode[de->i_ino].i_total_blocks=0;
+        icache.inode[de->i_ino].i_de=NULL;
+    }
+    
+    int ret=delete_by_dirent(de);
+    if(ret!=0)
+        return ret;
+}
+
 vfs_inode* get_inode_by_ino(uint32 ino){
-    if(ino>=INODE_LIST_LENGTH)  return  NULL;
-    //if(icache.inode[ino].i_de==NULL)    return  NULL;
+    if(ino>=INODE_LIST_LENGTH)  
+        return  NULL;
+    //if(icache.inode[ino].i_de==NULL)    
+        //return  NULL;
     return  &icache.inode[ino];
 }   
 
 vfs_inode* get_inode_by_dirent(fat32_dirent*    de){
+    if(de==NULL)
+        return NULL;
     if(de->i_ino<INODE_LIST_LENGTH && icache.inode[de->i_ino].i_de==de){
         return icache.inode+de->i_ino;
     }

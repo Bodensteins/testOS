@@ -26,13 +26,13 @@ char *test_files[] = {
 	"read", 
 	"times",
 	"umount", 
-	"uname", 
-	//"unlink", 
+	"unlink", 
 	"wait", 
 	"waitpid", 
 	"write", 
 	"yield", 
 	"sleep", 
+	"uname", 
 };
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);

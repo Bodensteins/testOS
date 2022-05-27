@@ -123,7 +123,6 @@ int write_file(file *file, void *buf, uint wsize){
             break;
         default:
             return -1;
-            break;
     }
     return wsize;
 }
@@ -167,7 +166,7 @@ int do_openat(int dir_fd, char *file_name, int flag){
     }
 
     fat32_dirent* dir;
-    if(dir_fd>0 && dir_fd<N_OPEN_FILE)
+    if(dir_fd>=0 && dir_fd<N_OPEN_FILE)
         dir=current->open_files[dir_fd]->fat32_dirent;
     else if(dir_fd==AT_FDCWD || *file_name=='/')
         dir=current->cwd;
@@ -327,7 +326,7 @@ char* do_getcwd(char *buf, int sz){
 }
 
 int do_getdents(int fd, char *buf, int len){
-    if(fd<0 || fd>N_OPEN_FILE)
+    if(fd<0 || fd>N_OPEN_FILE || buf==NULL)
         return -1;
     file *f=current->open_files[fd];
     if(f==NULL || !(f->attribute & FILE_ATTR_DIR))
@@ -342,3 +341,21 @@ int do_getdents(int fd, char *buf, int len){
     memcpy(buf,&dt,sizeof(dent));
     return sizeof(dent);
 }
+
+int do_unlinkat(int dir_fd, char *path, int flags){
+    fat32_dirent* dir;
+    if(dir_fd>=0 && dir_fd<N_OPEN_FILE)
+        dir=current->open_files[dir_fd]->fat32_dirent;
+    else if(dir_fd==AT_FDCWD || *path=='/')
+        dir=current->cwd;
+    else 
+        return -1;
+
+    fat32_dirent *de=find_dirent_i(dir,path);
+
+    if(de==NULL)
+        return -1;
+
+    return delete_by_dirent_i(de);
+}
+

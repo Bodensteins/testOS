@@ -31,7 +31,8 @@ KERN_OBJS := \
 	$K/console.o \
 	$K/systime.o \
 	$K/device.o\
-	$K/vfs_inode.o
+	$K/vfs_inode.o \
+	$K/pipe.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -134,7 +135,7 @@ init: $T/userinit
 test: $T/test
 
 #编译所有目标文件的标签
-build: $T/kernel $T/main $T/init
+build: $T/kernel
 
 all: $T/kernel $(SBI)
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)

@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "fat32.h"
+#include "pipe.h"
 
 /*
 文件结构
@@ -35,6 +36,7 @@ typedef struct file{
     //pipe *pipe;
     int attribute; //属性
     int dev;    //设备号
+    pipe *pipe;  //管道
     int ref_count;  //文件被引用数量
     //to do
     uint32 offset;  //文件当前的偏移量
@@ -103,5 +105,6 @@ int do_dup(process *proc, int fd);
 int do_dup3(process *proc, int old, int new);
 int do_fstat(int fd, kstat *kstat);
 int do_getdents(int fd, char *buf, int len);
+int do_unlinkat(int dir_fd, char *path, int flags);
 
 #endif

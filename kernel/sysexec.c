@@ -62,6 +62,7 @@ int do_execve(char *path, char **argv, char **env){
     //根据路径和文件名获取elf文件的目录项
     de=find_dirent_i(current->cwd,path);
     if(de==NULL){
+        //printk("not found elf\n");
         release_memory(pagetable,0,temp_map,de);
         return -1;
     }

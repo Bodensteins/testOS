@@ -24,6 +24,7 @@ uint64 sys_openat();
 uint64 sys_read();
 uint64 sys_write();
 uint64 sys_close();
+uint64 sys_pipe2();
 uint64 sys_mkdirat();
 uint64 sys_chdir();
 uint64 sys_dup();
@@ -31,6 +32,7 @@ uint64 sys_dup3();
 uint64 sys_exit();
 uint64 sys_mount();
 uint64 sys_umount();
+uint64 sys_unlinkat();
 uint64 sys_getcwd();
 uint64 sys_getdents();
 uint64 sys_fstat();
@@ -40,6 +42,8 @@ uint64 sys_wait4();
 uint64 sys_getppid();
 uint64 sys_getpid();
 uint64 sys_brk();
+uint64 sys_mmap();
+uint64 sys_munmap();
 uint64 sys_times();
 uint64 sys_uname();
 uint64 sys_sched_yield();
@@ -59,16 +63,17 @@ static uint64 (*syscalls[])() = {
     [SYS_read] sys_read,
     [SYS_write] sys_write,
     [SYS_close] sys_close,
+    [SYS_pipe2] sys_pipe2,
     [SYS_chdir] sys_chdir,
     [SYS_dup] sys_dup,
     [SYS_dup3] sys_dup3,
     [SYS_mkdirat] sys_mkdirat,
     [SYS_mount] sys_mount,
     [SYS_umount] sys_umount,
+    [SYS_unlinkat] sys_unlinkat,
     [SYS_getcwd] sys_getcwd,
     [SYS_getdents64] sys_getdents,
     [SYS_fstat] sys_fstat,
-
     [SYS_clone] sys_clone,
     [SYS_execve] sys_execve,
     [SYS_wait4] sys_wait4,
@@ -76,6 +81,8 @@ static uint64 (*syscalls[])() = {
     [SYS_getppid] sys_getppid,
     [SYS_getpid] sys_getpid,
     [SYS_brk] sys_brk,
+    [SYS_mmap] sys_mmap,
+    [SYS_munmap] sys_munmap,
     [SYS_times] sys_times,
     [SYS_uname] sys_uname,
     [SYS_sched_yield] sys_sched_yield,
@@ -137,7 +144,7 @@ uint64 sys_write(){
     buf=(char*)va_to_pa(current->pagetable,buf);    //虚拟地址转物理地址
     int wsize=current->trapframe->regs.a2;  //a2为希望读取多少字节
     //if(fd==1)
-    //    return write_to_console(buf,wsize);
+        //return write_to_console(buf,wsize);
     
     if(current->open_files[fd]==NULL){
         return -1;
@@ -181,6 +188,10 @@ uint64 sys_mkdirat(){
     char* path=(char*)current->trapframe->regs.a1;
     path=va_to_pa(current->pagetable,path);
     return do_mkdirat(fd,path);
+}
+
+uint64 sys_pipe2(){
+    return 0;
 }
 
 uint64 sys_getcwd(){
@@ -229,6 +240,14 @@ uint64 sys_umount(){
     char *mnt_point=(char*)current->trapframe->regs.a0;
     mnt_point=va_to_pa(current->pagetable,mnt_point);
     return do_umount(mnt_point);
+}
+
+uint64 sys_unlinkat(){
+    int dir_fd=current->trapframe->regs.a0;
+    char *path=(char*)current->trapframe->regs.a1;
+    path=va_to_pa(current->pagetable,path);
+    int flags=current->trapframe->regs.a2;
+    return do_unlinkat(dir_fd,path,flags);
 }
 
 uint64 sys_fstat(){
@@ -310,13 +329,6 @@ uint64 sys_getpid(){
     return current->pid;
 }
 
-//改变进程堆内存大小
-//当addr为0时，返回当前进程大小
-uint64 sys_brk(){
-    uint64 addr=current->trapframe->regs.a0;
-    return do_brk(current,addr);
-}
-
 //获取进程运行时间
 uint64 sys_times(){
     tms *times=(tms*)current->trapframe->regs.a0;
@@ -367,4 +379,19 @@ uint64 sys_nanosleep(){
     timespec *rem=(timespec*)current->trapframe->regs.a1;
     rem=va_to_pa(current->pagetable,rem);
     return do_nanosleep(req,rem);
+}
+
+//改变进程堆内存大小
+//当addr为0时，返回当前进程大小
+uint64 sys_brk(){
+    uint64 addr=current->trapframe->regs.a0;
+    return do_brk(current,addr);
+}
+
+uint64 sys_mmap(){
+    return 0;
+}
+
+uint64 sys_munmap(){
+    return 0;
 }
