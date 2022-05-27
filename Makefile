@@ -126,7 +126,7 @@ QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 128M -smp $(CPUS) -no
 
 
 kernel-image = $T/kernel.bin	#烧写到k210的kernel二进制目标文件
-k210-bootloader = $T/rustsbi.bin	#烧写到k210的rustsbi二进制目标文件
+k210-bootloader = $T/k210.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
 init: $T/userinit
@@ -140,7 +140,7 @@ all: $T/kernel $(SBI)
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
 	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
 	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
-	cp $T/k210.bin os.bin
+	cp $(k210-bootloader) os.bin
 
 #运行k210的标签
 k210: build

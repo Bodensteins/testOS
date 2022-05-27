@@ -202,7 +202,6 @@ int do_openat(int dir_fd, char *file_name, int flag){
     if(fd<0){   //如果获取失败
         release_file(file); //关闭file，返回-1
         release_dirent_i(de);
-        current->open_files[fd]=NULL;
         //unlock
         return -1;
     }
