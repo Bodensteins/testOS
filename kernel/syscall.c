@@ -389,9 +389,25 @@ uint64 sys_brk(){
 }
 
 uint64 sys_mmap(){
+    char *start=current->trapframe->regs.a0;
+    start=va_to_pa(current->pagetable,start);
+    int len=current->trapframe->regs.a1;
+    int prot=current->trapframe->regs.a2;
+    int flags=current->trapframe->regs.a3;
+    int fd=current->trapframe->regs.a4;
+    int off=current->trapframe->regs.a5;
+
+    //do_mmap(start, len prot flags, fd, off);
+
     return 0;
 }
 
 uint64 sys_munmap(){
+    char *start=current->trapframe->regs.a0;
+    start=va_to_pa(current->pagetable,start);
+    int len=current->trapframe->regs.a1;
+
+    //do_munmap(start, len);
+
     return 0;
 }
