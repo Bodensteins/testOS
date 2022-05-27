@@ -115,12 +115,12 @@ void unmap_pages(pagetable_t pd, uint64 va, uint64 size, int is_free_pa){
 //返回生成的pte的属性，这个属性一般用于user_vm_map中的permission参数
 int pte_permission(int is_read, int is_write, int is_exec, int is_user){
     uint64 perm = 0;
-  if (is_read) perm |= PTE_R | PTE_A;
-  if (is_write) perm |= PTE_W | PTE_D;
-  if (is_exec) perm |= PTE_X | PTE_A;
-  if (perm == 0) perm = PTE_R;
-  if (is_user) perm |= PTE_U;
-  return perm;
+    if (is_read) perm |= PTE_R | PTE_A;
+    if (is_write) perm |= PTE_W | PTE_D;
+    if (is_exec) perm |= PTE_X | PTE_A;
+    if (perm == 0) perm = PTE_R;
+    if (is_user) perm |= PTE_U;
+    return perm;
 }
 
 //在内核页表中将一段连续的虚拟地址映射到连续的物理地址

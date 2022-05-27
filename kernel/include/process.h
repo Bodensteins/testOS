@@ -128,7 +128,7 @@ typedef struct process{
   }wait4_args; 
 
   mmap_infos mmap_areas[MMAP_NUM];
-  uint64 mmap_va_availbale; //从此地址往后都可以映射
+  uint64 mmap_va_available; //从此地址往后都可以映射
 }process;
 
 

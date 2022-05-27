@@ -1,7 +1,7 @@
 #include "user_syscall.h"
 
 char *test_files[] = {
-	// "brk", 
+	//"brk", 
 	// "chdir", 
 	// "clone", 
 	// "close", 
@@ -28,7 +28,7 @@ char *test_files[] = {
 	// "unlink", 
 	// "yield", 
 	// "sleep", 
-	// //"pipe", 
+	 //"pipe", 
 	// "umount", 
 	// "sleep" , 
 	// "uname",

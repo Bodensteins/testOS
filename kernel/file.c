@@ -40,6 +40,8 @@ file *acquire_file(){
 
 //释放一个文件列表的表项
 void release_file(file *file){
+    if(file==NULL)
+        return;
     //acquire_spinlock(&ftable.spinlock);
     if(file->ref_count>1){
         file->ref_count--;
