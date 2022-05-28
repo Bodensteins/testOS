@@ -24,7 +24,7 @@ static int acquire_mmap_areas(void* start,size_t len,int port,int flags,int fd,o
             }
             else
             {
-                current->mmap_areas[i].start = start;
+                current->mmap_areas[i].start = (uint64)start;
             }
             current->mmap_areas[i].len = len;
             current->mmap_areas[i].port = port;
@@ -105,7 +105,7 @@ uint64 do_mmap(void* start,size_t len,int port,int flags,int fd,off_t offset)
     {
         void * pa =alloc_physical_page(); // 分配一页物理地址
         memset(pa,0,PGSIZE);
-        user_vm_map(current->pagetable,start_mmap_addr,PGSIZE,pa,permission); //映射
+        user_vm_map(current->pagetable,start_mmap_addr,PGSIZE,(uint64)pa,permission); //映射
         read_by_dirent_i(file_to_mmap,pa,off,size); // 往内存空间中写入文件内容  直接对内核地址写入
         // segments 记录
         
