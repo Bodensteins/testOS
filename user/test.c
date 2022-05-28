@@ -1,6 +1,7 @@
 #include "user_syscall.h"
 
 char *test_files[] = {
+	/*
 	"brk", 
 	"chdir", 
 	"clone", 
@@ -30,11 +31,12 @@ char *test_files[] = {
 	"unlink", 
 	"yield", 
 	"sleep", 
+	*/
 	"mmap",
 	"munmap",
-	"umount", 
-	"sleep" , 
-	"uname",
+	//"umount", 
+	//"sleep" , 
+	//"uname",
 };
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
