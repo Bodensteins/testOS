@@ -118,6 +118,7 @@ $T/test: $U/test.o $(ULIB)
 	sed -i 's/^.\{7\}//g' $T/test.txt
 	sed -i "s/ /,0x/g"  $T/test.txt
 	sed -i '1s/.//1' $T/test.txt
+	rm -rf $T/test
 #CPU个数为1个
 ifndef CPUS
 CPUS = 1
