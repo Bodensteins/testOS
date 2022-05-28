@@ -1,6 +1,7 @@
 #include "user_syscall.h"
 
 char *test_files[] = {
+	"uname",
 	"brk", 
 	 "chdir", 
 	 "clone", 
@@ -11,13 +12,15 @@ char *test_files[] = {
 	 "exit", 
 	 "fork", 
 	 "fstat", 
-	 "getcwd", 
-	 "getdents", 
+	 "getdents",
+	 "sleep", 
 	 "getpid", 
 	 "getppid", 
 	 "gettimeofday",
 	 "mkdir_", 
 	 "mount", 
+	 "pipe",
+	 "sleep",
 	 "openat", 
 	 "open", 
 	 "read", 
@@ -26,15 +29,12 @@ char *test_files[] = {
 	 "waitpid", 
 	 "write", 
 	 "unlink", 
-	 "yield", 
-	 "sleep", 
-	"pipe", 
-	 "umount", 
-	 "sleep" , 
-	"munmap",
-	//"uname",
-	//"mmap",
-
+	 "yield",   
+	 "getcwd", 
+	"umount",
+	"sleep",
+	"munmap", 
+	"mmap",
 };
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);

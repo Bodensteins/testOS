@@ -254,6 +254,52 @@ void free_pagetable2(pagetable_t pagetable, uint64 size, int is_free){
     //free_pagetable(pagetable);
 }
 
+// Copy from kernel to user.
+// Copy len bytes from src to virtual address dstva in a given page table.
+// Return 0 on success, -1 on error.
+int copyout(pagetable_t pagetable, uint64 dstva, void *src, uint64 len){
+  uint64 n, va0, pa0;
+
+  while(len > 0){
+    va0 = PGROUNDDOWN(dstva);
+    pa0 = find_pa_align_pgsize(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (dstva - va0);
+    if(n > len)
+      n = len;
+    memcpy((void *)(pa0 + (dstva - va0)), src, n);
+
+    len -= n;
+    src += n;
+    dstva = va0 + PGSIZE;
+  }
+  return 0;
+}
+
+// Copy from user to kernel.
+// Copy len bytes to dst from virtual address srcva in a given page table.
+// Return 0 on success, -1 on error.
+int copyin(pagetable_t pagetable, void *dst, uint64 srcva, uint64 len){
+  uint64 n, va0, pa0;
+
+  while(len > 0){
+    va0 = PGROUNDDOWN(srcva);
+    pa0 = find_pa_align_pgsize(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (srcva - va0);
+    if(n > len)
+      n = len;
+    memcpy(dst, (void *)(pa0 + (srcva - va0)), n);
+
+    len -= n;
+    dst += n;
+    srcva = va0 + PGSIZE;
+  }
+  return 0;
+}
+
 static int get_dataseg_mapinfo(process *proc){
     for(int i=0;i<proc->segment_num;i++){
         if(proc->segment_map_info[i].seg_type==HEAP_SEGMENT)

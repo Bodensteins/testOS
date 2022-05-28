@@ -6,6 +6,7 @@
 #include "include/inode.h"
 #include "include/fcntl.h"
 #include "include/device.h"
+#include "include/vm.h"
 
 /*
 文件系统相关依赖为：
@@ -279,7 +280,7 @@ int do_dup3(process *proc, int old, int new){
     return new;
 }
 
-int do_fstat(int fd, kstat *kstat){
+int do_fstat(int fd, kstat *stat){
     if(fd<0 || fd>N_OPEN_FILE)
         return -1;
     
@@ -291,18 +292,19 @@ int do_fstat(int fd, kstat *kstat){
     if(inode==NULL)
         return -1;
     
-    kstat->dev=inode->i_dev;
-    kstat->ino=inode->i_ino;
-    kstat->mode=inode->i_mode;
-    kstat->nlink=inode->i_nlink;
-    kstat->size=inode->i_file_size;
-    kstat->atime_sec=inode->i_atime;
-    kstat->mtime_sec=inode->i_mtime;
-    kstat->ctime_sec=inode->i_ctime;
-    kstat->blocks=inode->i_total_blocks;
-    kstat->blksize=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
+    kstat kstat;
+    kstat.dev=inode->i_dev;
+    kstat.ino=inode->i_ino;
+    kstat.mode=inode->i_mode;
+    kstat.nlink=inode->i_nlink;
+    kstat.size=inode->i_file_size;
+    kstat.atime_sec=inode->i_atime;
+    kstat.mtime_sec=inode->i_mtime;
+    kstat.ctime_sec=inode->i_ctime;
+    kstat.blocks=inode->i_total_blocks;
+    kstat.blksize=dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster;
     
-    return 0;
+    return copyout(current->pagetable,(uint64)stat,&kstat,sizeof(kstat));
 }
 
 int do_chdir(char *path){

@@ -257,7 +257,7 @@ uint64 sys_unlinkat(){
 uint64 sys_fstat(){
     int fd=current->trapframe->regs.a0;
     kstat *stat=(kstat*)current->trapframe->regs.a1;
-    stat=va_to_pa(current->pagetable,stat);
+    //stat=va_to_pa(current->pagetable,stat);
     return do_fstat(fd,stat);
 }
 
@@ -350,17 +350,18 @@ typedef struct utsname {    //系统信息
 }utsname;
 //获取系统信息
 uint64 sys_uname(){
-    utsname *info=(utsname*)current->trapframe->regs.a0;
-    info=va_to_pa(current->pagetable,info);
-    if(info==NULL)
+    utsname *un=(utsname*)current->trapframe->regs.a0;
+    if(un==NULL)
         return (uint64)(-1);
-    memcpy(info->sysname,"testOS\0",7);
-    memcpy(info->nodename,"none\0",5);
-    memcpy(info->release,"debug\0",6);
-    memcpy(info->version,"v1.0\0",5);
-    memcpy(info->machine,"K210\0",5);
-    memcpy(info->domainname,"none\0",5);
-    return 0;
+    utsname info;
+    memcpy(info.sysname,"testOS\0",7);
+    memcpy(info.nodename,"none\0",5);
+    memcpy(info.release,"debug\0",6);
+    memcpy(info.version,"v1.0\0",5);
+    memcpy(info.machine,"K210\0",5);
+    memcpy(info.domainname,"none\0",5);
+    
+    return copyout(current->pagetable,(uint64)un,&info,sizeof(utsname));
 }
 
 //进程放弃CPU
