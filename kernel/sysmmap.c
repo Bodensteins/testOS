@@ -10,16 +10,17 @@
 // 寻找空闲的mmap_area 存放信息
 static int acquire_mmap_areas(void* start,size_t len,int port,int flags,int fd,off_t offset)
 {
-    //printk("ac: start=%p, len=%d\n",start,len);
     for(int i =0;i<MMAP_NUM;i++)
     {
+        
         if(current->mmap_areas[i].used == 0)
         {  // 寻找未使用的mmap_areas存放信息
 
             if(start == NULL)
-            {
+            {   
+                
                 current->mmap_areas[i].start = current->mmap_va_available;
-                printk("mmap_va_availbale %d\n",current->mmap_va_available);
+                //printk("mmap_va_availbale %x\n",current->mmap_va_availbale);
             }
             else
             {
@@ -130,8 +131,8 @@ uint64 do_mmap(void* start,size_t len,int port,int flags,int fd,off_t offset)
     current->segment_num++;
    
     current->mmap_va_available = start_mmap_addr ; 
-    printk("ret mmap va %d",current->mmap_areas[mmap_area_offset].start);
-    printk("[ 10 ]do mmap end\n");
+    //printk("ret mmap va %x\n",current->mmap_areas[mmap_area_offset].start);
+    //printk("[ 10 ]do mmap end\n");
     return current->mmap_areas[mmap_area_offset].start;
 
 }
@@ -169,7 +170,7 @@ int do_munmap(void* start,size_t len)
     int mmap_area_offset = find_mmap_areas(start_va,len);//寻找seg 信息
     if(mmap_area_offset == -1)
     {
-        printk("mmap_area_offset unfound\n");
+        //printk("mmap_area_offset unfound\n");
         return -1;// 未找到对应信息
     }
        
@@ -177,7 +178,7 @@ int do_munmap(void* start,size_t len)
     int segments_map_info_off =  find_segments_map_info(start_va);//寻找mmap信息
     if(segments_map_info_off == -1)
     {
-        printk("segments_map_info_off unfound\n");
+        //printk("segments_map_info_off unfound\n");
         return -1;// 未找到对应信息
     }
     

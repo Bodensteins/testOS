@@ -32,8 +32,8 @@ char *test_files[] = {
 	// "umount", 
 	// "sleep" , 
 	// "uname",
+	"munmap",
 	"mmap",
-	//"munmap",
 };
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
