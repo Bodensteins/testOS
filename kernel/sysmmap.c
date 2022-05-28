@@ -7,16 +7,25 @@
 #include "include/riscv.h"
 #include "include/inode.h"
 #include "include/string.h"
-
 // 寻找空闲的mmap_area 存放信息
 static int acquire_mmap_areas(void* start,size_t len,int port,int flags,int fd,off_t offset)
 {
-    //printk("ac: start=%p, len=%d\n",start,len);
     for(int i =0;i<MMAP_NUM;i++)
     {
+        
         if(current->mmap_areas[i].used == 0)
         {  // 寻找未使用的mmap_areas存放信息
-            current->mmap_areas[i].start = start!=NULL ? (uint64)start:current->mmap_va_available;
+
+            if(start == NULL)
+            {   
+                
+                current->mmap_areas[i].start = current->mmap_va_available;
+                //printk("mmap_va_availbale %x\n",current->mmap_va_availbale);
+            }
+            else
+            {
+                current->mmap_areas[i].start = start;
+            }
             current->mmap_areas[i].len = len;
             current->mmap_areas[i].port = port;
             current->mmap_areas[i].flags = flags;
@@ -60,7 +69,8 @@ uint64 do_mmap(void* start,size_t len,int port,int flags,int fd,off_t offset)
         return err; // 暂时只接受系统自动分配的内存大小 且超出映射允许范围 直接报错
 
     // 选择合适的 mmap_area 存放信息
-    if(-1 ==  acquire_mmap_areas(start, len, port, flags, fd, offset)) // 存储信息，增加引用数量
+    int mmap_area_offset =  acquire_mmap_areas(start, len, port, flags, fd, offset);
+    if(-1 == mmap_area_offset) // 存储信息，增加引用数量
         return err; // 无可用的 mmap_area
 
     fat32_dirent* file_to_mmap = current->open_files[fd]->fat32_dirent; //需要映射的文件
@@ -95,7 +105,7 @@ uint64 do_mmap(void* start,size_t len,int port,int flags,int fd,off_t offset)
     {
         void * pa =alloc_physical_page(); // 分配一页物理地址
         memset(pa,0,PGSIZE);
-        user_vm_map(current->pagetable,start_mmap_addr,PGSIZE, (uint64)pa,permission); //映射
+        user_vm_map(current->pagetable,start_mmap_addr,PGSIZE,pa,permission); //映射
         read_by_dirent_i(file_to_mmap,pa,off,size); // 往内存空间中写入文件内容  直接对内核地址写入
         // segments 记录
         
@@ -119,10 +129,12 @@ uint64 do_mmap(void* start,size_t len,int port,int flags,int fd,off_t offset)
     current->segment_map_info[current->segment_num].page_num = page_num;
     current->segment_map_info[current->segment_num].seg_type = MMAP_SEGMENT;
     current->segment_num++;
-
+   
     current->mmap_va_available = start_mmap_addr ; 
+    //printk("ret mmap va %x\n",current->mmap_areas[mmap_area_offset].start);
     //printk("[ 10 ]do mmap end\n");
-    return current->segment_map_info[current->segment_num-1].va ;
+    return current->mmap_areas[mmap_area_offset].start;
+
 }
 
 //寻找到 segments map info 
@@ -132,7 +144,7 @@ static int find_segments_map_info(uint64 start_va)
     for (int  i = 0; i <current->segment_num ; i++)
     {
         if(current->segment_map_info[i].va ==start_va  && 
-            current->segment_map_info[i].page_num !=0 && 
+            current->segment_map_info[i].page_num !=0  &&
             current->segment_map_info[i].seg_type==MMAP_SEGMENT)
         {// 起始地址 正确，且有效
             return i;
@@ -156,15 +168,20 @@ int do_munmap(void* start,size_t len)
     uint64 start_va =(uint64)start;
 
     int mmap_area_offset = find_mmap_areas(start_va,len);//寻找seg 信息
-    if(mmap_area_offset == -1){
+    if(mmap_area_offset == -1)
+    {
         //printk("mmap_area_offset unfound\n");
         return -1;// 未找到对应信息
     }
+       
+
     int segments_map_info_off =  find_segments_map_info(start_va);//寻找mmap信息
-    if(segments_map_info_off == -1){
+    if(segments_map_info_off == -1)
+    {
         //printk("segments_map_info_off unfound\n");
         return -1;// 未找到对应信息
     }
+    
 
     mmap_infos* mmap_info = &(current->mmap_areas[mmap_area_offset]);//mmap信息
     segment_map_info * seg_map_info = &(current->segment_map_info[segments_map_info_off]);//seg 信息
@@ -209,6 +226,8 @@ int do_munmap(void* start,size_t len)
         start_mmap_addr+=PGSIZE;
         
     }
+    mmap_info->used=0;
+    release_file(current->open_files[mmap_info->fd]);
 
     mmap_info->used=0;
     release_file(current->open_files[mmap_info->fd]);

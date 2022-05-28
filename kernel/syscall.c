@@ -393,14 +393,15 @@ uint64 sys_brk(){
 }
 
 uint64 sys_mmap(){
-    char *start=(char*)current->trapframe->regs.a0;
-    int len=current->trapframe->regs.a1;
-    int prot=current->trapframe->regs.a2;
-    int flags=current->trapframe->regs.a3;
-    int fd=current->trapframe->regs.a4;
-    int off=current->trapframe->regs.a5;
+    void * start = (void*)current->trapframe->regs.a0;
+    size_t len = current->trapframe->regs.a1;
+    int port = current->trapframe->regs.a2;
+    int flags = current->trapframe->regs.a3;
+    int fd = current->trapframe->regs.a4;
+    off_t offset  = current->trapframe->regs.a5;
 
-    return do_mmap(start, len, prot, flags, fd, off);
+    //printk("[ + ] sys_mmap start: %x ,len: %d, port: %d, flags: %d, fd: %d, offset: %d\n",start,len, port,flags, fd,offset);
+    return do_mmap(start,len,port,flags,fd,offset);
 }
 
 uint64 sys_munmap(){
