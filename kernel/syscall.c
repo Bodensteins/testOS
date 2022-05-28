@@ -396,6 +396,7 @@ uint64 sys_mmap(){
     int fd = current->trapframe->regs.a4;
     off_t offset  = current->trapframe->regs.a5;
 
+    printk("[ + ] sys_mmap \nstart: %x ,len: %d, port: %d, flags: %d, fd: %d, offset: %d",start,len, port,flags, fd,offset);
 
 
 

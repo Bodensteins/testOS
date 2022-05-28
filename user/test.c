@@ -10,7 +10,7 @@ char *test_files[] = {
 	// "execve", 
 	// "exit", 
 	// "fork", 
-	// "fstat", 
+	"fstat", 
 	// "getcwd", 
 	// "getdents", 
 	// "getpid", 
@@ -33,7 +33,7 @@ char *test_files[] = {
 	// "sleep" , 
 	// "uname",
 	"mmap",
-	"munmap",
+	//"munmap",
 };
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
