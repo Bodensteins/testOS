@@ -34,7 +34,6 @@
 #define SYS_fstat 80
 #define SYS_munmap 215
 #define SYS_mmap 222
-
 #define SYS_execve 221
 #define SYS_wait4 260
 #define SYS_exit 93

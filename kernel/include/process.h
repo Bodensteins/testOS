@@ -87,11 +87,11 @@ typedef struct process{
 
   //各个程序段的信息，通过这个结构来维护
   segment_map_info *segment_map_info;
-  int segment_num;  //记录进程有几个栈
+  int segment_num;  //记录进程有几个段
 
   proc_state state; //进程状态
   int exit_state; //进程退出状态
-  int killed; //是否被杀死(这个似乎有点多余)
+  int killed; //是否被杀死
   int size; //进程在内存中的大小
   uint64 pid; //进程pid
 
