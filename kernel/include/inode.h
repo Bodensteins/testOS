@@ -15,7 +15,7 @@ typedef struct vfs_inode{
     fat32_dirent *i_de;//相关联的目录项
     uint32 i_start_blockno;   //文件起始block号
     uint32 i_total_blocks;    //文件总共block号
-    uint32  i_blocks[BLOCKS_MAX_NUMBER];//簇列表
+    //uint32  i_blocks[BLOCKS_MAX_NUMBER];//簇列表
     uint32  i_atime;//inode最后一次存取时间
     uint32  i_mtime;//inode最后一次修改时间
     uint32  i_ctime;//inode产生时间
@@ -33,12 +33,14 @@ typedef struct  inode_cache{
 }vfs_inode_cache;
 
 fat32_dirent* find_dirent_i(fat32_dirent* current_de, char *file_name);
+fat32_dirent* find_dirent_with_create_i(fat32_dirent* current_de, char *file_name,int is_create, int attribute);
 void release_dirent_i(fat32_dirent* de);
 fat32_dirent* dirent_dup_i(fat32_dirent *de);
 fat32_dirent* acquire_dirent_i(fat32_dirent* parent, char* name);
 int read_by_dirent_i(fat32_dirent *de, void *dst, uint offset, uint rsize);
 int write_by_dirent_i(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent_i(fat32_dirent *de);
+int delete_by_dirent_i(fat32_dirent *de);
 void fat32_init_i();
 vfs_inode* get_inode_by_ino(uint32 ino);
 vfs_inode* get_inode_by_dirent(fat32_dirent*    de);

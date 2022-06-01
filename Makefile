@@ -29,8 +29,11 @@ KERN_OBJS := \
 	$K/sysexec.o \
 	$K/plic.o \
 	$K/console.o \
+	$K/systime.o \
 	$K/device.o\
-	$K/vfs_inode.o
+	$K/vfs_inode.o \
+	$K/pipe.o \
+	$K/sysmmap.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -64,11 +67,11 @@ OBJCOPY = $(TOOLPREFIX)objcopy		#目标文件格式转换器
 OBJDUMP = $(TOOLPREFIX)objdump		#反汇编器
 
 #编译参数
-CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -O2 -fno-omit-frame-pointer -march=rv64imafdc
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
+CFLAGS += -Iinclude/
 #CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 #链接参数
@@ -107,6 +110,16 @@ $T/userinit: $U/userinit.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $T/userinit.out $U/userinit.o
 	$(OBJCOPY) -S -O binary $T/userinit.out $T/userinit
 
+$T/test: $U/test.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $T/test.out $^
+	$(OBJCOPY) -S -O binary $T/test.out $T/test
+	$(OBJDUMP) -S $T/test.out > $T/test.asm
+	od -t xC $T/test > $T/test.txt
+	sed -i 's/^.\{7\}//g' $T/test.txt
+	sed -i "s/ /,0x/g"  $T/test.txt
+	sed -i '1s/.//1' $T/test.txt
+	rm -rf $T/test
+
 #CPU个数为1个
 ifndef CPUS
 CPUS = 1
@@ -119,19 +132,21 @@ QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 128M -smp $(CPUS) -no
 
 
 kernel-image = $T/kernel.bin	#烧写到k210的kernel二进制目标文件
-k210-bootloader = $T/rustsbi.bin	#烧写到k210的rustsbi二进制目标文件
+k210-bootloader = $T/k210.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
 init: $T/userinit
 
+test: $T/test
+
 #编译所有目标文件的标签
-build: $T/kernel $T/main $T/init
+build: $T/kernel
 
 all: $T/kernel $(SBI)
 	$(OBJCOPY) $T/kernel --strip-all -O binary $(kernel-image)
 	$(OBJCOPY) $(SBI) --strip-all -O binary $(k210-bootloader)
 	dd if=$(kernel-image) of=$(k210-bootloader) bs=128k seek=1
-	cp $T/k210.bin os.bin
+	cp $(k210-bootloader) os.bin
 
 #运行k210的标签
 k210: build
@@ -161,4 +176,4 @@ endif
 clean:
 	rm -f */*.o */*.d $T/kernel $T/*.bin $T/*.sym */*/*.o */*/*.d $T/*.asm $T/.out *.bin
 
-.PHONY: clean qemu run build all init
+.PHONY: clean qemu run build all init test

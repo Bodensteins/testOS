@@ -10,6 +10,7 @@
 #include "include/schedule.h"
 #include "include/plic.h"
 #include "include/console.h"
+#include "include/systime.h"
 
 static int ticks=0; //计时器
 
@@ -27,6 +28,7 @@ void handle_timer_trap(){
     ticks++;    //计时器递增
     sbi_set_timer(r_time()+TIMER_INTERVAL); //设置下一次时钟中断的时间间隔
     w_sip(r_sip()&(~SIP_SSIP)); //清除中断等待
+    check_nanosleep_per_clk();
     if(ticks==TIME_SLICE && current!=NULL){  //如果时间片到了
         ticks=0;    //计时器归零
         if(current->state==RUNNING){    //将当前进程插入就绪队列
@@ -54,6 +56,11 @@ void trap_init(){
 
 //当用户态发生trap时，user_trap_vec会跳转进入user_trap处理用户态的trap
 void user_trap(){
+    //更新进程运行时间
+    uint64 tm=read_time();
+    current->enter_ktimes=tm;
+    current->times.utime+=(tm-current->leave_ktimes);
+    
     //printk("user_trap\n");
     //检查是否是来自用户态的trap
     if((r_sstatus() & SSTATUS_SPP) != 0)

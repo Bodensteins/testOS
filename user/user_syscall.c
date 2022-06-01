@@ -1,5 +1,4 @@
-#include "kernel/include/syscall.h"
-#include "kernel/include/printk.h"
+#include "../kernel/include/syscall.h"
 
 /*
 用户态使用系统调用
@@ -38,13 +37,25 @@ uint64 fork(){
 }
 
 //打开文件
-uint64 open(char *file_name, int mode){
-    return user_syscall((uint64)file_name,mode,0,0,0,0,0,SYS_open);
+int openat(int fd, char *file_name, int flag){
+    return user_syscall(fd,(uint64)file_name,flag,0,0,0,0,SYS_openat);
 }
 
 //根据文件描述符fd，读取文件中rsize个字节到buf中
 uint64 read(int fd, void* buf, size_t rsize){
     return user_syscall(fd,(uint64)buf,rsize,0,0,0,0,SYS_read);
+}
+
+uint64 write(int fd, void* buf, size_t wsize){
+    return user_syscall(fd,(uint64)buf,wsize,0,0,0,0,SYS_write);
+}
+
+int dup(int fd){
+    return user_syscall(fd,0,0,0,0,0,0,SYS_dup);
+}
+
+int dup3(int old, int new, int flags){
+    return user_syscall(old,new,flags,0,0,0,0,SYS_dup3);
 }
 
 //根据pid杀死进程

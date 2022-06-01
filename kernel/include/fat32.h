@@ -223,6 +223,8 @@ typedef struct fat32_dir_entry{
     fat32_short_name_dir_entry short_name_dentry;
     fat32_long_name_dir_entry long_name_dentry[5];
     int long_dir_entry_num;
+    uint32 longname_dirent_clusterno_in_parent;
+    uint32 longname_dirent_offset_in_parent;
 }fat32_dir_entry;
 
 #define FILE_NAME_LENGTH 64
@@ -232,17 +234,21 @@ typedef struct fat32_dirent{
     char name[FILE_NAME_LENGTH+1];  //文件名(包括扩展名)
     uint8 attribute;    //文件属性
     uint32 file_size;   //文件大小
-    uint32  ino;//dirent对应的inode号
     uint32 start_clusterno;   //文件起始簇号
     //uint32 current_clusterno;  
-    uint32 total_clusters;    //文件总共簇号
+    uint32 i_ino;
+    uint32 total_clusters;    //文件总共簇数
     uint32 clusterno_in_parent;   //文件目录项在父目录中的簇位置
     uint32 offset_in_parent;    //文件目录项在父目录簇中的偏移
+    uint32 longname_dirent_clusterno_in_parent;   //长文件目录项在父目录中的簇位置
+    uint32 longname_dirent_offset_in_parent; //长文件目录项在父目录簇中的偏移
+    uint8  longname_entry_num;
     uint8 dev;  //设备号(一般是0，表示sd卡)
     struct fat32_dirent* parent;    //父目录的目录项
     uint32 ref_count;   //该目录项的引用数量
     uint8 valid;    //是否有效
     uint8 dirty;    //脏位，表示缓冲区中目录项的内容和磁盘中的是否一致，即目录项更新是否有写入磁盘(0为一致，否则不一致)
+    uint8 del;   //删除标志
     struct fat32_dirent* prev;  //在LRU双向循环链表中，指向该目录项的上一个链表节点
     struct fat32_dirent* next;  //在LRU双向循环链表中，指向该目录项的下一个链表节点
     sleeplock sleeplock;    //睡眠锁
@@ -267,11 +273,15 @@ extern fat32_dbr dbr_info;
 
 fat32_dirent*  fat32_init();  //fat32初始化，OS启动时调用
 fat32_dirent* find_dirent(fat32_dirent* current_de, char *file_name);   //根据当前目录的目录项和文件路径名寻找文件目录项
+fat32_dirent* find_dirent_with_create(fat32_dirent* current_de, char *file_name, int is_create, int attribute);
 void release_dirent(fat32_dirent* de); //释放一个目录项
 int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize);   //根据文件的目录项，偏移，读取数据的大小，将数据读入指定位置
 int write_by_dirent(fat32_dirent *de, void *src, uint offset, uint wsize);  //根据文件的目录项，偏移，写入数据的大小，将指定位置数据写入文件
+int write_by_dirent2(fat32_dirent *de, void *src, uint offset,  uint wsize);
 void trunc_by_dirent(fat32_dirent *de); //根据文件的目录项，释放文件占用的所有簇
 fat32_dirent* dirent_dup(fat32_dirent *de); //增加一个目录项的引用
-uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);//寻找簇列表中下一个簇
-
+int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
+int delete_by_dirent(fat32_dirent *file_to_delete);
+uint32 calc_dir_file_size(fat32_dirent *root_dir);
+//uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);//寻找簇列表中下一个簇
 #endif

@@ -83,4 +83,7 @@ uint64 find_pa_align_pgsize(pagetable_t pd, uint64 va);
 //brk系统调用
 uint64 do_brk(process *proc, uint64 new_sz);
 
+int copyin(pagetable_t pagetable, void *dst, uint64 srcva, uint64 len);  //kernel to user
+int copyout(pagetable_t pagetable, uint64 dstva, void *src, uint64 len); //user to kernel
+
 #endif

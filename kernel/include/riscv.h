@@ -4,13 +4,13 @@
 #include "types.h"
 
 /*
-基本上完全复制的xv6德riscv.h
+基本上完全复制的xv6的riscv.h
 都是一些底层的工具类函数和宏
-我对几个宏函数的名字做了修改
+对几个宏函数的名字做了修改
 比如PTE2PA、PA2PTE改为PTE_TO_PA、PA_TO_PTE增加可读性
 */
 
-#define TIMER_INTERVAL 1000000
+#define TIMER_INTERVAL 4000000
 
 // which hart (core) is this?
 static inline uint64
@@ -291,7 +291,9 @@ static inline uint64
 r_time()
 {
   uint64 x;
-  asm volatile("csrr %0, time" : "=r" (x) );
+  // asm volatile("csrr %0, time" : "=r" (x) );
+	// this instruction will trap in SBI
+	asm volatile("rdtime %0" : "=r" (x) );
   return x;
 }
 
@@ -357,6 +359,13 @@ sfence_vma()
   asm volatile("sfence.vma zero, zero");
 }
 
+#include "pmlayout.h"
+static inline uint64 read_time()
+{
+	uint64 x;
+	x=*(uint64 *)CLINT_MTIME;
+	return x;
+}
 
 #define PGSIZE 4096 // bytes per page
 #define PGSHIFT 12  // bits of offset within a page

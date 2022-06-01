@@ -11,7 +11,6 @@
 /*
 sys_exec调用do_exec
 根据可执行文件名及其在文件系统中的路径，将程序加载入内存中
-目前还并不能处理argv参数
 */
 
 extern char trampoline[];   //trampoline符号声明
@@ -31,7 +30,6 @@ static void release_memory(pagetable_t pagetable, int sz, segment_map_info *map,
 
 
 //根据可执行文件名和路径，将程序加载入内存中，并释放旧程序的内存
-//暂时不处理argv参数，一律为NULL
 int do_execve(char *path, char **argv, char **env){
     //printk("do_execve: %s\n",path);
     //temporary
@@ -62,6 +60,7 @@ int do_execve(char *path, char **argv, char **env){
     //根据路径和文件名获取elf文件的目录项
     de=find_dirent_i(current->cwd,path);
     if(de==NULL){
+        //printk("not found elf\n");
         release_memory(pagetable,0,temp_map,de);
         return -1;
     }

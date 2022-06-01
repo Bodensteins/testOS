@@ -22,6 +22,7 @@
 #endif
 
 
+
 /*
 初始化OS
 entry.S跳转到此
@@ -36,11 +37,11 @@ process* load_user_programe();      //加载第一个进程，现已不用
 //void test_sd(void);     //sd卡测试函数，临时编写在此
 
 
-
+/*
 void test_for_read_entry_form_disk()
 {
     
-    /*
+    
     a= find_dirent(NULL,"/123456789ABCDC.txt");
     printk("\n%s\n",a->name);
     printk("%x\n",a->file_size);
@@ -95,7 +96,7 @@ void test_for_read_entry_form_disk()
     fat32_dirent *a = find_dirent(NULL,"/amd");
     printk("\n%s\n",a->name);
 
-*/
+
     fat32_dirent * a = find_dirent(NULL,"/111111111.4444444444.667788/qwerty");
     printk("\n%s\n",a->name);
     printk("%x\n",a->file_size);
@@ -113,6 +114,102 @@ void test_for_read_entry_form_disk()
 
     
 }
+*/
+/*
+char longname[FILE_NAME_LENGTH] = "";
+
+void test_for_create_entry()
+{
+
+
+
+    char longname[FILE_NAME_LENGTH] = "test_create.txt";
+    // 创建测试
+    fat32_dirent*p= find_dirent(NULL,"/");
+    printk("[ 1 ] before create dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    
+    
+    if(0 == create_by_dirent(p,longname,ATTR_ARCHIVE))
+    {
+        printk("创建成功\n");
+    }
+    else{
+        printk("fail\n");
+    }
+   
+
+    printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    release_dirent(p);
+
+    //error 创建的文件，find_dirent 发生报错
+    p = find_dirent(NULL,"/test_create.txt");
+    printk("[ 2 ] after create  dir name: %s, start_clusterno: %d  file_size: %d\n parent_clus:%d, offset_in_parent:%d\n\n",p->name,p->start_clusterno,p->file_size,
+                                                p->clusterno_in_parent,p->offset_in_parent);
+    release_dirent(p);
+    //pass
+}
+
+
+void test_for_wirte_dirent()
+{
+
+    //写入测试
+    printk("[ 3 ]   wirte by dirent start to test\n");
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
+     printk("[ 5] %s file_size:%d\n",add_file->name, add_file->file_size);
+    char src[] = "test file write and read";
+    write_by_dirent2(add_file,src,add_file->file_size,strlen(src)+1);
+    printk("[ 6 ] %s file_size:%d\n",add_file->name, add_file->file_size);
+    release_dirent(add_file);
+
+    printk("[ 7 ] wirte by dirent end\n");
+
+    //pass
+
+
+}
+
+
+void test_for_read_dirent()
+{
+    
+ //读取测试
+    printk("[  ]   wirte by dirent start to test\n");
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
+    char buf[100];
+    int ret =  read_by_dirent(add_file,buf,0,100);
+    printk("##### read len %d\n",ret);
+    printk("##### read by dirent ##### \n");
+    for(int i = 0;i<ret;i++)
+    {
+        printk("%x ",buf[i]);
+        if((i+1)%16==0)
+             printk("\n");
+    }
+    release_dirent(add_file);
+    printk("\n");
+    //pass
+}
+
+
+void test_for_del_dirent()
+{
+    
+    //删除测试
+    fat32_dirent* add_file = find_dirent(NULL,"/test_create.txt");
+    int ret = delete_by_dirent(add_file);
+    release_dirent(add_file);
+
+    if(NULL == find_dirent(NULL,"/test_for_create"))
+        printk("##### delete success!\n");
+
+    //pass
+}
+*/
+
+
 
 //entry.S跳转到s_start
 void s_start(){
@@ -136,6 +233,14 @@ void s_start(){
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init_i();   //fat32初始化
+
+    //test_for_create_entry();
+    //test_for_wirte_dirent();
+    //test_for_read_dirent();
+
+    //test_for_del_dirent();
+    //while(1) {};
+
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
     schedule(); //进入schedule开始调度进程
@@ -143,7 +248,7 @@ void s_start(){
 
 
  //加载第一个用户进程进入内存，测试用
-
+/*
 process* load_user_programe(){
     process* proc=alloc_process();  //从内存池获取一个新进程
     
@@ -181,69 +286,41 @@ process* load_user_programe(){
 }
 
 
-/*
+
 uint32 clusterno_to_sectorno(uint32 clusterno);
 void clear_cluster(uint32 clusterno);
 uint32 alloc_cluster();
 uint32 fat_find_next_clusterno(uint32 clusterno, uint32 fatno);
 void fat_update_next_clusterno(uint32 clusterno, uint32 next_clusterno, uint32 fatno);
+int create_by_dirent(fat32_dirent *parent,char * name, uint8 attribute);
 // A simple test for sdcard read/write test
+char buf[512]="abcdefgm\0";
 void test_sd(void) {
+    fat32_dirent *de=find_dirent(NULL,"/mnt");
+    
+    
+    
+    //memset(buf,'a',511);
+    //buf[511]=0;
+    //fat32_dirent *de=find_dirent(NULL,"/text.txt");
+    printk("sz=%d\n",de->file_size);
+    printk("prt=%d\n",de->clusterno_in_parent);
+    printk("cls=%d\n",de->start_clusterno);
 
-    while(1);
-    //clear_cluster(80);
-    uint8 buf[BSIZE];
-    memset(buf,0,BSIZE);
-    for(int i=0;i<1111;i++){
-        printk("%d\n",i);
-        sdcard_read_sector(buf,i);
-    }
+    //read_by_dirent(de,buf,200,de->file_size);
     
-    //sdcard_read_sector(buf,0);
-    //for(int i=0;i<BSIZE;i++){
-    //    if(i%16==0)
-    //        printk("\n");
-    //    printk("%x ",buf[i]);
-    //}
-    printk("done\n");
 
-    //memset(buf,'a',BSIZE);
-    
-    
-    fat32_dirent* de=find_dirent(NULL, "/temp");
-    int ret=write_by_dirent(de,buf,de->file_size-1,BSIZE);
-    printk("%d\n",ret);
-    printk("%x\n",de->start_clusterno);
-    release_dirent(de);
-    
-    //printk("%x\n",fat_find_next_clusterno(3,1));
-    //printk("%x\n",fat_find_next_clusterno(4,2));
+    //fat32_dirent *root=find_dirent(NULL,"/");
 
-    //int ret=write_by_dirent(de,"1234567890",de->file_size,10);
-    //printk("%d\n",ret);
-    //read_by_dirent(de,buf,0,10);
-    //printk("%s\n",(char*)buf);
-    //printk("%x\n",de->start_clusterno);
-    //printk("%d\n",de->file_size);
+    //printk("root c:%d\n",root->start_clusterno);
+
+    //int sz=write_by_dirent(de,buf,de->file_size,512);
+
+    //printk("new sz=%d\n",sz);
+
+    //printk(buf);
+
     //release_dirent(de);
-    //printk("done");
-
-    sdcard_read_sector(buf,_blockno_to_sectorno(0x2));
-    for(int i=0;i<BSIZE;i++){
-        if(i%16==0)
-            printk("\n");
-        printk("%x ",buf[i]);
-    }
-
-
-
-    fat32_dirent* de2=find_dirent(NULL, "/file.txt");
-    //int ret=write_by_dirent(de,"1234567",0,7);
-    //printk("%d\n",ret);
-    read_by_dirent(de2,buf,0,26);
-    printk("%s\n",(char*)buf);
-    printk("%x\n",_blockno_to_sectorno(de2->start_clusterno));
-    release_dirent(de2);
 
     while (1) ;
 }
