@@ -97,77 +97,77 @@
 
 
 # <center>作品特征描述</center>
-我们队做的这个作品是一个riscv架构的操作系统内核，它能够在k210开发板上正常工作，实现了内存管理、进程管理、文件管理、设备管理等功能。其中，内存管理采用的是段页式，进程管理采用的是FIFO算法，文件系统实现的是FAT32文件系统并且实现了VFS的雏形，设备管理目前支持时钟和控制台而且其他的设备可以很容易地添加到现有的设备管理模块中。这些功能为应用程序的运行提供了所需的运行环境，使它们能够正确地并发运行并且合法访问系统资源以满足自身需要。
+我们队做的这个作品是一个riscv架构的操作系统内核，它能够在k210开发板上正常工作，实现了内存管理、进程管理、文件管理、设备管理等功能。其中，内存管理采用的是页式虚存管理，进程管理采用的是循环轮转调度，文件系统实现的是FAT32文件系统并且实现了VFS的雏形，设备管理目前支持时钟和控制台而且其他的设备可以很容易地添加到现有的设备管理模块中。这些功能为应用程序的运行提供了所需的运行环境，使它们能够正确地并发运行并且合法访问系统资源以满足自身需要。
 
 # <center>提交仓库目录和文件描述</center>
-## doc
-存放的是一些文档和图片
-## kernel
+##### doc
+存放的是竞赛文档和图片
+##### kernel
 存放的是内核源代码和sbi以及SD卡驱动的代码
-+ ### include
++ ##### include
     存放的是内核源代码的头文件
-+ ### mcode
++ ##### mcode
     存放的是内核在qemu上启动所必需的M态相关的代码
-+ ### rustsbi
++ ##### rustsbi
     存放的是rustsbi的可执行程序，用来提供内核在K210运行的M态环境
-+ ### sd
++ ##### sd
     存放的是SD卡驱动的源代码和头文件
-+ ### buffer.c
++ ##### buffer.c
     文件系统buffer层的代码
-+ ### console.c
++ ##### console.c
     控制台输入输出的代码
-+ ### device.c
++ ##### device.c
     设备管理的代码
-+ ### entry.S
++ ##### entry.S
     内核入口代码
-+ ### fat32.c
++ ##### fat32.c
     文件系统fat32层的代码
-+ ### file.c
++ ##### file.c
     文件系统file层的代码
-+ ### kerneltrapvec.S
++ ##### kerneltrapvec.S
     内核态中断的跳板代码
-+ ### load_store.S
++ ##### load_store.S
     保存上下文中所有通用寄存器的代码
-+ ### pipe.c
++ ##### pipe.c
     管道的代码
-+ ### plic.c
++ ##### plic.c
     PLIC的代码
-+ ### pm.c
++ ##### pm.c
     物理内存管理的代码
-+ ### printk.c
++ ##### printk.c
     内核打印功能的代码
-+ ### process.c
++ ##### process.c
     进程管理的代码
-+ ### schedule.c
++ ##### schedule.c
     进程调度的代码
-+ ### sleeplock.c
++ ##### sleeplock.c
     睡眠锁的代码
-+ ### spinlock.c
++ ##### spinlock.c
     自旋锁的代码
-+ ### sstart.c
++ ##### sstart.c
     内核初始化的代码
-+ ### string.c
++ ##### string.c
     内核中字符串处理相关的代码
-+ ### syscall.c
++ ##### syscall.c
     系统调用的代码
-+ ### sysexec.c
++ ##### sysexec.c
     将elf文件加载为进程的代码
-+ ### sysmmap.c
++ ##### sysmmap.c
     内存映射文件的代码
-+ ### systime.c
++ ##### systime.c
     时钟相关的代码
-+ ### trap.c
++ ##### trap.c
     中断相关的代码
-+ ### usertrapvec.S
++ ##### usertrapvec.S
     用户态中断的跳板代码
-+ ### vfs_inode.c
++ ##### vfs_inode.c
     文件系统inode层的代码
-+ ### vm.c
++ ##### vm.c
     虚拟内存管理的代码
-## target
+##### target
 编译内核后生成的目标文件
-## tools
-链接脚本
-## user
-一些应用程序
+##### tools
+链接脚本和kflash
+##### user
+一些应用程序代码
 
