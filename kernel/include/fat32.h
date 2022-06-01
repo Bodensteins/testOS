@@ -15,7 +15,7 @@ fat32.c依赖于buffer.c中的函数
 
 /*
 文件系统相关依赖为：
-    syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
+syscall.c-->file.c-->vfs_inode.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
 */
 
 #define FAT_CLUSTER_END 0x0fffffff    //fat表中，如果该簇为文件最后一个簇，则其在fat中的表项为0x0fffffff

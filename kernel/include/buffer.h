@@ -15,7 +15,7 @@ sd卡缓冲区
 
 /*
 文件系统相关依赖为：
-    syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
+syscall.c-->file.c-->vfs_inode.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
 */
 
 #define BSIZE 512 //单个buffer中的数据大小，与一个扇区大小相同，512字节

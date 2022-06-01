@@ -12,7 +12,7 @@ file.c依赖于fat32.c中的函数
 
 /*
 文件系统相关依赖为：
-    syscall.c-->file.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
+syscall.c-->file.c-->vfs_inode.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方的sd卡驱动)-->底层驱动
 */
 
 //文件类型
