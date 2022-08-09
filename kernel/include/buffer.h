@@ -33,6 +33,10 @@ typedef struct buffer{
     struct buffer *prev;    //在LRU双向循环链表中，指向该buffer的上一个链表节点
     struct buffer *next;    //在LRU双向循环链表中，指向该buffer的下一个链表节点
     uint8 data[BSIZE];      //buffer中的数据区，存储从sd卡扇区中读出来的512字节
+
+    #ifdef QEMU
+    process *virtio_queue;
+    #endif
 }buffer;
 
 //buffer缓存，维护buffer列表并将其组织为一个双向循环链表

@@ -25,6 +25,5 @@ void main(){
 
     printf("\nsyscall test end\n");
 
-    while(1){
-    }
+    exit(0);
 }

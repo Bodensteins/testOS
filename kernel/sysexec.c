@@ -60,7 +60,7 @@ int do_execve(char *path, char **argv, char **env){
     //根据路径和文件名获取elf文件的目录项
     de=find_dirent_i(current->cwd,path);
     if(de==NULL){
-        //printk("not found elf\n");
+        printk("not found elf\n");
         release_memory(pagetable,0,temp_map,de);
         return -1;
     }
@@ -282,7 +282,7 @@ static int push_stack(pagetable_t pagetable, char **argv, int *ac){
 }
 
 static void release_memory(pagetable_t pagetable ,int sz, segment_map_info *map, fat32_dirent *de){
-    printk("execve error\n");
+    //printk("execve error\n");
     if(pagetable!=NULL && sz>=0){
         user_vm_unmap(pagetable,USER_STACK_TOP-PGSIZE,PGSIZE,1);
         free_pagetable2(pagetable,sz,1);

@@ -39,7 +39,7 @@ char *test_files[] = {
 
 int const test_file_num = sizeof(test_files) / sizeof(char const*);
 
-void main(void) __attribute__((naked));
+//void main(void) __attribute__((naked));
 void main(void) {
 	int fd=openat(-100,"/dev/console",0x4);
 	dup(fd);

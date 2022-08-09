@@ -236,10 +236,9 @@ void s_start(){
     virtio_disk_init();
 #endif
     buffer_init();  //磁盘缓冲区初始化
-    fat32_init_i();   //fat32初始化
-
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
+    
     schedule(); //进入schedule开始调度进程
 }
 

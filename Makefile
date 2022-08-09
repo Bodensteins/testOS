@@ -1,6 +1,6 @@
 #编译参数
-#platform = qemu
-platform = k210
+platform = qemu
+#platform = k210
 
 #目录
 K = kernel
@@ -35,7 +35,9 @@ KERN_OBJS := \
 	$K/device.o\
 	$K/vfs_inode.o \
 	$K/pipe.o \
-	$K/sysmmap.o
+	$K/sysmmap.o \
+	$K/fat32.o \
+	$K/file.o
 
 ifeq ($(platform), k210)
 KERN_OBJS += \
@@ -43,9 +45,7 @@ KERN_OBJS += \
 	$K/sd/gpiohs.o \
 	$K/sd/spi.o \
 	$K/sd/utils.o \
-	$K/sd/sdcard.o \
-	$K/fat32.o \
-	$K/file.o
+	$K/sd/sdcard.o
 else
 KERN_OBJS += \
 	$K/virtio_disk.o
@@ -72,11 +72,11 @@ OBJCOPY = $(TOOLPREFIX)objcopy		#目标文件格式转换器
 OBJDUMP = $(TOOLPREFIX)objdump		#反汇编器
 
 #编译参数
-CFLAGS = -Wall -O2 -fno-omit-frame-pointer -march=rv64imafdc
+CFLAGS = -Wall -O -fno-omit-frame-pointer -ggdb
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -Iinclude/
+CFLAGS += -I.
 #CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 #链接参数
@@ -165,22 +165,23 @@ k210: build
 qemu: build
 	$(QEMU) $(QEMUOPTS)
 
-dst=/mnt
+dst = /mnt
+test_src = ~/riscv/testsuits-for-oskernel/riscv-syscalls-testing/user/build/riscv64
 
 # Make fs image
-fs: $(UPROGS)
+fs:
 	@if [ ! -f "fs.img" ]; then \
 		echo "making fs image..."; \
 		dd if=/dev/zero of=fs.img bs=512k count=512; \
 		mkfs.vfat -F 32 fs.img; fi
 	@sudo mount fs.img $(dst)
-	@if [ ! -d "$(dst)/bin" ]; then sudo mkdir $(dst)/bin; fi
-	@sudo cp README.md $(dst)/README.md
-#	@for file in $$( ls $U/_* ); do \
-		sudo cp $$file $(dst)/$${file#$U/_};\
-		sudo cp $$file $(dst)/bin/$${file#$U/_}; done
+#	@if [ ! -d "$(dst)/bin" ]; then sudo mkdir $(dst)/bin; fi
+#	@sudo cp README.md $(dst)/README.md
 	@sudo cp $T/init $(dst)/init
 	@sudo cp $T/main $(dst)/main
+#	@for file in $$( ls ${test_src}/* ); do \
+		sudo cp -r $$file $(dst)/$${file#${test_src}/};\
+		done
 	@sudo umount $(dst)
 
 #根据platform参数来运行k210或qemu的标签

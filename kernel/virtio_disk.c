@@ -20,6 +20,7 @@
 #include "include/string.h"
 #include "include/printk.h"
 
+//process *virtio_queue=NULL;
 
 // the address of virtio mmio register r.
 #define R(r) ((volatile uint32 *)(VIRTIO0 + (r)))
@@ -55,7 +56,7 @@ virtio_disk_init(void)
 {
   uint32 status = 0;
 
-  initlock(&disk.vdisk_lock, "virtio_disk");
+  init_spinlock(&disk.vdisk_lock, "virtio_disk");
 
   if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
      *R(VIRTIO_MMIO_VERSION) != 1 ||
@@ -175,9 +176,10 @@ alloc3_desc(int *idx)
 void
 virtio_disk_rw(buffer *b, int write)
 {
+  //printk("call disk rw\n");
   uint64 sector = b->sectorno;
 
-  acquire_spinlock(&disk.vdisk_lock);
+  //acquire_spinlock(&disk.vdisk_lock);
 
   // the spec says that legacy block operations use three
   // descriptors: one for type/reserved/sector, one for
@@ -247,24 +249,24 @@ virtio_disk_rw(buffer *b, int write)
   disk.avail[2 + (disk.avail[1] % NUM)] = idx[0];
   __sync_synchronize();
   disk.avail[1] = disk.avail[1] + 1;
-
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
   // Wait for virtio_disk_intr() to say request has finished.
   while(b->disk == 1) {
     //sleep(b, &disk.vdisk_lock);
+    process_sleep(&b->virtio_queue);
   }
 
   disk.info[idx[0]].b = 0;
   free_chain(idx[0]);
 
-  release_spinlock(&disk.vdisk_lock);
+  //release_spinlock(&disk.vdisk_lock);
 }
 
 void
 virtio_disk_intr()
 {
-  acquire_spinlock(&disk.vdisk_lock);
+  //acquire_spinlock(&disk.vdisk_lock);
 
   while((disk.used_idx % NUM) != (disk.used->id % NUM)){
     int id = disk.used->elems[disk.used_idx].id;
@@ -274,10 +276,11 @@ virtio_disk_intr()
     
     disk.info[id].b->disk = 0;   // disk is done with buf
     //wakeup(disk.info[id].b);
+    process_wakeup1(&disk.info[id].b->virtio_queue);
 
     disk.used_idx = (disk.used_idx + 1) % NUM;
   }
   *R(VIRTIO_MMIO_INTERRUPT_ACK) = *R(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3;
 
-  release_spinlock(&disk.vdisk_lock);
+  //release_spinlock(&disk.vdisk_lock);
 }

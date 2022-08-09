@@ -2,7 +2,7 @@
 #define _TYPES_H_
 
 //#define DEBUG
-//#define QEMU
+#define QEMU
 
 /*
 一些变量类型的定义，一目了然

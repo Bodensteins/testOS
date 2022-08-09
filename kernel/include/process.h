@@ -156,4 +156,6 @@ void process_sleep(process **queue);
 void process_wakeup(process **queue, process *proc);
 void process_wakeup1(process **queue);
 
+extern void fork_ret();
+
 #endif

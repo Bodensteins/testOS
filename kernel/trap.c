@@ -12,6 +12,11 @@
 #include "include/console.h"
 #include "include/systime.h"
 
+#ifndef QEMU
+#else
+#include "include/virtio.h"
+#endif
+
 static int ticks=0; //计时器
 
 void handle_extern_irq();
@@ -65,9 +70,7 @@ void user_trap(){
     //printk("user_trap\n");
     //检查是否是来自用户态的trap
     if((r_sstatus() & SSTATUS_SPP) != 0){
-        printk("scause=%d\n",r_scause());
-        printk("epc=%p\n",(void*)current->trapframe->epc);
-        //panic("usertrap: not from user mode");
+        panic("usertrap: not from user mode");
     }
 
     current->trapframe->epc=r_sepc();   //获取trap发生时的那条指令的虚拟地址
@@ -95,16 +98,6 @@ void user_trap(){
         
         default:
             printk("scause=%p\n",(void*)cause);
-            
-            printk("epc=%p\n",(void*)current->trapframe->epc);
-            printk("epc_pa=%p\n",va_to_pa(kernel_pagetable, (void*)current->trapframe->epc));
-            printk("size=%d\n",current->size);
-            printk("stval=%p\n",(void*)r_stval());
-            printk("stval_pa=%p\n",(void*)va_to_pa(kernel_pagetable,(void*)(r_stval())));
-            printk("current pid:%d\n",current->pid);
-            //printk("current name:%s\n",current->name);
-            printk("ra: %p\n",current->trapframe->regs.ra);
-            printk("sp: %p\n",current->trapframe->regs.sp);
             
             panic("unhandled trap\n");
             break;
@@ -149,7 +142,15 @@ void kernel_trap(){
 }
 
 void handle_extern_irq(){
-    if(r_stval()==9){
+    int is_exirq;
+    #ifndef QEMU
+    is_exirq=(r_stval()==9);
+    #else
+    uint64 scause=r_scause();
+    is_exirq=((0x8000000000000000L & scause) && 9 == (scause & 0xff));
+    #endif
+
+    if(is_exirq){
         int irq=plic_claim();
 		if (irq==UART_IRQ){
 			// keyboard input 
@@ -158,7 +159,11 @@ void handle_extern_irq(){
 				console_intr(c);
 		}
 		else if (irq==DISK_IRQ){
+            #ifndef QEMU
 			panic("disk interrupt\n");
+            #else
+            virtio_disk_intr();
+            #endif
 		}
 		else if (irq){
 			printk("irq=%d\n", irq);
@@ -167,6 +172,7 @@ void handle_extern_irq(){
 
 		clear_plic(irq);
     }
+    
 }
 
 void clear_plic(int irq){

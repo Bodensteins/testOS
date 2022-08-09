@@ -12,28 +12,23 @@
 // the riscv Platform Level Interrupt Controller (PLIC).
 //
 
-/*
-#define PLIC_V PLIC
-#define PLIC_PRIORITY           (PLIC_V + 0x0)
-#define PLIC_PENDING            (PLIC_V + 0x1000)
-#define PLIC_MENABLE(hart)      (PLIC_V + 0x2000 + (hart) * 0x100)
-#define PLIC_SENABLE(hart)      (PLIC_V + 0x2080 + (hart) * 0x100)
-#define PLIC_MPRIORITY(hart)    (PLIC_V + 0x200000 + (hart) * 0x2000)
-#define PLIC_SPRIORITY(hart)    (PLIC_V + 0x201000 + (hart) * 0x2000)
-#define PLIC_MCLAIM(hart)       (PLIC_V + 0x200004 + (hart) * 0x2000)
-#define PLIC_SCLAIM(hart)       (PLIC_V + 0x201004 + (hart) * 0x2000)
-*/
-
 void plic_init_temp(){
     int hart=0;
 
     writed(1, PLIC + DISK_IRQ * sizeof(uint32));
 	  writed(1, PLIC + UART_IRQ * sizeof(uint32));
 
+  #ifndef QEMU
     uint32 *hart_m_enable = (uint32*)PLIC_MENABLE(hart);
     *(hart_m_enable) = readd(hart_m_enable) | (1 << DISK_IRQ);
     uint32 *hart0_m_int_enable_hi = hart_m_enable + 1;
     *(hart0_m_int_enable_hi) = readd(hart0_m_int_enable_hi) | (1 << (UART_IRQ % 32));
+  #else
+    // set uart's enable bit for this hart's S-mode. 
+    *(uint32*)PLIC_SENABLE(hart)= (1 << UART_IRQ) | (1 << DISK_IRQ);
+    // set this hart's S-mode priority threshold to 0.
+    *(uint32*)PLIC_SPRIORITY(hart) = 0;  
+  #endif
 }
 
 /*

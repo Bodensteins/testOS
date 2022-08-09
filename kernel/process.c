@@ -74,12 +74,12 @@ void load_user_proc(){
 
     uchar* code=alloc_physical_page();   //分配一页
     memset(code,0,PGSIZE);
-    memcpy(code,testcode,testcode_size());
-    //memcpy(code,initcode,sizeof(initcode));
+    //memcpy(code,testcode,testcode_size());
+    memcpy(code,initcode,sizeof(initcode));
     
     proc->trapframe->epc=0x1000;     //确定进程入口地址
-    proc->size=testcode_size()+0x1000;  //设置程序大小
-    //proc->size=sizeof(initcode)+0x1000;
+    //proc->size=testcode_size()+0x1000;  //设置程序大小
+    proc->size=sizeof(initcode)+0x1000;
 
     user_vm_map(proc->pagetable,proc->trapframe->epc,PGSIZE,(uint64)code,
         pte_permission(1,1,1,1));   //地址映射入页表
@@ -167,7 +167,7 @@ process *alloc_process(){
 
     memset(&p->context,0,sizeof(p->context));
     p->context.sp=p->kstack;
-    p->context.ra=(uint64)user_trap_ret;
+    p->context.ra=(uint64)fork_ret;
 
     memset(&p->mmap_areas, 0, sizeof(p->mmap_areas)); // 清空映射区域
     p->mmap_va_available = MMAP_START_VA;
@@ -227,6 +227,16 @@ int process_zombie(process* proc){
     proc->state=ZOMBIE;
     //reparent(proc)
     return 0;
+}
+
+void fork_ret(){
+    static int first=1;
+    if(first){
+        first=0;
+        fat32_init_i(); //fat32初始化
+        printk("fat32 init\n");
+    }
+    user_trap_ret();
 }
 
 //实现fork功能，创建一个一模一样的新进程，与UNIX的fork功能一致
@@ -511,7 +521,8 @@ void process_sleep(process **queue){
         return;
 
     //acquire lock
-
+    if(current==NULL)
+        printk("current NULL\n");
     current->state=SLEEPING;
     insert_into_queue(queue,current);
     intr_off();

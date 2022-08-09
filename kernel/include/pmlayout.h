@@ -102,8 +102,8 @@
 #define UART_IRQ    10 
 #define DISK_IRQ    1
 #else           // k210 
-#define UART_IRQ    33
-#define DISK_IRQ    27
+//#define UART_IRQ    33
+//#define DISK_IRQ    27
 #endif 
 
 #define CLINT_MTIME (CLINT+0xBFF8)

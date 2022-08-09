@@ -10,7 +10,7 @@
 比如PTE2PA、PA2PTE改为PTE_TO_PA、PA_TO_PTE增加可读性
 */
 
-#define TIMER_INTERVAL 10000
+#define TIMER_INTERVAL 2000000
 
 // which hart (core) is this?
 static inline uint64
@@ -251,9 +251,16 @@ w_mscratch(uint64 x)
 #define CAUSE_STORE_PAGE_FAULT 0xf     // Store/AMO page fault
 
 // irqs (interrupts)
-#define CAUSE_TIMER 0x8000000000000007
-#define CAUSE_TIMER_S_TRAP 0x8000000000000005
+#ifndef QEMU
+#define CAUSE_TIMER 0x8000000000000007L
+#define CAUSE_TIMER_S_TRAP 0x8000000000000005L
 #define CAUSE_EXTERN_IRQ 0x8000000000000001L
+#else
+//#define CAUSE_TIMER 0x8000000000000007L
+#define CAUSE_TIMER_S_TRAP 0x8000000000000005L
+#define CAUSE_EXTERN_IRQ 0x8000000000000009L
+#endif
+
 static inline uint64
 r_scause()
 {

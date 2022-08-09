@@ -414,7 +414,6 @@ fat32_dirent* fat32_init(){
     //test_for_create_dirent();
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
-
     int is_mbr=is_MBR(buf);
 
     //is_MBR(buf);
@@ -425,6 +424,7 @@ fat32_dirent* fat32_init(){
         memcpy(&mbr_info.size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
         release_buffer(buf);
     }
+
     
     //读取dbr信息，根据mbr_info中的dbr_start_sector找到dbr所在扇区
     buf=acquire_buffer(DEVICE_DISK_NUM,is_mbr?mbr_info.start_lba:0);

@@ -44,6 +44,10 @@ void buffer_init(){
         bcache.buffer_list[i].ref_count=0;
         bcache.buffer_list[i].valid=0;
         bcache.buffer_list[i].dirty=0;
+
+        #ifdef QEMU
+        bcache.buffer_list[i].virtio_queue=NULL;
+        #endif
     }
 
 }
