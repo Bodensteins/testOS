@@ -22,6 +22,8 @@ KERN_OBJS := \
 	$K/pm.o \
 	$K/vm.o \
 	$K/process.o \
+	$K/swtch.o \
+	$K/testcode.o \
 	$K/schedule.o \
 	$K/spinlock.o \
 	$K/sleeplock.o \
@@ -44,6 +46,9 @@ KERN_OBJS += \
 	$K/sd/sdcard.o \
 	$K/fat32.o \
 	$K/file.o
+else
+KERN_OBJS += \
+	$K/virtio_disk.o
 endif
 
 #编译工具前缀
@@ -96,12 +101,12 @@ ULIB = $U/user_syscall.o $U/stdio.o
 
 #编译main程序
 $T/main: $U/main.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
 	@$(OBJDUMP) -S $T/main > $T/main.asm
 
 #编译init程序
 $T/init: $U/init.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
 	@$(OBJDUMP) -S $@ > $@.asm
 
 #编译userinit程序
@@ -126,16 +131,16 @@ CPUS = 1
 endif
 
 #qemu模拟器参数
-QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 128M -smp $(CPUS) -nographic
-#QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-#QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+QEMUOPTS = -machine virt -bios $(SBI) -kernel $T/kernel -m 8M -smp $(CPUS) -nographic
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 
 kernel-image = $T/kernel.bin	#烧写到k210的kernel二进制目标文件
 k210-bootloader = $T/k210.bin	#烧写到k210的rustsbi二进制目标文件
 k210-port = /dev/ttyUSB0	#k210的USB端口
 
-init: $T/userinit
+init: $T/init $T/main
 
 test: $T/test
 
@@ -159,6 +164,24 @@ k210: build
 #运行qemu的标签
 qemu: build
 	$(QEMU) $(QEMUOPTS)
+
+dst=/mnt
+
+# Make fs image
+fs: $(UPROGS)
+	@if [ ! -f "fs.img" ]; then \
+		echo "making fs image..."; \
+		dd if=/dev/zero of=fs.img bs=512k count=512; \
+		mkfs.vfat -F 32 fs.img; fi
+	@sudo mount fs.img $(dst)
+	@if [ ! -d "$(dst)/bin" ]; then sudo mkdir $(dst)/bin; fi
+	@sudo cp README.md $(dst)/README.md
+#	@for file in $$( ls $U/_* ); do \
+		sudo cp $$file $(dst)/$${file#$U/_};\
+		sudo cp $$file $(dst)/bin/$${file#$U/_}; done
+	@sudo cp $T/init $(dst)/init
+	@sudo cp $T/main $(dst)/main
+	@sudo umount $(dst)
 
 #根据platform参数来运行k210或qemu的标签
 run: build

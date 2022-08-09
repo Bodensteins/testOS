@@ -11,11 +11,13 @@
 维护一个就绪队列
 每当经过一个时间片后，将当前进程插入就绪队列尾端，并将队列首端进程设置为当前运行进程
 */
-
+context kcontext;
 
 process *runnable_queue=NULL;   //就绪队列
 process *wait4_queue=NULL;  //wait4等待队列
 extern pagetable_t kernel_pagetable;    //内核页表的声明
+
+void chg_sp(uint64 a0);
 
 //将进程proc插入queue队列末端
 //queue为指定队列的指针
@@ -75,24 +77,33 @@ int delete_from_queue(process **queue, process *proc){
 //维护一个就绪队列
 //每当经过一个时间片后，将当前进程插入就绪队列尾端，并将队列首端进程设置为当前运行进程
 void schedule(){
-    if(proc_list[0].state==ZOMBIE){ //如果1号进程死亡，则系统关机
-        sbi_shutdown();
-    }
-    
-    if (runnable_queue==NULL){   //如果就绪队列为空，则返回
-        if(current->state!=RUNNING){
-            intr_on();
-            while(runnable_queue==NULL);
+   while(1){
+       intr_on();
+       int found=0;
+        while(runnable_queue!=NULL){
+            //acquire lock
+            process *p=runnable_queue;
+            runnable_queue=runnable_queue->queue_next;
+            p->state=RUNNING;
+            current=p;
+            swtch(&kcontext,&p->context);
+            current=NULL;
+            found=1;
+            //release lock
         }
-        else
-            return;
-    }
+        if(found==0){
+            intr_on();
+            asm volatile("wfi");
+        }
+   }
+}
 
-    //取队列首端进程为当前进程
-    current=runnable_queue; 
-    runnable_queue=runnable_queue->queue_next;
-    //printk("running process: %d\n",current->pid);
-    //printk("a0:%d\n",current->trapframe->regs.a0);
-    current->state=RUNNING;
-    switch_to(current);     //切换到新的当前进程
+void into_schedule(){
+    process *p=current;
+    if(p->state==RUNNING)
+        panic("current running\n");
+    if(intr_get())
+        panic("intr enable\n");
+    //printk("into swtch,pid:%d\n",current->pid);
+    swtch(&p->context,&kcontext);
 }

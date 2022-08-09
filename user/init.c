@@ -1,18 +1,19 @@
 #include "user_syscall.h"
 #include "stdio.h"
 
-int main(){
-    printf("\nsyscall test begin\n");
+//void main(void) __attribute__((naked));
+void main(){
+    int fd=openat(-100,"/dev/console",0x4);
+	dup(fd);
+	dup(fd);
+
+    printf("syscall test begin\n");
     
     int pid=fork();
 
     if(pid==0){
-        char *argv[5]={"wait4 ", "and ","execve ", "test!\n", NULL};
-        for(int i=0;i<4;i++){
-            printf(argv[i]);
-        }
-        printf("\n...................................\n\n");
-        execve("main",argv, NULL);
+        char *argv[5]={"yes","comm","no","mm",NULL};
+        execve("main",argv,NULL);
     }
 
     else{
@@ -22,17 +23,8 @@ int main(){
         printf("ret=%d, status=%d\n",ret,status);
     }
 
-    pid=fork();
-    if(pid==0){
-        execve("/getpid",NULL,NULL);
-    }
-    else{
-        wait4(-1,NULL,0);
-    }
-
     printf("\nsyscall test end\n");
 
     while(1){
     }
-    return 0;
 }

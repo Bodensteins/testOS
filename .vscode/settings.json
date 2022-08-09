@@ -53,6 +53,7 @@
         "stdexcept": "c",
         "utility": "c",
         "sysmmap.h": "c",
-        "user_syscall.h": "c"
+        "user_syscall.h": "c",
+        "virtio.h": "c"
     }
 }

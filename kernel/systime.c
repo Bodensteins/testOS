@@ -46,16 +46,14 @@ uint64 do_nanosleep(timespec *req, timespec *rem){
     if(now<expire){
         //lock
         current->sleep_expire=expire;
-        current->state=SLEEPING;
-        insert_into_queue(&nanosleep_queue,current);
-        schedule();
+        process_sleep(&nanosleep_queue);
         //unlock
     }
 
     if(rem!=NULL)
         make_timespec(rem,expire);
 
-    return (uint64)(-1);
+    return 0;
 }
 
 void wakeup_on_nanosleep(process *proc){
@@ -63,11 +61,6 @@ void wakeup_on_nanosleep(process *proc){
         //return;
     proc->state=READY;
     insert_into_queue(&runnable_queue,proc);
-    proc->trapframe->regs.a0=0;
-    timespec *rem=(timespec*)proc->trapframe->regs.a1;
-    rem=va_to_pa(proc->pagetable,rem);
-    if(rem!=NULL)
-        make_timespec(rem,0);
 }
 
 void check_nanosleep_per_clk(){

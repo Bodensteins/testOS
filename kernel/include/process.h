@@ -82,6 +82,8 @@ typedef struct context {
 typedef struct process{
   struct spinlock spinlock; //自旋锁
 
+  context context;  //进程上下文 
+
   uint64 kstack;  //内核栈地址
   pagetable_t pagetable;  //页表指针
 
@@ -114,21 +116,14 @@ typedef struct process{
   uint64 enter_ktimes;  //上一次进入内核的时间
   uint64 leave_ktimes;  //上一次离开内核的时间
 
-  //context context;
-
   uint64 sleep_expire;  //睡眠预期唤醒时间
 
   char name[50];
 
-  //等待子进程结束时，保存wait4参数
-  struct {
-    int wpid;
-    int *wstatus;
-    uint64 woptions;
-  }wait4_args; 
-
   mmap_infos mmap_areas[MMAP_NUM];
   uint64 mmap_va_available; //从此地址往后都可以映射
+
+  
 }process;
 
 
@@ -139,6 +134,9 @@ typedef struct process{
 
 extern process proc_list[NPROC];  //进程池
 extern process* current;  //当前运行的进程(目前未实现多核机制，因此先用这个全局变量代替)
+
+// swtch.S
+void swtch(struct context *old, struct context *new);
 
 void proc_list_init();  //进程池初始化函数，OS启动时调用
 process *alloc_process(); //从进程池中分配一个未使用(UNUSED)的进程
@@ -153,5 +151,9 @@ uint64 do_kill(uint64); //根据pid杀死当前进程
 void switch_to(process*); //切换到指定进程
 int do_execve(char*, char**, char**); //从磁盘中加载可执行文件到内存中
 uint64 do_wait4(int pid, int* status, uint64 options);  //实际执行wait4的函数
+
+void process_sleep(process **queue);
+void process_wakeup(process **queue, process *proc);
+void process_wakeup1(process **queue);
 
 #endif

@@ -24,7 +24,8 @@ syscall.c-->file.c-->vfs_inode.c-->fat32.c-->buffer.c-->sd/sdcard.c(k210官方�
 //单个缓冲区(buffer)的结构
 typedef struct buffer{
     int valid;   //缓冲区是否有效
-    int dirty;  //
+    int disk;    //does disk own it?
+    int dirty;  //数据与磁盘是否一致
     uint dev;   //设备号(这个字段是xv6中的，但似乎目前的缓冲区只管理sd卡这一个设备，也许之后会有扩展)
     uint sectorno;  //该缓冲区对应的sd卡扇区号
     uint ref_count;  //该缓冲区当前被引用的数量，当ref_count为0表示该buffer空闲

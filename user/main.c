@@ -3,7 +3,8 @@
 
 char str[256];
 
-int main(int argc, char *argv[]){
+//void main(int argc, char *argv[]) __attribute__((naked));
+void main(int argc, char *argv[]){
     printf("main begin!\n");
     printf("argc: %d\n",argc);
     for(int i=0;i<argc;i++){
@@ -44,5 +45,4 @@ int main(int argc, char *argv[]){
 
     printf("main end!\n");    
     exit(22);
-    return 0;
 }

@@ -5,6 +5,8 @@
 
 #ifndef QEMU
 #include "sd/include/sdcard.h"
+#else
+#include "include/virtio.h"
 #endif
 
 #include "include/printk.h"
@@ -58,17 +60,20 @@ static void move_buffer_to_bcache_head(buffer *buf){
 
 //根据buf中的设备号和扇区号，将数据读入buf的data字段
 static void buffer_read_from_dev(buffer *buf){
-    //temporary
     #ifndef QEMU
     sdcard_read_sector(buf->data, buf->sectorno);
+    #else
+    virtio_disk_rw(buf,0);
     #endif
+
 }
 
 //根据buf中的设备号和扇区号，将buf的data字段数据写入设备的扇区中
 static void buffer_write_to_dev(buffer *buf){
-    //temporary
     #ifndef QEMU
     sdcard_write_sector(buf->data, buf->sectorno);
+    #else
+    virtio_disk_rw(buf,1);
     #endif
 }
 

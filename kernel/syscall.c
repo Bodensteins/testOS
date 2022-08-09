@@ -270,6 +270,8 @@ uint64 sys_clone(){
 
 //execve系统调用
 uint64 sys_execve(){
+    //printk("call execve\n");
+
     //a0存储可执行文件名指针(包含路径)
     char *file_name=(char*)current->trapframe->regs.a0;
     file_name=va_to_pa(current->pagetable,file_name);   //虚拟地址转换为物理地址

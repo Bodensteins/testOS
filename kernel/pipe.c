@@ -8,7 +8,7 @@
 
 static process *pipe_read_queue=NULL;
 
-void user_trap_ret();
+//void user_trap_ret();
 
 int alloc_pipe(file **rd, file **wr){
     pipe *pi=(pipe*)alloc_physical_page();
@@ -91,12 +91,14 @@ void close_pipe(pipe *pi, int is_write){
         //release_spinlock(&pi->lock);
 }
 
+/*
 void static process_sleep_on_pipe(process *proc){
     if(proc==NULL)
         return;
     proc->state=SLEEPING;
     insert_into_queue(&pipe_read_queue,proc);
-    schedule();
+    intr_off();
+    into_schedule();
 }
 
 void static process_wake_up_on_pipe(process *proc){
@@ -118,6 +120,7 @@ void static process_wake_up_on_pipe(process *proc){
 
     user_trap_ret();
 }
+*/
 
 int write_to_pipe(pipe *pi, char *buf, int sz){
     if(pi==NULL || buf==NULL || sz<=0 || pi->writeopen==0 || current->killed)
@@ -129,23 +132,22 @@ int write_to_pipe(pipe *pi, char *buf, int sz){
         pi->nwrite++;
     }
 
-    current->trapframe->regs.a0=i;
-    current->state=READY;
-    insert_into_queue(&runnable_queue, current);
-    process_wake_up_on_pipe(pipe_read_queue);
-    delete_from_queue(&runnable_queue,current);
-    current->state=RUNNING;
+    process_wakeup1(&pipe_read_queue);
 
     return i;
 }
 
 int read_from_pipe(pipe *pi, char *buf, int sz){
+    //process_sleep(&pipe_read_queue);
     if(pi==NULL || buf==NULL || sz<=0 || pi->readopen==0 || current->killed)
         return -1;
     
-    if(sz>pi->nread-pi->nwrite){    //weird
-        if(pi->nread==0)
-            process_sleep_on_pipe(current);
+    if(sz>pi->nwrite-pi->nread){    //weird
+    
+        if(pi->nread==0){
+            //process_sleep_on_pipe(current);
+            process_sleep(&pipe_read_queue);
+        }
         else
             return 0;
     }

@@ -81,7 +81,8 @@ void sleep_on_lock(sleeplock* sleeplock, spinlock *spinlock){
     
     p->state=SLEEPING;
     insert_into_sleeplock_queue(sleeplock,p);
-    schedule();
+    intr_off();
+    into_schedule();
 }
 
 //叫醒某个睡眠锁队列中首端的进程

@@ -53,10 +53,7 @@ int is_MBR(buffer *buf)
 }
 
 /*
-从buf中解析分区信息
-
-
-*/
+//从buf中解析分区信息
 int MBR_DPT_info(fat32_mbr_dpt * DPT)
 {
 
@@ -73,13 +70,12 @@ int DBR_BPB_info(fat32_dbr_bpb * BPB)
 
     return 0;
 }
-
-/*
- 根据文件名中最后一个. 的位置决定
- 返回最后一个dot 的偏移
-  -1 无 dot .
-  非负数，从0开始计算的偏移，
 */
+
+// 根据文件名中最后一个. 的位置决定
+// 返回最后一个dot 的偏移
+//  -1 无 dot .
+//  非负数，从0开始计算的偏移，
 int dot_search_in_name(char name_find_dot[])
 {
     //printk("str: %s\n",name_find_dot);
@@ -419,15 +415,19 @@ fat32_dirent* fat32_init(){
     //读取mbr信息，0号扇区为mbr
     buf=acquire_buffer(DEVICE_DISK_NUM,0);
 
+    int is_mbr=is_MBR(buf);
+
     //is_MBR(buf);
-    //读取dbr起始的扇区号
-    memcpy(&mbr_info.start_lba,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
-    //读取磁盘总扇区数
-    memcpy(&mbr_info.size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
-    release_buffer(buf);
+    if(is_mbr){
+        //读取dbr起始的扇区号
+        memcpy(&mbr_info.start_lba,buf->data+MBR_DBR_START_SECTOR_OFFSET,sizeof(uint32));//使用memcpy函数代替赋值，防止k210报错
+        //读取磁盘总扇区数
+        memcpy(&mbr_info.size,buf->data+MBR_TOTAL_SECORS_OFFSET,sizeof(uint32));
+        release_buffer(buf);
+    }
     
     //读取dbr信息，根据mbr_info中的dbr_start_sector找到dbr所在扇区
-    buf=acquire_buffer(DEVICE_DISK_NUM,mbr_info.start_lba);
+    buf=acquire_buffer(DEVICE_DISK_NUM,is_mbr?mbr_info.start_lba:0);
     //读取每扇区的字节数
     memcpy(&dbr_info.bytes_per_sector,buf->data+DBR_BYTES_PER_SECTOR_OFFSET,sizeof(uint16));
     //检查每扇区字节数是否等于512字节

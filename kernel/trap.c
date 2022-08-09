@@ -35,7 +35,8 @@ void handle_timer_trap(){
             current->state=READY;
             insert_into_queue(&runnable_queue,current);
         }
-        schedule();     //调用schedule调度进程
+        intr_off();
+        into_schedule();     //调用schedule调度进程
     }
 }
 
@@ -63,8 +64,11 @@ void user_trap(){
     
     //printk("user_trap\n");
     //检查是否是来自用户态的trap
-    if((r_sstatus() & SSTATUS_SPP) != 0)
-        panic("usertrap: not from user mode");
+    if((r_sstatus() & SSTATUS_SPP) != 0){
+        printk("scause=%d\n",r_scause());
+        printk("epc=%p\n",(void*)current->trapframe->epc);
+        //panic("usertrap: not from user mode");
+    }
 
     current->trapframe->epc=r_sepc();   //获取trap发生时的那条指令的虚拟地址
     uint64 cause=r_scause();    //获取trap发生的原因
@@ -91,15 +95,17 @@ void user_trap(){
         
         default:
             printk("scause=%p\n",(void*)cause);
+            
             printk("epc=%p\n",(void*)current->trapframe->epc);
-            printk("epc_pa=%p\n",va_to_pa(current->pagetable, (void*)current->trapframe->epc));
+            printk("epc_pa=%p\n",va_to_pa(kernel_pagetable, (void*)current->trapframe->epc));
             printk("size=%d\n",current->size);
             printk("stval=%p\n",(void*)r_stval());
-            printk("stval_pa=%p\n",(void*)va_to_pa(current->pagetable,(void*)(r_stval())));
+            printk("stval_pa=%p\n",(void*)va_to_pa(kernel_pagetable,(void*)(r_stval())));
             printk("current pid:%d\n",current->pid);
-            printk("current name:%s\n",current->name);
+            //printk("current name:%s\n",current->name);
             printk("ra: %p\n",current->trapframe->regs.ra);
             printk("sp: %p\n",current->trapframe->regs.sp);
+            
             panic("unhandled trap\n");
             break;
     }
@@ -108,6 +114,7 @@ void user_trap(){
 
 //返回用户态
 void user_trap_ret(){
+    //printk("switch to pid:%d\n",current->pid);
     intr_off(); //关闭中断，执行sret后会自动打开中断
     // set S Previous Privilege mode to User.
     switch_to(current); //切换到当前进程

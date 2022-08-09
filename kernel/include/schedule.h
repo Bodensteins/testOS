@@ -17,5 +17,6 @@ void insert_into_queue(process **queue, process *proc);     //将进程proc插�
 int delete_from_queue(process **queue, process *proc);      //将进程proc从队列queue中删除
 
 void schedule();    //进程调度函数，每次时钟中断都会调用这个函数
+void into_schedule();
 
 #endif

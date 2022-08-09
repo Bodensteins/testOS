@@ -12,11 +12,6 @@
 static process *console_queue=NULL;
 static console_buffer cons_buf;
 
-void user_trap_ret();
-static void process_sleep_on_console(process *proc);
-static void process_wakeup_on_console(process *proc);
-static void console_get_args(process *proc, uint64 *addr, int *sz);
-
 void console_init(){
     init_spinlock(&cons_buf.spinlock,"cons_buf lock");
 
@@ -58,47 +53,58 @@ void console_intr(int c){
                 if(c=='\n' || c==CTRL('D') || cons_buf.edit_index==cons_buf.read_index+CONSOLE_BSIZE){
                     // wake up consoleread() if a whole line (or end-of-file) has arrived.
                     cons_buf.write_index=cons_buf.edit_index;
-                    process_wakeup_on_console(console_queue);
+                    //process_wakeup_on_console(console_queue);
+                    process_wakeup1(&console_queue);
                 }
             }
             break;
     }
 }
 
-int read_from_console(void *dst, int sz){
-    char *str=dst;
-    if(sz<=cons_buf.write_index-cons_buf.read_index){
-        for(int i=0;i<sz;i++)
-            str[i]=cons_buf.input_buffer[(cons_buf.read_index+i)%CONSOLE_BSIZE];
-        cons_buf.read_index=cons_buf.read_index+sz;
-        return sz;
-    }
+int read_from_console(void *des, int n){
+    uint target;
+    char *dst=(char*)des;
+    char c;
+    char cbuf;
 
-    uint64 r=cons_buf.read_index;
-    uint8 is_line=0;
-    while(r<cons_buf.write_index){
-        char c=cons_buf.input_buffer[r%CONSOLE_BSIZE];
-        r++;
-        if(c=='\n' || c==CTRL('D')){
-            is_line=1;
+    target = n;
+    //acquire(&cons.lock);
+    while(n > 0){
+        // wait until interrupt handler has put some
+        // input into cons.buffer.
+        while(cons_buf.read_index == cons_buf.write_index){
+            if(current->killed){
+                //release(&cons.lock);
+                return -1;
+            }
+            //sleep(&cons.r, &cons.lock);
+            process_sleep(&console_queue);
+        }
+
+        c = cons_buf.input_buffer[cons_buf.read_index++ % CONSOLE_BSIZE];
+
+        // copy the input byte to the user-space buffer.
+        cbuf = c;
+        
+        //if(either_copyout(user_dst, dst, &cbuf, 1) == -1)
+        //    break;
+        if(c!='\n' && c!=CTRL('D'))
+            memcpy(dst,&cbuf,1);
+        else
+            dst[0]=0;
+
+        dst++;
+        --n;
+        if(c == '\n' || c==CTRL('D')){
+            // a whole line has arrived, return to
+            // the user-level read().
+            n++;
             break;
         }
     }
+    //release(&cons.lock);
 
-    if(!is_line){
-        if(current->killed)
-            return -1;
-        process_sleep_on_console(current);
-    }
-
-    sz=r-cons_buf.read_index;
-    for(int i=0;i<sz;i++)
-        str[i]=cons_buf.input_buffer[(cons_buf.read_index+i)%CONSOLE_BSIZE];
-    cons_buf.read_index=r;
-    if(str[sz-1]=='\n' || str[sz-1]==CTRL('D'))
-        str[sz-1]=0;
-
-    return sz-1;
+    return target - n;
 }
 
 int write_to_console(void *src, int sz){
@@ -111,40 +117,4 @@ int write_to_console(void *src, int sz){
         i++;
     }
     return i;
-}
-
-static void process_sleep_on_console(process *proc){
-    if(proc==NULL)
-        return;
-    
-    proc->state=SLEEPING;
-    insert_into_queue(&console_queue,proc);
-    intr_on();
-    schedule();
-}
-
-static void process_wakeup_on_console(process *proc){
-    if(proc==NULL || proc->state!=SLEEPING)
-        return;
-    
-    if(delete_from_queue(&console_queue, proc)!=0)
-        return;
-
-    proc->state=RUNNING;
-    current=proc;
-
-    uint64 dst;
-    int sz;
-    console_get_args(proc,&dst,&sz);
-    proc->trapframe->regs.a0=read_from_console((void*)dst,sz);
-
-    clear_plic(UART_IRQ);
-    
-    user_trap_ret();
-}
-
-static void console_get_args(process *proc, uint64 *addr, int *sz){
-    *addr=proc->trapframe->regs.a1;
-    *addr=(uint64)va_to_pa(proc->pagetable,(void*)(*addr));
-    *sz=proc->trapframe->regs.a2;
 }

@@ -13,12 +13,14 @@
 #include "include/console.h"
 #include "include/device.h"
 #include "include/inode.h"
+#include "include/fat32.h"
 
 #ifndef QEMU
 #include "sd/include/fpioa.h"
 //#include "sd/include/dmac.h"
 #include "sd/include/sdcard.h"
-#include "include/fat32.h"
+#else
+#include "include/virtio.h"
 #endif
 
 
@@ -230,16 +232,11 @@ void s_start(){
     fpioa_pin_init();   //fpioa初始化
     //dmac_init();    //dmac初始化
     sdcard_init();  //sd卡驱动初始化
+#else
+    virtio_disk_init();
 #endif
     buffer_init();  //磁盘缓冲区初始化
     fat32_init_i();   //fat32初始化
-
-    //test_for_create_entry();
-    //test_for_wirte_dirent();
-    //test_for_read_dirent();
-
-    //test_for_del_dirent();
-    //while(1) {};
 
     load_user_proc();   //加载init进程
     //insert_into_queue(&runnable_queue,load_user_programe());
