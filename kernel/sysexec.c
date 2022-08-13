@@ -181,7 +181,7 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
     //起始地址必须页对齐
     if(phdr->va % PGSIZE !=0){
         printk("va :%p\n",(void*)phdr->va);
-        panic("load_prog_segment: va is not page aligned\n");
+        //panic("load_prog_segment: va is not page aligned\n");
     }
 
     uint64 va,pa;
@@ -189,9 +189,14 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
 
     //pte属性设置为可读、可写、可执行、用户使用
     perm=pte_permission(1,1,1,1);
-    
-    //循环读取该程序段的内容
-    for(va=phdr->va;pg_cnt*PGSIZE<phdr->file_size;va+=PGSIZE,pg_cnt++){
+
+    uint64 start_pos, end_pos;
+    start_pos=phdr->va%PGSIZE;
+    end_pos=(phdr->va+phdr->file_size)%PGSIZE;
+    pg_cnt=(phdr->va+phdr->file_size+PGSIZE-1)/PGSIZE-phdr->va/PGSIZE;
+
+    printk("va:%d, size:%d\n",phdr->va,phdr->file_size);
+    for(int i=0,off=0,va=phdr->va-phdr->va%PGSIZE;i<pg_cnt;i++,va+=PGSIZE){
         //分配物理页
         pa=(uint64)alloc_physical_page();
         if(!pa){
@@ -202,19 +207,25 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
         //地址映射到页表中
         user_vm_map(pagetable,va,PGSIZE,pa,perm);
 
-        //确定需要读取的字节数量
-        uint sz=PGSIZE;
-        if(phdr->file_size-pg_cnt*PGSIZE<PGSIZE)
-            sz=phdr->file_size-pg_cnt*PGSIZE;
+        uint start=0;
+        if(i==0)
+            start=start_pos;
+
+        uint end=PGSIZE;
+        if(i==pg_cnt-1)
+            end=end_pos;
+        
+        uint sz=end-start;
 
         int sz1;
         //读取elf文件中的内容
-        if((sz1=read_by_dirent_i(de,(void*)pa,phdr->offset+pg_cnt*PGSIZE,sz))!=sz){
-            printk("sz=%d\n, sz1=%d\n",sz,sz1);
+        if((sz1=read_by_dirent_i(de,(void*)(pa+start),phdr->offset+off,sz))!=sz){
+            printk("sz=%d, sz1=%d\n",sz,sz1);
             return -1;
         }
-    }
 
+        off+=sz;
+    }
     return pg_cnt;
 }
 

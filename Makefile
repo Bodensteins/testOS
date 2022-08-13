@@ -101,12 +101,12 @@ ULIB = $U/user_syscall.o $U/stdio.o
 
 #编译main程序
 $T/main: $U/main.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 10148 -o $@ $^
 	@$(OBJDUMP) -S $T/main > $T/main.asm
 
 #编译init程序
 $T/init: $U/init.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 1000 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 10140 -o $@ $^
 	@$(OBJDUMP) -S $@ > $@.asm
 
 #编译userinit程序
