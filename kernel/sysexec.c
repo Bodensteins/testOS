@@ -180,7 +180,7 @@ int do_execve(char *path, char **argv, char **env){
 static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog_header *phdr){
     //起始地址必须页对齐
     if(phdr->va % PGSIZE !=0){
-        printk("va :%p\n",(void*)phdr->va);
+        //printk("va :%p\n",(void*)phdr->va);
         //panic("load_prog_segment: va is not page aligned\n");
     }
 
@@ -195,7 +195,7 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
     end_pos=(phdr->va+phdr->file_size)%PGSIZE;
     pg_cnt=(phdr->va+phdr->file_size+PGSIZE-1)/PGSIZE-phdr->va/PGSIZE;
 
-    printk("va:%d, size:%d\n",phdr->va,phdr->file_size);
+    //printk("va:%d, size:%d\n",phdr->va,phdr->file_size);
     for(int i=0,off=0,va=phdr->va-phdr->va%PGSIZE;i<pg_cnt;i++,va+=PGSIZE){
         //分配物理页
         pa=(uint64)alloc_physical_page();
@@ -219,6 +219,7 @@ static int load_prog_segment(pagetable_t pagetable, fat32_dirent *de, elf64_prog
 
         int sz1;
         //读取elf文件中的内容
+        //printk("fz:%d,off:%d %d\n",de->file_size,phdr->offset,off);
         if((sz1=read_by_dirent_i(de,(void*)(pa+start),phdr->offset+off,sz))!=sz){
             printk("sz=%d, sz1=%d\n",sz,sz1);
             return -1;

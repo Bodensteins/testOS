@@ -7,13 +7,13 @@ void main(){
 	dup(fd);
 	dup(fd);
 
-    printf("syscall test begin\n");
+    printf("busybox test begin\n");
     
     int pid=fork();
 
     if(pid==0){
-        char *argv[5]={"yes","comm","no","mm",NULL};
-        execve("main",argv,NULL);
+        //char *argv[5]={"yes","comm","no","mm",NULL};
+        execve("busybox",NULL,NULL);
     }
 
     else{
@@ -23,7 +23,7 @@ void main(){
         printf("ret=%d, status=%d\n",ret,status);
     }
 
-    printf("\nsyscall test end\n");
+    printf("busybox test end\n");
 
     exit(0);
 }

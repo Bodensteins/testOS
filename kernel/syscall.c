@@ -98,8 +98,10 @@ uint64 syscall(){
     int syscall_num=current->trapframe->regs.a7;
     if(syscalls[syscall_num]!=NULL)
         return syscalls[syscall_num]();
-    else 
+    else{
+        printk("sysnum not defined: %d\n",syscall_num);
         return -1;
+    }
 }
 
 //进程复制

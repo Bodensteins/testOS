@@ -1136,7 +1136,7 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
     uint32 nclus=rsize/(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster);
     uint32 nsec=(rsize%(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster))/dbr_info.bytes_per_sector;
     uint32 noff=rsize%dbr_info.bytes_per_sector;
-    if(noff+off>dbr_info.bytes_per_sector){
+    if(noff+off>=dbr_info.bytes_per_sector){
         nsec++;
         if(nsec>=dbr_info.sectors_per_cluster){
             nsec=0;
@@ -1144,6 +1144,10 @@ int read_by_dirent(fat32_dirent *de, void *dst, uint offset, uint rsize){
         }
     }
     noff=(noff+off)%dbr_info.bytes_per_sector;
+
+    //printk("sz:%d,offset:%d,rsize:%d\n",de->file_size,offset,rsize);
+    //printk("c:%d,s:%d,o:%d,nc:%d,ns:%d.no:%d\n",clus,sec,off,nclus,nsec,noff);
+    //printk("%d %d\n",dbr_info.sectors_per_cluster,dbr_info.bytes_per_sector);
 
     uint tot_sz=0;  //实际读取的字节数
     buffer *buf;
@@ -1245,7 +1249,7 @@ int write_by_dirent(fat32_dirent *de, void *src, uint offset,  uint wsize){
     uint32 nsec=(wsize%(dbr_info.bytes_per_sector*dbr_info.sectors_per_cluster))/dbr_info.bytes_per_sector;
     uint32 noff=wsize%dbr_info.bytes_per_sector;
 
-    if(noff+off>dbr_info.bytes_per_sector){
+    if(noff+off>=dbr_info.bytes_per_sector){
         nsec++;
         if(nsec>=dbr_info.sectors_per_cluster){
             nsec=0;

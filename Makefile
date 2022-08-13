@@ -179,6 +179,9 @@ fs:
 #	@sudo cp README.md $(dst)/README.md
 	@sudo cp $T/init $(dst)/init
 	@sudo cp $T/main $(dst)/main
+	@sudo cp $T/busybox $(dst)/busybox
+	@sudo cp $T/busybox_cmd.txt $(dst)/busybox_cmd.txt
+	@sudo cp $T/busybox_testcode.sh $(dst)/busybox_testcode.sh
 #	@for file in $$( ls ${test_src}/* ); do \
 		sudo cp -r $$file $(dst)/$${file#${test_src}/};\
 		done
